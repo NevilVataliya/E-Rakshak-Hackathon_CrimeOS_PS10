@@ -121,9 +121,7 @@ def optimize_and_search(
 
     # Phase 4: Cross-encoder reranking
     if enable_reranker and len(qdrant_results) > 1:
-        legal_terms = extract_universal_legal_terms(complaint_text)
-        terms_str = " ".join(legal_terms) if legal_terms else ""
-        rerank_query = f"{crime_sub_type} {terms_str} {complaint_text[:200]}".strip()
+        rerank_query = f"{crime_sub_type} {complaint_text[:800]}".strip()
         reranked = rerank_chunks(rerank_query, qdrant_results, top_k=top_k)
         return reranked
 

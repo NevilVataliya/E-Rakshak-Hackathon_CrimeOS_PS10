@@ -293,29 +293,27 @@ def search_legal_sops(
         # For each chunk that appears across multiple sub-queries, sum its RRF contributions
         cross_query_scores: Dict[str, Dict[str, Any]] = {}
 
-        # Content-Level Deduplication Key to prevent duplicate Qdrant points of the same page
-        # from filling up multiple candidate slots
         for q_idx, q_results in enumerate(all_per_query_results):
+            # Rank within this sub-query's results
             sorted_results = sorted(q_results, key=lambda x: x["score"], reverse=True)
 
             for rank, result in enumerate(sorted_results, 1):
-                # Content key uniquely identifies a specific document chunk page
-                content_key = f"{result['source'].lower()}:::{str(result.get('page', '')).strip()}:::{result.get('text', '')[:100]}"
+                pid = result["id"]
                 cross_rrf_contribution = 1.0 / (60.0 + rank)
 
-                if content_key not in cross_query_scores:
-                    cross_query_scores[content_key] = {
+                if pid not in cross_query_scores:
+                    cross_query_scores[pid] = {
                         **result,
                         "cross_rrf_score": 0.0,
                         "appeared_in_queries": 0
                     }
 
-                cross_query_scores[content_key]["cross_rrf_score"] += cross_rrf_contribution
-                cross_query_scores[content_key]["appeared_in_queries"] += 1
+                cross_query_scores[pid]["cross_rrf_score"] += cross_rrf_contribution
+                cross_query_scores[pid]["appeared_in_queries"] += 1
 
                 # Boost chunks that appear in multiple sub-queries (cross-query evidence)
-                if cross_query_scores[content_key]["appeared_in_queries"] > 1:
-                    cross_query_scores[content_key]["cross_rrf_score"] += 0.002
+                if cross_query_scores[pid]["appeared_in_queries"] > 1:
+                    cross_query_scores[pid]["cross_rrf_score"] += 0.002
 
         # Sort by cross-query RRF score
         final_candidates = sorted(
