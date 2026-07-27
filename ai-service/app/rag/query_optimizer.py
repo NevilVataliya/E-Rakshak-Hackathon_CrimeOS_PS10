@@ -59,8 +59,8 @@ def optimize_and_search(
     crime_category: str = "",
     entities: Optional[Dict[str, Any]] = None,
     target_specialist: str = None,
-    top_k: int = 5,
-    enable_reranker: bool = True
+    top_k: int = 15,
+    enable_reranker: bool = False
 ) -> List[Dict[str, Any]]:
     """
     End-to-end optimized RAG search pipeline:
@@ -87,22 +87,25 @@ def optimize_and_search(
     sub_queries = None
 
     if RAG_ENABLE_MULTI_QUERY:
-        # Phase 1 & 2: LLM-powered decomposition with HyDE
-        sub_queries = decompose_complaint_to_legal_queries(
+        # Phase 1 & 2: Concept-based decomposition with HyDE
+        concept_queries = decompose_complaint_to_legal_queries(
             complaint_text=complaint_text,
             crime_sub_type=crime_sub_type,
             crime_category=crime_category,
             entities=entities,
             specialist_domain=target_specialist or "",
-            max_queries=RAG_MAX_SUB_QUERIES
+            max_queries=max(1, RAG_MAX_SUB_QUERIES - 1)  # Reserve slot 1 for raw complaint
         )
 
-        # Enrich each sub-query with domain trigger terms
-        domain_terms = extract_universal_legal_terms(complaint_text)
-        if domain_terms:
-            terms_str = " ".join(domain_terms)
-            for sq in sub_queries:
-                sq["query"] = f"{sq['query']} {terms_str}".strip()
+        # HYBRID: Always inject the raw complaint narrative as query #1
+        # The raw text carries the strongest semantic signal for dense matching.
+        # Concept queries are SUPPLEMENTARY — they add breadth, not replace depth.
+        raw_complaint_query = {
+            "query": f"{complaint_text[:600]} {crime_sub_type}".strip(),
+            "hyde_passage": complaint_text[:600],  # Use raw text as its own HyDE
+            "intent": "raw_complaint_narrative"
+        }
+        sub_queries = [raw_complaint_query] + (concept_queries or [])
 
     # Phase 3: Multi-query RRF Qdrant search (or single-query fallback)
     retrieval_top_k = max(top_k * 3, 20) if enable_reranker else top_k  # Fetch more for reranker
@@ -118,7 +121,9 @@ def optimize_and_search(
 
     # Phase 4: Cross-encoder reranking
     if enable_reranker and len(qdrant_results) > 1:
-        rerank_query = f"{crime_sub_type} {complaint_text[:800]}".strip()
+        legal_terms = extract_universal_legal_terms(complaint_text)
+        terms_str = " ".join(legal_terms) if legal_terms else ""
+        rerank_query = f"{crime_sub_type} {terms_str} {complaint_text[:200]}".strip()
         reranked = rerank_chunks(rerank_query, qdrant_results, top_k=top_k)
         return reranked
 

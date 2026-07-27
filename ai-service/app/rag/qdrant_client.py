@@ -110,21 +110,51 @@ def compute_bm25_score(query_tokens: List[str], text_tokens: List[str], avg_len:
     return score
 
 
+def _batch_embed(texts: List[str]) -> List[List[float]]:
+    """
+    Batch-embed multiple texts in a single forward pass.
+    2-3x faster than sequential get_query_embedding() calls on CPU.
+    """
+    global _st_model
+    if not texts:
+        return []
+
+    try:
+        if _st_model is None:
+            with _model_lock:
+                if _st_model is None:
+                    print(f"[*] Thread Safe Initialization: Loading SentenceTransformer ('BAAI/bge-m3') into cache '{MODEL_CACHE_DIR}'...")
+                    from sentence_transformers import SentenceTransformer
+                    st_kwargs = {'cache_folder': MODEL_CACHE_DIR}
+                    if HF_TOKEN:
+                        st_kwargs['token'] = HF_TOKEN
+                    _st_model = SentenceTransformer("BAAI/bge-m3", **st_kwargs)
+        vectors = _st_model.encode(texts, show_progress_bar=False).tolist()
+        return vectors
+    except Exception as e:
+        print(f"[-] Batch Embedding Exception: {e}. Falling back to sequential embedding.")
+        return [get_query_embedding(t) for t in texts]
+
+
 def _single_query_rrf_search(
     client,
     query_text: str,
     hyde_passage: Optional[str],
     target_specialist: Optional[str],
-    candidate_limit: int
+    candidate_limit: int,
+    precomputed_vector: Optional[List[float]] = None
 ) -> List[Dict[str, Any]]:
     """
     Executes a single Dense + BM25 RRF search for one sub-query.
-    If a HyDE passage is provided and HyDE is enabled, it is used for the dense vector embedding.
-    The original query_text is always used for BM25 sparse matching.
+    If precomputed_vector is provided, uses it directly (skips embedding).
+    Otherwise embeds hyde_passage (if HyDE enabled) or query_text.
     """
-    # Dense embedding: use HyDE passage if available, else use raw query
-    dense_text = hyde_passage if (hyde_passage and RAG_ENABLE_HYDE) else query_text
-    query_vector = get_query_embedding(dense_text)
+    # Use precomputed vector if available, otherwise compute
+    if precomputed_vector is not None:
+        query_vector = precomputed_vector
+    else:
+        dense_text = hyde_passage if (hyde_passage and RAG_ENABLE_HYDE) else query_text
+        query_vector = get_query_embedding(dense_text)
     query_tokens = tokenize_text(query_text)  # Always use original query for BM25
 
     try:
@@ -132,10 +162,14 @@ def _single_query_rrf_search(
             print(f"[-] Qdrant Collection '{COLLECTION_NAME}' does not exist.")
             return []
 
+        # Search across all legal documents (soft-boost applied in RRF scoring)
+        query_filter = None
+
         # Dense Vector Search
         global_results = client.search(
             collection_name=COLLECTION_NAME,
             query_vector=query_vector,
+            query_filter=query_filter,
             limit=candidate_limit
         )
 
@@ -238,39 +272,54 @@ def search_legal_sops(
 
     if sub_queries and len(sub_queries) > 0:
         # ========== MULTI-QUERY RRF FUSION ==========
-        all_per_query_results: List[List[Dict[str, Any]]] = []
-
+        # Batch-embed ALL sub-query HyDE passages in a single forward pass
+        # This is 2-3x faster than sequential embedding on CPU
+        dense_texts = []
         for sq in sub_queries:
+            hyde = sq.get("hyde_passage", None)
+            if hyde and RAG_ENABLE_HYDE:
+                dense_texts.append(hyde)
+            else:
+                dense_texts.append(sq.get("query", query))
+
+        precomputed_vectors = _batch_embed(dense_texts)
+
+        all_per_query_results: List[List[Dict[str, Any]]] = []
+        for i, sq in enumerate(sub_queries):
             sq_text = sq.get("query", query)
-            sq_hyde = sq.get("hyde_passage", None)
-            sq_results = _single_query_rrf_search(client, sq_text, sq_hyde, target_specialist, candidate_limit)
+            sq_results = _single_query_rrf_search(
+                client, sq_text, None, target_specialist, candidate_limit,
+                precomputed_vector=precomputed_vectors[i]
+            )
             all_per_query_results.append(sq_results)
 
         # Cross-Query RRF Fusion
         # For each chunk that appears across multiple sub-queries, sum its RRF contributions
         cross_query_scores: Dict[str, Dict[str, Any]] = {}
 
+        # Content-Level Deduplication Key to prevent duplicate Qdrant points of the same page
+        # from filling up multiple candidate slots
         for q_idx, q_results in enumerate(all_per_query_results):
-            # Rank within this sub-query's results
             sorted_results = sorted(q_results, key=lambda x: x["score"], reverse=True)
 
             for rank, result in enumerate(sorted_results, 1):
-                pid = result["id"]
+                # Content key uniquely identifies a specific document chunk page
+                content_key = f"{result['source'].lower()}:::{str(result.get('page', '')).strip()}:::{result.get('text', '')[:100]}"
                 cross_rrf_contribution = 1.0 / (60.0 + rank)
 
-                if pid not in cross_query_scores:
-                    cross_query_scores[pid] = {
+                if content_key not in cross_query_scores:
+                    cross_query_scores[content_key] = {
                         **result,
                         "cross_rrf_score": 0.0,
                         "appeared_in_queries": 0
                     }
 
-                cross_query_scores[pid]["cross_rrf_score"] += cross_rrf_contribution
-                cross_query_scores[pid]["appeared_in_queries"] += 1
+                cross_query_scores[content_key]["cross_rrf_score"] += cross_rrf_contribution
+                cross_query_scores[content_key]["appeared_in_queries"] += 1
 
                 # Boost chunks that appear in multiple sub-queries (cross-query evidence)
-                if cross_query_scores[pid]["appeared_in_queries"] > 1:
-                    cross_query_scores[pid]["cross_rrf_score"] += 0.002
+                if cross_query_scores[content_key]["appeared_in_queries"] > 1:
+                    cross_query_scores[content_key]["cross_rrf_score"] += 0.002
 
         # Sort by cross-query RRF score
         final_candidates = sorted(

@@ -1,21 +1,26 @@
 """
-Crime OS AI — LLM-Powered Multi-Query Decomposition + HyDE Engine
+Crime OS AI — Concept-Based Multi-Query Decomposition + HyDE Engine v4
 
-Phase 1: Decomposes a single victim complaint into 3-5 precise legal search queries
-         using formal statutory terminology to bridge the semantic gap between informal
-         Hinglish narratives and formal legal document text.
+KEY DESIGN PRINCIPLE:
+  The LLM's training data contains OLD Indian laws (IPC, CrPC, Evidence Act) which have
+  been REPLACED by new statutes (BNS 2023, BNSS 2023, BSA 2023). Asking the LLM to cite
+  specific section numbers causes it to hallucinate old-law references (e.g., "Section 506 IPC")
+  that create noise against the vector database which contains ONLY new-law text.
 
-Phase 2: For each decomposed query, generates a short hypothetical legal text passage
-         (~80-120 words) that WOULD appear in the target legal document. This hypothetical
-         passage is embedded instead of the raw query, placing the search vector in the
-         same semantic region as the actual legal chunks.
+  SOLUTION: Use the LLM ONLY for what it's good at — understanding the complaint narrative
+  and extracting LEGAL CONCEPTS (e.g., "cheating", "criminal intimidation", "electronic evidence").
+  Then construct search queries using those concepts combined with the ACTUAL document names
+  from our database. The LLM never needs to know specific section numbers.
 
-Combined, these two techniques attack:
-  - Root Cause #1: Semantic gap between victim language and legal language
-  - Root Cause #2: Single-query bottleneck (one embedding can only match one semantic cluster)
+Approach:
+  1. LLM extracts 3-4 distinct legal concepts/aspects from the complaint
+  2. For each concept, we build a search query using concept + actual DB document names
+  3. HyDE passages describe the concept in formal legal language WITHOUT citing section numbers
+  4. Rule-based fallback if LLM is unavailable
 """
 
 import json
+import re
 import threading
 from typing import List, Dict, Any, Optional
 from config import get_agent_llm, ENABLE_DEMO_FALLBACKS
@@ -23,8 +28,29 @@ from config import get_agent_llm, ENABLE_DEMO_FALLBACKS
 _decomposer_llm = None
 _decomposer_lock = threading.Lock()
 
+# Exact document names in the Qdrant vector database
+DB_DOCUMENTS = {
+    "penal": "BNS_Penal_Code_2024.pdf",
+    "procedure": "BNSS_Procedural_Code_2023.pdf",
+    "evidence": "BSA_Evidence_Act_2023.pdf",
+    "it_act": "IT_Act_2000.pdf",
+    "cyber_sop": "I4C_CFCFRMS_Financial_Fraud_SOP.pdf",
+    "crypto_sop": "BPRD_Cryptocurrency_Investigation_SOP.pdf",
+    "first_responder": "BPRD_First_Responder_Handbook_Computer_System_Acquisition.pdf",
+    "eow_faq": "101_FAQS_EOW_INVESTIGATIONS.pdf",
+    "telecom": "Telecommunications_Act_2023.pdf",
+    "dpdp": "DPDP_Act_2023.pdf",
+    "rbi_kyc": "RBI_Master_Direction_KYC.pdf",
+    "rbi_liability": "RBI_Customer_Liability_Circular_2017.pdf",
+    "missing_child": "MISSING_CHILD_SOP.pdf",
+    "rape_sop": "SOP_Investigation_Prosecution_Rape_Women.pdf",
+    "guj_manual": "THE_GUJARAT_POLICE_MANUAL.pdf",
+    "guj_act": "The_Gujarat_Police_Act_1951.pdf",
+    "police_training": "SOP_Ranking_Police_Training_Institutes.pdf",
+}
+
 def _get_decomposer_llm():
-    """Thread-safe singleton LLM for query decomposition. Uses low temperature for deterministic output."""
+    """Thread-safe singleton LLM for query decomposition."""
     global _decomposer_llm
     if _decomposer_llm is None:
         with _decomposer_lock:
@@ -42,67 +68,41 @@ def decompose_complaint_to_legal_queries(
     max_queries: int = 4
 ) -> List[Dict[str, str]]:
     """
-    Decomposes a victim complaint narrative into multiple precise legal search queries.
-    Each query targets a different statutory/procedural aspect of the case.
+    Decomposes a victim complaint into multiple concept-based search queries.
 
-    Returns a list of dicts, each containing:
-      - "query": The formal legal search query (for BM25 sparse matching)
-      - "hyde_passage": A hypothetical document passage (for dense vector embedding)
-      - "intent": Brief description of what this sub-query targets
+    The LLM extracts legal concepts ONLY — it does NOT generate section numbers
+    or cite specific laws (because its training data has old/wrong section numbers).
 
-    If the LLM call fails, falls back to a rule-based decomposition.
+    Returns a list of dicts with: "query", "hyde_passage", "intent"
     """
     if not complaint_text or len(complaint_text.strip()) < 10:
         return _fallback_decomposition(complaint_text, crime_sub_type, crime_category)
 
-    entities_str = ""
-    if entities:
-        entity_parts = []
-        if entities.get('vpas_upis'):
-            entity_parts.append(f"UPI/VPAs: {', '.join(entities['vpas_upis'])}")
-        if entities.get('phone_numbers'):
-            entity_parts.append(f"Phone Numbers: {', '.join(entities['phone_numbers'])}")
-        if entities.get('bank_accounts'):
-            entity_parts.append(f"Bank Accounts: {json.dumps(entities['bank_accounts'])}")
-        entities_str = "; ".join(entity_parts) if entity_parts else "None extracted"
+    prompt = f"""You are a legal concept extraction assistant. Your ONLY job is to identify the distinct legal concepts present in a police complaint.
 
-    prompt = f"""You are an expert Indian Legal Research Query Analyst for Law Enforcement RAG systems.
+COMPLAINT:
+{complaint_text[:1200]}
 
-TASK: Decompose the following police complaint into {max_queries} precise legal search queries that will retrieve the EXACT relevant legal document chunks from a vector database containing:
-- Bharatiya Nyaya Sanhita (BNS), 2023 — Penal Code
-- Bharatiya Nagarik Suraksha Sanhita (BNSS), 2023 — Criminal Procedure
-- Bharatiya Sakshya Adhiniyam (BSA), 2023 — Evidence Act
-- Information Technology Act, 2000
-- CFCFRMS Financial Fraud SOP (1930 Portal)
-- BPRD Cryptocurrency Investigation SOP
-- Gujarat Police Manual & Act
-- RBI KYC / Customer Liability Circulars
-- POCSO / Missing Child SOP
-- Telecommunications Act, 2023
-- SOP for Investigation of Rape Cases
-- DPDP Act, 2023
+CRIME TYPE: {crime_sub_type or 'Unknown'}
+CATEGORY: {crime_category or 'Unknown'}
 
-COMPLAINT NARRATIVE:
-{complaint_text[:1500]}
+TASK: Extract exactly {max_queries} distinct legal concepts from this complaint. Each concept should be a different legal aspect that an investigator would need to look up.
 
-CRIME SUB-TYPE: {crime_sub_type or 'Unknown'}
-CRIME CATEGORY: {crime_category or 'Unknown'}
-EXTRACTED ENTITIES: {entities_str or 'None'}
-SPECIALIST DOMAIN HINT: {specialist_domain or 'General'}
-
-CRITICAL INSTRUCTIONS:
-1. Each query MUST use FORMAL LEGAL TERMINOLOGY as it appears in Indian statutes (e.g., "Section 318 BNS cheating by personation" NOT "someone tricked me").
-2. Each query should target a DIFFERENT legal aspect (e.g., one for penal sections, one for procedural requirements, one for investigation SOP steps).
-3. For each query, write a "hyde_passage" — a SHORT hypothetical paragraph (80-120 words) that would ACTUALLY APPEAR in the target legal document. Write it in the style of Indian legal text with section numbers, definitions, and provisions.
-4. Generate exactly {max_queries} queries.
+RULES:
+- Extract CONCEPTS like "cheating", "criminal intimidation", "electronic evidence", "search and seizure", "financial fraud investigation procedure"
+- DO NOT cite any specific law names like IPC, CrPC, Evidence Act, BNS, BNSS, or BSA
+- DO NOT generate any section numbers
+- Focus on WHAT happened (the offence/procedure), not which law covers it
+- Each concept must be different from the others
+- Write a brief description (2-3 sentences) of what legal text about this concept would contain
 
 Respond ONLY in valid JSON:
 {{
-  "queries": [
+  "concepts": [
     {{
-      "query": "<FORMAL_LEGAL_SEARCH_QUERY_WITH_SECTION_NUMBERS_AND_STATUTORY_TERMS>",
-      "hyde_passage": "<HYPOTHETICAL_80_120_WORD_PASSAGE_IN_STYLE_OF_TARGET_LEGAL_DOCUMENT>",
-      "intent": "<BRIEF_DESCRIPTION_OF_WHAT_THIS_QUERY_TARGETS>"
+      "concept": "<LEGAL_CONCEPT_NAME_eg_cheating_by_impersonation>",
+      "description": "<2_3_SENTENCES_DESCRIBING_WHAT_THE_LEGAL_TEXT_ABOUT_THIS_CONCEPT_WOULD_SAY>",
+      "aspect": "<ONE_OF: substantive_offence | investigation_procedure | evidence_rules | sop_steps>"
     }}
   ]
 }}"""
@@ -125,40 +125,142 @@ Respond ONLY in valid JSON:
         try:
             data = json.loads(text.strip())
         except json.JSONDecodeError:
-            # Try json-repair as fallback
             try:
                 from json_repair import repair_json
                 repaired = repair_json(text.strip(), return_objects=True)
-                data = repaired if isinstance(repaired, dict) else {"queries": repaired}
+                data = repaired if isinstance(repaired, dict) else {"concepts": repaired}
             except Exception:
                 return _fallback_decomposition(complaint_text, crime_sub_type, crime_category)
 
-        queries = data.get("queries", [])
-        if not queries or not isinstance(queries, list):
+        concepts = data.get("concepts", [])
+        if not concepts or not isinstance(concepts, list):
             return _fallback_decomposition(complaint_text, crime_sub_type, crime_category)
 
-        # Validate and normalize each query
+        # Convert LLM concepts into actual search queries using DB document names
         validated = []
-        for q in queries[:max_queries]:
-            if isinstance(q, dict) and q.get("query"):
-                validated.append({
-                    "query": str(q.get("query", "")),
-                    "hyde_passage": str(q.get("hyde_passage", q.get("query", ""))),
-                    "intent": str(q.get("intent", "legal_retrieval"))
-                })
+        for c in concepts[:max_queries]:
+            if not isinstance(c, dict) or not c.get("concept"):
+                continue
+
+            concept = str(c["concept"])
+            description = str(c.get("description", concept))
+            aspect = str(c.get("aspect", "substantive_offence")).lower()
+
+            # Build the search query: concept + relevant document names from our DB
+            query, hyde = _build_query_from_concept(concept, description, aspect, crime_sub_type, crime_category)
+
+            # Strip any hallucinated old-law references from the query and hyde passage
+            query = _sanitize_old_law_references(query)
+            hyde = _sanitize_old_law_references(hyde)
+
+            validated.append({
+                "query": query,
+                "hyde_passage": hyde,
+                "intent": concept
+            })
 
         if not validated:
             return _fallback_decomposition(complaint_text, crime_sub_type, crime_category)
 
-        print(f"[+] Query Decomposer: Generated {len(validated)} legal sub-queries from complaint.")
+        print(f"[+] Query Decomposer: Generated {len(validated)} concept-based sub-queries.")
         for i, q in enumerate(validated, 1):
-            print(f"    [{i}] {q['intent']}: {q['query'][:80]}...")
+            print(f"    [{i}] {q['intent']}: {q['query'][:100]}...")
 
         return validated
 
     except Exception as e:
         print(f"[-] Query Decomposer LLM Exception: {e}")
         return _fallback_decomposition(complaint_text, crime_sub_type, crime_category)
+
+
+def _sanitize_old_law_references(text: str) -> str:
+    """
+    Remove hallucinated old Indian law references that create noise.
+    Strips IPC/CrPC/Evidence Act section numbers but keeps the legal concepts.
+    """
+    # Remove "Section XXX IPC", "Section XXX CrPC", "Section XXX of the Indian Evidence Act" etc.
+    text = re.sub(r'\bSection\s+\d+[A-Z]?\s*(?:of\s+(?:the\s+)?)?(?:IPC|Indian Penal Code)\b', '', text, flags=re.IGNORECASE)
+    text = re.sub(r'\bSection\s+\d+[A-Z]?\s*(?:of\s+(?:the\s+)?)?(?:CrPC|Cr\.P\.C\.|Code of Criminal Procedure)\b', '', text, flags=re.IGNORECASE)
+    text = re.sub(r'\bSection\s+\d+[A-Z]?\s*(?:of\s+(?:the\s+)?)?(?:Indian Evidence Act|Evidence Act)\b', '', text, flags=re.IGNORECASE)
+    # Remove standalone "IPC", "CrPC", "Indian Penal Code" mentions
+    text = re.sub(r'\b(?:IPC|Indian Penal Code|CrPC|Cr\.P\.C\.|Code of Criminal Procedure|Indian Evidence Act)\b', '', text, flags=re.IGNORECASE)
+    # Clean up extra whitespace
+    text = re.sub(r'\s+', ' ', text).strip()
+    return text
+
+
+def _build_query_from_concept(
+    concept: str,
+    description: str,
+    aspect: str,
+    crime_sub_type: str,
+    crime_category: str
+) -> tuple:
+    """
+    Converts a legal concept into a concrete search query + HyDE passage,
+    using the ACTUAL document names from our Qdrant database.
+    """
+    concept_lower = concept.lower()
+    crime_lower = (crime_sub_type or "").lower()
+    cat_lower = (crime_category or "").lower()
+
+    # Determine which documents are most relevant for this concept's aspect
+    if aspect == "substantive_offence":
+        # Penal code offences → BNS or IT Act
+        if any(kw in concept_lower or kw in crime_lower for kw in ["cyber", "computer", "hacking", "identity", "phishing", "online", "digital"]):
+            doc_context = "Information Technology Act 2000 punishment offence computer resource"
+        else:
+            doc_context = "Bharatiya Nyaya Sanhita BNS 2023 offence punishment imprisonment fine"
+
+        query = f"{concept} {crime_sub_type} {doc_context}".strip()
+        hyde = f"Whoever commits {concept} shall be punished with imprisonment for a term which may extend to years, or with fine, or with both. {description}"
+
+    elif aspect == "investigation_procedure":
+        if any(kw in concept_lower or kw in crime_lower for kw in ["cyber", "financial", "fraud", "upi", "bank", "online", "debit"]):
+            doc_context = "CFCFRMS 1930 portal financial fraud SOP investigation cyber"
+        elif any(kw in concept_lower for kw in ["crypto", "bitcoin", "blockchain", "wallet"]):
+            doc_context = "BPRD cryptocurrency investigation SOP blockchain wallet"
+        elif any(kw in concept_lower for kw in ["missing", "child", "minor"]):
+            doc_context = "missing child SOP TrackChild"
+        elif any(kw in concept_lower for kw in ["rape", "sexual", "assault", "women"]):
+            doc_context = "SOP investigation prosecution rape women"
+        else:
+            doc_context = "Bharatiya Nagarik Suraksha Sanhita BNSS 2023 investigation procedure"
+
+        query = f"{concept} {crime_sub_type} {doc_context}".strip()
+        hyde = f"The investigating officer shall {description} as per the prescribed procedure for cases involving {concept}."
+
+    elif aspect == "evidence_rules":
+        if any(kw in concept_lower for kw in ["electronic", "digital", "computer", "hash", "certificate"]):
+            doc_context = "Bharatiya Sakshya Adhiniyam BSA 2023 electronic record evidence certificate admissibility"
+        elif any(kw in concept_lower for kw in ["forensic", "computer", "acquisition", "seizure"]):
+            doc_context = "BPRD first responder handbook computer system acquisition digital forensics"
+        else:
+            doc_context = "Bharatiya Sakshya Adhiniyam BSA 2023 evidence admissibility relevant fact"
+
+        query = f"{concept} {doc_context}".strip()
+        hyde = f"Any information contained in an electronic record which is relevant to {concept} shall be admissible in evidence. {description}"
+
+    elif aspect == "sop_steps":
+        if any(kw in concept_lower or kw in crime_lower for kw in ["cyber", "financial", "fraud", "upi", "bank"]):
+            doc_context = "CFCFRMS 1930 portal debit freeze mule account SOP"
+        elif any(kw in concept_lower for kw in ["police", "manual", "duty", "patrol", "station"]):
+            doc_context = "Gujarat Police Manual procedure duty"
+        elif any(kw in concept_lower for kw in ["training", "ranking", "institute"]):
+            doc_context = "SOP ranking police training institutes"
+        else:
+            doc_context = "Bharatiya Nagarik Suraksha Sanhita BNSS 2023 procedure"
+
+        query = f"{concept} {crime_sub_type} {doc_context}".strip()
+        hyde = f"Standard operating procedure for {concept}: {description}"
+
+    else:
+        # Generic fallback
+        doc_context = f"Bharatiya Nyaya Sanhita BNS BNSS BSA 2023 {crime_sub_type}"
+        query = f"{concept} {doc_context}".strip()
+        hyde = f"{description} This provision applies to cases involving {concept}."
+
+    return query, hyde
 
 
 def _fallback_decomposition(
@@ -168,52 +270,80 @@ def _fallback_decomposition(
 ) -> List[Dict[str, str]]:
     """
     Rule-based fallback decomposition when LLM is unavailable.
-    Generates 3 queries targeting different legal aspects using domain keyword mapping.
+    Uses concept keywords + actual DB document names. Never cites specific section numbers.
     """
     crime_sub_lower = (crime_sub_type or "").lower()
     complaint_lower = (complaint_text or "").lower()
 
     queries = []
 
-    # Query 1: Penal Code / Substantive Law
-    penal_terms = ""
+    # Query 1: Substantive offence (penal code)
     if any(kw in crime_sub_lower or kw in complaint_lower for kw in ["cheat", "fraud", "impersonat", "deceiv"]):
-        penal_terms = "BNS Section 318 319 cheating dishonestly inducing delivery property impersonation"
-    elif any(kw in crime_sub_lower or kw in complaint_lower for kw in ["extort", "threat", "blackmail", "sextort"]):
-        penal_terms = "BNS Section 308 extortion criminal intimidation coercion threat"
+        concept = "cheating dishonestly inducing delivery of property impersonation"
+    elif any(kw in crime_sub_lower or kw in complaint_lower for kw in ["extort", "threat", "blackmail", "sextort", "intimidat"]):
+        concept = "extortion criminal intimidation threatening coercion"
     elif any(kw in crime_sub_lower or kw in complaint_lower for kw in ["theft", "robbery", "stolen", "snatch"]):
-        penal_terms = "BNS Section 303 304 theft robbery criminal misappropriation"
+        concept = "theft robbery criminal misappropriation of property"
     elif any(kw in crime_sub_lower or kw in complaint_lower for kw in ["forgery", "counterfeit", "fake document"]):
-        penal_terms = "BNS Section 336 forgery making false document"
+        concept = "forgery making false document counterfeiting"
+    elif any(kw in crime_sub_lower or kw in complaint_lower for kw in ["murder", "homicide", "death", "kill"]):
+        concept = "murder culpable homicide causing death"
+    elif any(kw in crime_sub_lower or kw in complaint_lower for kw in ["assault", "hurt", "grievous", "injury"]):
+        concept = "voluntarily causing hurt grievous hurt assault"
+    elif any(kw in crime_sub_lower or kw in complaint_lower for kw in ["kidnap", "abduct", "missing"]):
+        concept = "kidnapping abduction wrongful confinement"
+    elif any(kw in crime_sub_lower or kw in complaint_lower for kw in ["trespass", "house", "break"]):
+        concept = "criminal trespass house-breaking burglary"
+    elif any(kw in crime_sub_lower or kw in complaint_lower for kw in ["mischief", "damage", "destroy", "vandal"]):
+        concept = "mischief damage to property"
     else:
-        penal_terms = f"BNS penal section punishment offence {crime_sub_type}"
+        concept = f"offence punishment {crime_sub_type}"
+
+    # Choose document context based on crime category
+    if any(kw in crime_sub_lower or kw in complaint_lower for kw in ["cyber", "online", "computer", "hacking", "phishing", "identity theft"]):
+        doc_ref = "Information Technology Act 2000 punishment offence computer resource"
+    else:
+        doc_ref = "Bharatiya Nyaya Sanhita BNS 2023 offence punishment imprisonment"
 
     queries.append({
-        "query": f"{penal_terms} {crime_sub_type}".strip(),
-        "hyde_passage": f"Section — {penal_terms}. Whoever commits the offence described herein shall be punished with imprisonment for a term which may extend to years, or with fine, or with both. This section applies to cases involving {crime_sub_type}.",
-        "intent": "penal_code_sections"
+        "query": f"{concept} {crime_sub_type} {doc_ref}".strip(),
+        "hyde_passage": f"Whoever commits {concept} shall be punished with imprisonment for a term which may extend to years, or with fine, or with both. This section applies to cases involving {crime_sub_type}.",
+        "intent": f"substantive_offence: {concept[:50]}"
     })
 
-    # Query 2: Procedural / Investigation SOP
-    if any(kw in crime_sub_lower or kw in complaint_lower for kw in ["cyber", "online", "upi", "digital", "internet", "telegram", "whatsapp"]):
+    # Query 2: Investigation procedure / SOP
+    if any(kw in crime_sub_lower or kw in complaint_lower for kw in ["cyber", "online", "upi", "digital", "internet", "telegram", "whatsapp", "fraud", "bank"]):
         queries.append({
-            "query": f"CFCFRMS 1930 portal cyber fraud SOP debit freeze mule account CDR IPDR {crime_sub_type}",
-            "hyde_passage": "The Citizen Financial Cyber Fraud Reporting and Management System (CFCFRMS) operates through the 1930 helpline portal. Upon receiving a complaint of financial cyber fraud, the investigating officer shall immediately initiate a debit freeze request on the suspected mule accounts through the 1930 portal interface.",
-            "intent": "cyber_investigation_sop"
+            "query": f"CFCFRMS 1930 portal cyber fraud SOP debit freeze mule account investigation procedure {crime_sub_type}",
+            "hyde_passage": f"The Citizen Financial Cyber Fraud Reporting and Management System operates through the 1930 helpline portal. Upon receiving a complaint of financial cyber fraud, the investigating officer shall immediately initiate a debit freeze request on the suspected mule accounts.",
+            "intent": "investigation_procedure: cyber_fraud_SOP"
+        })
+    elif any(kw in crime_sub_lower or kw in complaint_lower for kw in ["missing", "child", "minor", "pocso"]):
+        queries.append({
+            "query": f"missing child SOP TrackChild investigation procedure {crime_sub_type}",
+            "hyde_passage": "Upon receiving information about a missing child, the police officer shall immediately register a case and upload the details on the TrackChild portal. The investigation shall be conducted on priority basis.",
+            "intent": "investigation_procedure: missing_child_SOP"
         })
     else:
         queries.append({
-            "query": f"BNSS investigation procedure panchnama search seizure Section 105 spot evidence {crime_sub_type}",
-            "hyde_passage": "Under Section 105 of the Bharatiya Nagarik Suraksha Sanhita (BNSS), 2023, the investigating officer shall conduct a search and seizure at the place of occurrence in the presence of two independent witnesses and prepare a panchnama documenting all material evidence recovered.",
-            "intent": "procedural_investigation"
+            "query": f"Bharatiya Nagarik Suraksha Sanhita BNSS 2023 investigation procedure panchnama search seizure {crime_sub_type}",
+            "hyde_passage": f"The investigating officer shall conduct a search and seizure at the place of occurrence in the presence of two independent witnesses and prepare a panchnama documenting all material evidence recovered during the investigation of {crime_sub_type}.",
+            "intent": "investigation_procedure: BNSS_procedure"
         })
 
-    # Query 3: Evidence / BSA
-    queries.append({
-        "query": "BSA Section 63 electronic evidence certificate hash value chain custody admissibility digital forensics",
-        "hyde_passage": "Section 63 of the Bharatiya Sakshya Adhiniyam (BSA), 2023, provides that any information contained in an electronic record shall be deemed to be a document and shall be admissible in evidence, provided it is accompanied by a certificate identifying the electronic record and describing the manner in which it was produced.",
-        "intent": "evidence_admissibility"
-    })
+    # Query 3: Evidence requirements
+    if any(kw in crime_sub_lower or kw in complaint_lower for kw in ["cyber", "online", "digital", "electronic", "computer", "upi", "phone"]):
+        queries.append({
+            "query": f"Bharatiya Sakshya Adhiniyam BSA 2023 electronic record evidence certificate admissibility hash value chain of custody",
+            "hyde_passage": "Any information contained in an electronic record which is printed on paper or stored or recorded or copied on optical or magnetic media shall be deemed to be a document and shall be admissible in evidence, provided it is accompanied by a certificate.",
+            "intent": "evidence_rules: electronic_evidence"
+        })
+    else:
+        queries.append({
+            "query": f"Bharatiya Sakshya Adhiniyam BSA 2023 evidence admissibility relevant fact oral documentary {crime_sub_type}",
+            "hyde_passage": f"Facts which are relevant to the issue in cases of {crime_sub_type} shall be proved by oral evidence or documentary evidence as prescribed under this Act.",
+            "intent": "evidence_rules: general_evidence"
+        })
 
-    print(f"[+] Query Decomposer (Fallback): Generated {len(queries)} rule-based sub-queries.")
+    print(f"[+] Query Decomposer (Fallback): Generated {len(queries)} concept-based sub-queries.")
     return queries
