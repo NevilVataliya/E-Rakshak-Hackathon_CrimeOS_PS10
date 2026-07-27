@@ -1,18 +1,3 @@
-"""
-Crime OS AI — High-Precision Legal PDF Ingestion Engine v3
-
-Key changes from v2 (parent-child architecture):
-  1. REMOVES child micro-chunking — uses only parent-level chunks (1024 tokens via Docling HybridChunker)
-  2. Produces ~800-1200 well-formed chunks instead of ~7,700 fragmented children
-  3. Respects document structure boundaries (headings, paragraphs, sections)
-  4. Adds lightweight inline metadata tag (≤30 tokens) for source grounding
-  5. Stores clean text in separate 'text' payload field for BM25 scoring
-  6. Adds 'target_specialist' payload field for soft-filtering support
-  7. Deterministic UUID generation via MD5 hash for benchmark alignment
-
-Collection: police_sops_v3 (or configurable via COLLECTION_NAME env var)
-"""
-
 import os
 import sys
 import re
@@ -39,43 +24,17 @@ from docling.chunking import HybridChunker
 from transformers import AutoTokenizer
 
 # --- ZERO-HARDCODE HIGH-PERFORMANCE UNIVERSAL CONFIGURATION ---
-COLLECTION_NAME = os.getenv("COLLECTION_NAME", "police_sops_v3")
+COLLECTION_NAME = os.getenv("COLLECTION_NAME", "police_sops_universal")
 TRACKING_FILE = f"ingested_history_{COLLECTION_NAME}.json"
 DOCS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "doc")
 
 QDRANT_HOST = os.getenv("QDRANT_HOST", "localhost")
 QDRANT_PORT = int(os.getenv("QDRANT_PORT", 6333))
 
-# Chunk size: 1024 tokens (parent-only, no child micro-vectors)
-CHUNK_MAX_TOKENS = 1024
+PARENT_CHUNK_TOKENS = 1024
+CHILD_CHUNK_TOKENS = 128
 BATCH_SIZE = 100
 MAX_EMBEDDING_THREADS = 4
-
-# Specialist domain auto-detection map (filename-based)
-SPECIALIST_MAP = {
-    "IT_Act": "cyber_financial_intel_specialist",
-    "CFCFRMS": "cyber_financial_intel_specialist",
-    "Cryptocurrency": "cyber_financial_intel_specialist",
-    "BPRD": "cyber_financial_intel_specialist",
-    "Telecommunications": "cyber_financial_intel_specialist",
-    "DPDP": "cyber_financial_intel_specialist",
-    "RBI": "cyber_financial_intel_specialist",
-    "BNS": "bns_specialist",
-    "Penal": "bns_specialist",
-    "BSA": "bsa_specialist",
-    "Evidence": "bsa_specialist",
-    "Sakshya": "bsa_specialist",
-    "BNSS": "bns_specialist",
-    "Procedural": "bns_specialist",
-    "Suraksha": "bns_specialist",
-    "Gujarat_Police": "conventional_field_specialist",
-    "MISSING_CHILD": "conventional_field_specialist",
-    "POCSO": "conventional_field_specialist",
-    "SOP_Investigation": "conventional_field_specialist",
-    "SOP_Ranking": "conventional_field_specialist",
-    "First_Responder": "conventional_field_specialist",
-    "FAQ": "cyber_financial_intel_specialist",
-}
 
 _st_model = None
 
@@ -83,6 +42,7 @@ def get_bge_model():
     global _st_model
     if _st_model is None:
         print("[*] Loading SentenceTransformer ('BAAI/bge-m3') embedding model...")
+        # Direct import with torchcodec bypassed
         from sentence_transformers import SentenceTransformer
         _st_model = SentenceTransformer("BAAI/bge-m3")
     return _st_model
@@ -97,15 +57,15 @@ def detect_pages_requiring_ocr(pdf_path: str) -> Tuple[List[int], int]:
     doc = fitz.open(pdf_path)
     total_pages = len(doc)
     ocr_pages = []
-
+    
     for page_idx in range(total_pages):
         page = doc[page_idx]
         text_content = page.get_text().strip()
         image_objects = page.get_images()
-
+        
         if len(text_content) < 50 and len(image_objects) > 0:
             ocr_pages.append(page_idx + 1)
-
+            
     doc.close()
     return ocr_pages, total_pages
 
@@ -132,13 +92,6 @@ def determine_doc_type(filename: str) -> str:
     if any(x in fname for x in ["SOP", "HANDBOOK", "MANUAL", "CIRCULAR", "DIRECTION", "FAQ", "GUIDELINE"]): return "sop"
     return "legal_document"
 
-def determine_specialist(filename: str) -> str:
-    """Auto-detect target_specialist domain from filename."""
-    for pattern, specialist in SPECIALIST_MAP.items():
-        if pattern.lower() in filename.lower():
-            return specialist
-    return "bns_specialist"  # Default fallback
-
 def extract_pages(chunk) -> str:
     pages = set()
     try:
@@ -152,20 +105,31 @@ def extract_pages(chunk) -> str:
         pass
     return ", ".join(str(p) for p in sorted(pages)) if pages else "1"
 
+def split_parent_into_children(parent_text: str, child_word_size: int = 40) -> List[str]:
+    words = parent_text.split()
+    if len(words) <= child_word_size:
+        return [parent_text]
+        
+    children = []
+    step = max(15, child_word_size // 2)
+    for i in range(0, len(words), step):
+        child_words = words[i:i + child_word_size]
+        if len(child_words) >= 10:
+            children.append(" ".join(child_words))
+    return children if children else [parent_text]
+
 def process_embedding_batch(qdrant_client, batch_chunks, batch_meta):
     try:
         batch_vectors = get_embedding_vectors(batch_chunks)
-
+        
         points = []
         for chunk, meta, vector in zip(batch_chunks, batch_meta, batch_vectors):
-            # Store the embedding text (with inline tag) as 'text' payload
             meta['text'] = chunk
-            # Deterministic UUID from source + page + chunk content
-            unique_string = f"{meta['source']}_{meta['page']}_{chunk}"
+            unique_string = f"{meta['source']}_{meta['page']}_{meta['parent_id']}_{chunk}"
             md5_hash = hashlib.md5(unique_string.encode('utf-8')).hexdigest()
             valid_uuid = str(uuid.UUID(hex=md5_hash))
             points.append(PointStruct(id=valid_uuid, vector=vector, payload=meta))
-
+            
         qdrant_client.upsert(collection_name=COLLECTION_NAME, points=points)
         return len(points)
     except Exception as e:
@@ -176,7 +140,7 @@ def ingest_all_docs(docs_dir=DOCS_DIR):
     if not os.path.exists(docs_dir):
         print(f"[-] Directory '{docs_dir}' not found.")
         return
-
+        
     all_pdf_files = [f for f in os.listdir(docs_dir) if f.lower().endswith('.pdf')]
     if not all_pdf_files:
         print(f"[-] No valid PDFs found in '{docs_dir}'.")
@@ -184,31 +148,27 @@ def ingest_all_docs(docs_dir=DOCS_DIR):
 
     ingested_files = get_ingested_files()
     new_pdf_files = [f for f in all_pdf_files if f not in ingested_files]
-
+    
     if not new_pdf_files:
         print(f"\n[+] No new PDFs detected. Collection '{COLLECTION_NAME}' is fully synchronized!")
         return
 
     qdrant_client = QdrantClient(host=QDRANT_HOST, port=QDRANT_PORT)
-    print(f"\n[*] HIGH-PRECISION PARENT-ONLY INGESTION for '{COLLECTION_NAME}': Processing {len(new_pdf_files)} legal files.")
-    print(f"[*] Chunk Strategy: Parent-only {CHUNK_MAX_TOKENS}-token chunks (no child micro-vectors)")
-
+    print(f"\n[*] PAGE-LEVEL IMAGE DETECTED OCR SYNC FOR '{COLLECTION_NAME}': Processing {len(new_pdf_files)} remaining legal files.")
+    
     os.environ["OMP_NUM_THREADS"] = "1"
     tokenizer = AutoTokenizer.from_pretrained("BAAI/bge-m3")
-    chunker = HybridChunker(tokenizer=tokenizer, max_tokens=CHUNK_MAX_TOKENS)
+    parent_chunker = HybridChunker(tokenizer=tokenizer, max_tokens=PARENT_CHUNK_TOKENS)
 
     get_bge_model()
-
-    total_chunks_all = 0
 
     for pdf_file in new_pdf_files:
         pdf_path = os.path.join(docs_dir, pdf_file)
         doc_type = determine_doc_type(pdf_file)
-        specialist = determine_specialist(pdf_file)
         document_title = pdf_file.replace(".pdf", "").replace("_", " ")
-
+        
         ocr_pages, total_pages = detect_pages_requiring_ocr(pdf_path)
-        print(f"\n    -> Inspecting '{pdf_file}' ({total_pages} Total Pages, Specialist: {specialist})...")
+        print(f"\n    -> Inspecting '{pdf_file}' ({total_pages} Total Pages)...")
         if ocr_pages:
             print(f"       [*] Image OCR Triggered for {len(ocr_pages)} Scanned Image Pages: {ocr_pages[:5]}...")
         else:
@@ -219,39 +179,42 @@ def ingest_all_docs(docs_dir=DOCS_DIR):
             pipeline_options = PdfPipelineOptions()
             pipeline_options.accelerator_options = AcceleratorOptions(num_threads=1)
             pipeline_options.do_ocr = bool(ocr_pages)
-
+            
             converter = DocumentConverter(
                 allowed_formats=[InputFormat.PDF],
                 format_options={InputFormat.PDF: PdfFormatOption(pipeline_options=pipeline_options)}
             )
 
             conversion_result = converter.convert(pdf_path)
-            chunks = list(chunker.chunk(dl_doc=conversion_result.document))
+            parent_chunks = list(parent_chunker.chunk(dl_doc=conversion_result.document))
 
-            for idx, chunk in enumerate(chunks):
-                headings = [h.strip() for h in chunk.meta.headings] if hasattr(chunk.meta, 'headings') and chunk.meta.headings else []
+            for p_idx, p_chunk in enumerate(parent_chunks):
+                headings = [h.strip() for h in p_chunk.meta.headings] if hasattr(p_chunk.meta, 'headings') and p_chunk.meta.headings else []
                 headings_path = " > ".join(headings) if headings else "General Legal Provisions"
-                page_str = extract_pages(chunk)
+                page_str = extract_pages(p_chunk)
+                
+                parent_id = f"{pdf_file}_P{p_idx:04d}_pg{page_str}"
+                parent_full_text = f"[Document: {document_title} | Section: {headings_path} | Page: {page_str}]\n{p_chunk.text}"
+                
+                child_texts = split_parent_into_children(p_chunk.text)
+                
+                for c_idx, c_text in enumerate(child_texts):
+                    child_formatted_payload = f"[Source: {pdf_file}, Page: {page_str}, Section: {headings_path}]\n{c_text}"
+                    doc_chunks.append(child_formatted_payload)
+                    doc_metadatas.append({
+                        "source": pdf_file,
+                        "document_title": document_title,
+                        "doc_type": doc_type,
+                        "page": page_str,
+                        "section_path": headings_path,
+                        "parent_id": parent_id,
+                        "parent_text": parent_full_text,
+                        "granularity": "child_128t",
+                        "child_index": c_idx
+                    })
 
-                # Lightweight inline metadata tag (≤30 tokens) — proven to help BM25 without diluting dense vectors
-                inline_tag = f"[Source: {pdf_file}, Page: {page_str}]"
-                chunk_with_tag = f"{inline_tag}\n{chunk.text}"
-
-                doc_chunks.append(chunk_with_tag)
-                doc_metadatas.append({
-                    "source": pdf_file,
-                    "document_title": document_title,
-                    "doc_type": doc_type,
-                    "page": page_str,
-                    "section_path": headings_path,
-                    "target_specialist": specialist,
-                    "chunk_index": idx,
-                    # Store clean text separately for reranker and BM25
-                    "clean_text": chunk.text
-                })
-
-            print(f"       [+] Compiled '{pdf_file}' ({len(doc_chunks)} parent chunks). Embedding & Upserting into Qdrant...")
-
+            print(f"       [+] Compiled '{pdf_file}' ({len(doc_chunks)} child vectors). Embedding & Upserting into Qdrant...")
+            
             if not qdrant_client.collection_exists(COLLECTION_NAME):
                 sample_vec = get_embedding_vectors([doc_chunks[0]])[0]
                 qdrant_client.create_collection(
@@ -265,14 +228,12 @@ def ingest_all_docs(docs_dir=DOCS_DIR):
                 process_embedding_batch(qdrant_client, batch_chunks, batch_meta)
 
             save_single_ingested_file(pdf_file)
-            total_chunks_all += len(doc_chunks)
-            print(f"       [✓] Secured & Saved '{pdf_file}' permanently ({len(doc_chunks)} chunks)!")
+            print(f"       [✓] Secured & Saved '{pdf_file}' permanently in tracking history!")
 
         except Exception as exc:
             print(f"       [-] Error parsing {pdf_file}: {exc}")
 
-    print(f"\n[+] SUCCESS! All {len(new_pdf_files)} legal files processed into '{COLLECTION_NAME}'!")
-    print(f"[+] Total chunks ingested: {total_chunks_all}")
+    print(f"\n[+] SUCCESS! All legal files processed and synchronized in pristine collection '{COLLECTION_NAME}'!")
 
 if __name__ == "__main__":
     ingest_all_docs()

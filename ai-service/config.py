@@ -38,21 +38,9 @@ GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
 QDRANT_HOST = os.getenv("QDRANT_HOST", "localhost")
 QDRANT_PORT = int(os.getenv("QDRANT_PORT", 6333))
 DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://crimeos_user:crimeos_password@localhost:5432/crimeos_db")
-COLLECTION_NAME = os.getenv("COLLECTION_NAME", "police_sops_v3")
-
-ENABLE_OLLAMA = os.getenv("ENABLE_OLLAMA", "false").lower() == "true"
-OLLAMA_HOST = os.getenv("OLLAMA_HOST", "")
-
-# --- RAG PIPELINE TUNING PARAMETERS ---
-RAG_ENABLE_HYDE = os.getenv("RAG_ENABLE_HYDE", "true").lower() == "true"
-RAG_ENABLE_MULTI_QUERY = os.getenv("RAG_ENABLE_MULTI_QUERY", "true").lower() == "true"
-RAG_MAX_SUB_QUERIES = int(os.getenv("RAG_MAX_SUB_QUERIES", "4"))
-RAG_CANDIDATES_PER_QUERY = int(os.getenv("RAG_CANDIDATES_PER_QUERY", "50"))
-RAG_RERANKER_MODEL = os.getenv("RAG_RERANKER_MODEL", "BAAI/bge-reranker-base")
-RAG_RERANKER_TOP_K = int(os.getenv("RAG_RERANKER_TOP_K", "15"))
+COLLECTION_NAME = os.getenv("COLLECTION_NAME", "police_sops_universal")
 
 print(f"[*] Configuration Loaded: DEBUG={DEBUG} | ENABLE_DEMO_FALLBACKS={ENABLE_DEMO_FALLBACKS} | MODEL_CACHE={MODEL_CACHE_DIR}")
-print(f"[*] RAG Config: HYDE={RAG_ENABLE_HYDE} | MULTI_QUERY={RAG_ENABLE_MULTI_QUERY} | MAX_QUERIES={RAG_MAX_SUB_QUERIES} | RERANKER={RAG_RERANKER_MODEL}")
 
 def get_vision_llm():
     """

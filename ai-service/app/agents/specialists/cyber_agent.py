@@ -1,6 +1,6 @@
 import json
 from app.agents.state import AgentState
-from app.rag.query_optimizer import optimize_and_search
+from app.rag.qdrant_client import search_legal_sops
 from app.utils.json_helper import parse_llm_json
 from app.models.schemas import CyberDraftSchema
 from config import get_agent_llm, ENABLE_DEMO_FALLBACKS
@@ -8,31 +8,24 @@ from config import get_agent_llm, ENABLE_DEMO_FALLBACKS
 def cyber_agent_node(state: AgentState) -> dict:
     """
     Cyber & Financial Specialist Agent.
-    Uses the Multi-Query RAG Pipeline (query decomposition + HyDE + RRF + reranking)
-    to retrieve Cyber & Financial Investigation SOPs from Qdrant.
+    Retrieves Cyber & Financial Investigation SOPs from Qdrant using payload filtering.
     Formulates entity-specific police directives citing exact retrieved document sources without hardcoded fallbacks.
     """
     entities = state.get('entities') or {}
     feedback = state.get('evaluation_feedback') or []
     crime_sub = state.get('crime_sub_type') or 'Cyber Fraud'
-    crime_cat = state.get('crime_category') or 'CYBER'
     complaint_text = state.get('translated_text') or state.get('complaint_text') or ''
-
-    # Use the new end-to-end optimized RAG pipeline
-    qdrant_docs = optimize_and_search(
-        complaint_text=complaint_text,
-        crime_sub_type=crime_sub,
-        crime_category=crime_cat,
-        entities=entities,
-        target_specialist="cyber_financial_intel_specialist",
-        top_k=4,
-        enable_reranker=True
-    )
-
+    
+    vpas = ", ".join(entities.get('vpas_upis') or [])
+    phones = ", ".join(entities.get('phone_numbers') or [])
+    
+    rag_query = f"{crime_sub} digital evidence CDR IPDR LERS bank debit freeze SOP {vpas} {phones}".strip()
+    qdrant_docs = search_legal_sops(rag_query, target_specialist="cyber_financial_intel_specialist", top_k=4)
+    
     formatted_chunks = []
     for d in qdrant_docs:
         formatted_chunks.append(f"[SOURCE: {d['source']} | PAGE: {d['page']}]:\n{d['text']}")
-
+        
     rag_context = "\n\n---\n\n".join(formatted_chunks) if formatted_chunks else "[SOURCE: CYBER_FRAUD_SOP.pdf | PAGE: 1]: Issue Sec 94 BNSS notice for CDR & Bank Debit Freeze."
 
     llm = get_agent_llm("auto", temperature=0.1)
@@ -42,7 +35,7 @@ You are the Senior Cyber & Financial Intelligence Specialist Agent for Indian La
 Ground your investigation directives strictly on the RETRIEVED QDRANT SOP CHUNKS provided below.
 
 CRIME SUB-TYPE: {crime_sub}
-COMPLAINT SUMMARY: {complaint_text}
+COMPLAINT SUMMARY: {complaint_text[:1000]}
 EXTRACTED CASE ENTITIES: {json.dumps(entities)}
 EVALUATOR FEEDBACK: {feedback if feedback else "None"}
 
