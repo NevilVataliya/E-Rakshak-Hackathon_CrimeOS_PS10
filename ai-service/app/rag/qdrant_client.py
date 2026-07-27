@@ -162,14 +162,10 @@ def _single_query_rrf_search(
             print(f"[-] Qdrant Collection '{COLLECTION_NAME}' does not exist.")
             return []
 
-        # Search across all legal documents (soft-boost applied in RRF scoring)
-        query_filter = None
-
         # Dense Vector Search
         global_results = client.search(
             collection_name=COLLECTION_NAME,
             query_vector=query_vector,
-            query_filter=query_filter,
             limit=candidate_limit
         )
 

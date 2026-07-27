@@ -59,8 +59,8 @@ def optimize_and_search(
     crime_category: str = "",
     entities: Optional[Dict[str, Any]] = None,
     target_specialist: str = None,
-    top_k: int = 15,
-    enable_reranker: bool = False
+    top_k: int = 5,
+    enable_reranker: bool = True
 ) -> List[Dict[str, Any]]:
     """
     End-to-end optimized RAG search pipeline:

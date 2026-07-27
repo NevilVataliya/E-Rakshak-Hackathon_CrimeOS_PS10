@@ -123,14 +123,16 @@ def run_benchmark_evaluation():
             gt = tc["ground_truth_binding"]
             spec_domain = tc["specialist_domain"]
 
-            # Direct High-Precision Single-Query Search (78-79%+ Hit Rate)
+            # Use the full Multi-Query RAG Pipeline
             start_time = time.time()
-            rag_query = f"{narrative[:500]} {crime_sub}".strip()
-            retrieved = search_legal_sops(
-                query=rag_query,
+            retrieved = optimize_and_search(
+                complaint_text=narrative[:600],
+                crime_sub_type=crime_sub,
+                crime_category=crime_cat,
+                entities=tc.get("expected_entities"),
                 target_specialist=spec_domain,
                 top_k=15,
-                use_hyde=True
+                enable_reranker=True
             )
             elapsed_ms = (time.time() - start_time) * 1000
             total_latency_ms += elapsed_ms

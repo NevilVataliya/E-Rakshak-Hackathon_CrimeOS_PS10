@@ -38,13 +38,13 @@ GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
 QDRANT_HOST = os.getenv("QDRANT_HOST", "localhost")
 QDRANT_PORT = int(os.getenv("QDRANT_PORT", 6333))
 DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://crimeos_user:crimeos_password@localhost:5432/crimeos_db")
-COLLECTION_NAME = os.getenv("COLLECTION_NAME", "police_sops_universal")
+COLLECTION_NAME = os.getenv("COLLECTION_NAME", "police_sops")
 
 # --- RAG PIPELINE TUNING PARAMETERS ---
 RAG_ENABLE_HYDE = os.getenv("RAG_ENABLE_HYDE", "true").lower() == "true"
-RAG_ENABLE_MULTI_QUERY = os.getenv("RAG_ENABLE_MULTI_QUERY", "false").lower() == "true"
-RAG_MAX_SUB_QUERIES = int(os.getenv("RAG_MAX_SUB_QUERIES", "1"))
-RAG_CANDIDATES_PER_QUERY = int(os.getenv("RAG_CANDIDATES_PER_QUERY", "200"))
+RAG_ENABLE_MULTI_QUERY = os.getenv("RAG_ENABLE_MULTI_QUERY", "true").lower() == "true"
+RAG_MAX_SUB_QUERIES = int(os.getenv("RAG_MAX_SUB_QUERIES", "3"))
+RAG_CANDIDATES_PER_QUERY = int(os.getenv("RAG_CANDIDATES_PER_QUERY", "50"))
 RAG_RERANKER_MODEL = os.getenv("RAG_RERANKER_MODEL", "cross-encoder/ms-marco-MiniLM-L-6-v2")
 RAG_RERANKER_TOP_K = int(os.getenv("RAG_RERANKER_TOP_K", "15"))
 
@@ -70,34 +70,32 @@ def get_vision_llm():
 
 def get_agent_llm(provider: str = "auto", temperature: float = 0.2):
     """
-    Polyglot LLM Factory getter with automatic rate-limit fallback.
-    Prioritizes Gemini 1.5 Flash / Groq versatile models / OpenAI gpt-4o-mini
-    for zero-interruption agent execution.
+    Polyglot LLM Factory getter.
+    Prioritizes Groq / Claude / OpenAI for strict JSON schema compliance & zero hallucinations.
+    Falls back gracefully if specific keys are absent.
     """
-    groq_model = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")
-
     if provider == "groq" and GROQ_API_KEY:
-        return ChatGroq(model_name=groq_model, groq_api_key=GROQ_API_KEY, temperature=temperature)
+        return ChatGroq(model_name="openai/gpt-oss-120b", groq_api_key=GROQ_API_KEY, temperature=temperature)
 
     if provider == "claude" and ANTHROPIC_API_KEY:
         return ChatAnthropic(model="claude-3-5-sonnet-20240620", api_key=ANTHROPIC_API_KEY, temperature=temperature)
 
     if provider == "openai" and OPENAI_API_KEY:
-        return ChatOpenAI(model="gpt-4o-mini", api_key=OPENAI_API_KEY, temperature=temperature)
+        return ChatOpenAI(model="gpt-4o", api_key=OPENAI_API_KEY, temperature=temperature)
 
     if provider == "gemini" and GEMINI_API_KEY:
-        return ChatGoogleGenerativeAI(model="gemini-1.5-flash", google_api_key=GEMINI_API_KEY, temperature=temperature)
+        return ChatGoogleGenerativeAI(model="gemini-1.5-pro", google_api_key=GEMINI_API_KEY, temperature=temperature)
 
-    # AUTO SELECTION: Prioritize high-capacity models to prevent 429 TPD rate limits
-    if GEMINI_API_KEY:
-        return ChatGoogleGenerativeAI(model="gemini-1.5-flash", google_api_key=GEMINI_API_KEY, temperature=temperature)
-    elif OPENAI_API_KEY:
-        return ChatOpenAI(model="gpt-4o-mini", api_key=OPENAI_API_KEY, temperature=temperature)
-    elif GROQ_API_KEY:
-        return ChatGroq(model_name=groq_model, groq_api_key=GROQ_API_KEY, temperature=temperature)
+    # AUTO SELECTION
+    if GROQ_API_KEY:
+        return ChatGroq(model_name="openai/gpt-oss-120b", groq_api_key=GROQ_API_KEY, temperature=temperature)
     elif ANTHROPIC_API_KEY:
         return ChatAnthropic(model="claude-3-5-sonnet-20240620", api_key=ANTHROPIC_API_KEY, temperature=temperature)
+    elif OPENAI_API_KEY:
+        return ChatOpenAI(model="gpt-4o-mini", api_key=OPENAI_API_KEY, temperature=temperature)
+    elif GEMINI_API_KEY:
+        return ChatGoogleGenerativeAI(model="gemini-1.5-flash", google_api_key=GEMINI_API_KEY, temperature=temperature)
     else:
         if not ENABLE_DEMO_FALLBACKS:
-            raise ValueError("No Agent LLM API Keys found in .env (GEMINI_API_KEY, OPENAI_API_KEY, GROQ_API_KEY, or ANTHROPIC_API_KEY required).")
+            raise ValueError("No Agent LLM API Keys found in .env (GROQ_API_KEY, OPENAI_API_KEY, ANTHROPIC_API_KEY, or GEMINI_API_KEY required).")
         return ChatOpenAI(model="gpt-4o-mini", api_key="mock", temperature=temperature)
