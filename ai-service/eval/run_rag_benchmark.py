@@ -122,7 +122,7 @@ def run_benchmark_evaluation():
             # Use the full Multi-Query RAG Pipeline
             start_time = time.time()
             retrieved = optimize_and_search(
-                complaint_text=narrative[:600],
+                complaint_text=narrative,
                 crime_sub_type=crime_sub,
                 crime_category=crime_cat,
                 entities=tc.get("expected_entities"),
@@ -187,7 +187,7 @@ def run_benchmark_evaluation():
             start_time = time.time()
             # Use multi-query pipeline for composite cases
             retrieved_all = optimize_and_search(
-                complaint_text=narrative[:600],
+                complaint_text=narrative,
                 crime_sub_type=crime_sub,
                 crime_category=crime_cat,
                 entities=tc.get("expected_entities"),

@@ -40,12 +40,15 @@ QDRANT_PORT = int(os.getenv("QDRANT_PORT", 6333))
 DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://crimeos_user:crimeos_password@localhost:5432/crimeos_db")
 COLLECTION_NAME = os.getenv("COLLECTION_NAME", "police_sops_v3")
 
+ENABLE_OLLAMA = os.getenv("ENABLE_OLLAMA", "false").lower() == "true"
+OLLAMA_HOST = os.getenv("OLLAMA_HOST", "")
+
 # --- RAG PIPELINE TUNING PARAMETERS ---
 RAG_ENABLE_HYDE = os.getenv("RAG_ENABLE_HYDE", "true").lower() == "true"
 RAG_ENABLE_MULTI_QUERY = os.getenv("RAG_ENABLE_MULTI_QUERY", "true").lower() == "true"
-RAG_MAX_SUB_QUERIES = int(os.getenv("RAG_MAX_SUB_QUERIES", "3"))
+RAG_MAX_SUB_QUERIES = int(os.getenv("RAG_MAX_SUB_QUERIES", "4"))
 RAG_CANDIDATES_PER_QUERY = int(os.getenv("RAG_CANDIDATES_PER_QUERY", "50"))
-RAG_RERANKER_MODEL = os.getenv("RAG_RERANKER_MODEL", "cross-encoder/ms-marco-MiniLM-L-6-v2")
+RAG_RERANKER_MODEL = os.getenv("RAG_RERANKER_MODEL", "BAAI/bge-reranker-base")
 RAG_RERANKER_TOP_K = int(os.getenv("RAG_RERANKER_TOP_K", "15"))
 
 print(f"[*] Configuration Loaded: DEBUG={DEBUG} | ENABLE_DEMO_FALLBACKS={ENABLE_DEMO_FALLBACKS} | MODEL_CACHE={MODEL_CACHE_DIR}")
@@ -75,7 +78,7 @@ def get_agent_llm(provider: str = "auto", temperature: float = 0.2):
     Falls back gracefully if specific keys are absent.
     """
     if provider == "groq" and GROQ_API_KEY:
-        return ChatGroq(model_name="openai/gpt-oss-120b", groq_api_key=GROQ_API_KEY, temperature=temperature)
+        return ChatGroq(model_name="llama-3.3-70b-versatile", groq_api_key=GROQ_API_KEY, temperature=temperature)
 
     if provider == "claude" and ANTHROPIC_API_KEY:
         return ChatAnthropic(model="claude-3-5-sonnet-20240620", api_key=ANTHROPIC_API_KEY, temperature=temperature)
@@ -88,7 +91,7 @@ def get_agent_llm(provider: str = "auto", temperature: float = 0.2):
 
     # AUTO SELECTION
     if GROQ_API_KEY:
-        return ChatGroq(model_name="openai/gpt-oss-120b", groq_api_key=GROQ_API_KEY, temperature=temperature)
+        return ChatGroq(model_name="llama-3.3-70b-versatile", groq_api_key=GROQ_API_KEY, temperature=temperature)
     elif ANTHROPIC_API_KEY:
         return ChatAnthropic(model="claude-3-5-sonnet-20240620", api_key=ANTHROPIC_API_KEY, temperature=temperature)
     elif OPENAI_API_KEY:

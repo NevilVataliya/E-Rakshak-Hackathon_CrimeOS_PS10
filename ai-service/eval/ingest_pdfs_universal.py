@@ -25,7 +25,7 @@ from docling.chunking import HybridChunker
 from transformers import AutoTokenizer
 
 # --- CONFIGURATION ---
-COLLECTION_NAME = os.getenv("COLLECTION_NAME", "police_sops")
+COLLECTION_NAME = os.getenv("COLLECTION_NAME", "police_sops_v3")
 TRACKING_FILE = f"ingested_history_{COLLECTION_NAME}.json"
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -153,28 +153,10 @@ def parse_single_pdf(pdf_file: str, docs_dir: str) -> Tuple[str, List[str], List
 
     return pdf_file, chunks, metadatas
 
-_st_model = None
-_model_lock = threading.Lock()
-
-def get_bge_model():
-    global _st_model
-    if _st_model is None:
-        with _model_lock:
-            if _st_model is None:
-                model_cache_dir = os.getenv("MODEL_CACHE_DIR", os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "models_cache"))
-                hf_token = os.getenv("HF_TOKEN", "")
-                print(f"[*] Loading SentenceTransformer ('BAAI/bge-m3') from cache '{model_cache_dir}'...")
-                from sentence_transformers import SentenceTransformer
-                st_kwargs = {'cache_folder': model_cache_dir}
-                if hf_token:
-                    st_kwargs['token'] = hf_token
-                _st_model = SentenceTransformer("BAAI/bge-m3", **st_kwargs)
-    return _st_model
-
 def process_embedding_batch(qdrant_client, batch_chunks, batch_meta):
     try:
-        model = get_bge_model()
-        batch_vectors = model.encode(batch_chunks, show_progress_bar=False).tolist()
+        response = ollama.embed(model=EMBEDDING_MODEL, input=batch_chunks)
+        batch_vectors = response['embeddings']
 
         points = []
         for chunk, meta, vector in zip(batch_chunks, batch_meta, batch_vectors):
@@ -187,7 +169,7 @@ def process_embedding_batch(qdrant_client, batch_chunks, batch_meta):
         qdrant_client.upsert(collection_name=COLLECTION_NAME, points=points)
         return len(points)
     except Exception as e:
-        print(f"[-] Embedding/Upsert Error: {e}")
+        print(f"[-] Ollama Embedding/Upsert Error: {e}")
         return 0
 
 def ingest_all_docs(docs_dir=DOCS_DIR):

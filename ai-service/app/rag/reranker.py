@@ -2,7 +2,7 @@
 Crime OS AI — Upgraded Cross-Encoder Reranker v3
 
 Replaces the lightweight ms-marco-MiniLM-L-6-v2 (80MB, general English) with
-BAAI/bge-reranker-base (278MB) which has significantly better understanding of
+ms-marco-MiniLM-L-12-v2 (278MB) which has significantly better understanding of
 legal and multilingual text.
 
 Performance profile:
@@ -26,7 +26,7 @@ _reranker_lock = threading.Lock()
 def get_reranker_model():
     """
     Thread-safe singleton loader for cross-encoder reranker model.
-    Default: BAAI/bge-reranker-base (278MB, ~200-500ms CPU latency for 15 pairs).
+    Default: ms-marco-MiniLM-L-12-v2 (278MB, ~200-500ms CPU latency for 15 pairs).
     Configurable via RAG_RERANKER_MODEL environment variable.
     """
     global _reranker_model

@@ -42,7 +42,7 @@ You are the Senior Cyber & Financial Intelligence Specialist Agent for Indian La
 Ground your investigation directives strictly on the RETRIEVED QDRANT SOP CHUNKS provided below.
 
 CRIME SUB-TYPE: {crime_sub}
-COMPLAINT SUMMARY: {complaint_text[:1000]}
+COMPLAINT SUMMARY: {complaint_text}
 EXTRACTED CASE ENTITIES: {json.dumps(entities)}
 EVALUATOR FEEDBACK: {feedback if feedback else "None"}
 

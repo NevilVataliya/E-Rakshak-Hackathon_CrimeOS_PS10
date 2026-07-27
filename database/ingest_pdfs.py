@@ -82,14 +82,9 @@ _st_model = None
 def get_bge_model():
     global _st_model
     if _st_model is None:
-        model_cache_dir = os.getenv("MODEL_CACHE_DIR", os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "ai-service", "models_cache"))
-        hf_token = os.getenv("HF_TOKEN", "")
-        print(f"[*] Loading SentenceTransformer ('BAAI/bge-m3') from cache '{model_cache_dir}'...")
+        print("[*] Loading SentenceTransformer ('BAAI/bge-m3') embedding model...")
         from sentence_transformers import SentenceTransformer
-        st_kwargs = {'cache_folder': model_cache_dir}
-        if hf_token:
-            st_kwargs['token'] = hf_token
-        _st_model = SentenceTransformer("BAAI/bge-m3", **st_kwargs)
+        _st_model = SentenceTransformer("BAAI/bge-m3")
     return _st_model
 
 def get_embedding_vectors(text_batch: List[str]) -> List[List[float]]:
