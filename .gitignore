@@ -1,0 +1,93 @@
+# ==============================================================================
+# CRIME OS AI — PRODUCTION GITIGNORE SPECIFICATION
+# ==============================================================================
+
+# 1. Environment Secrets & API Keys (CRITICAL)
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+*.env
+!.env.example
+
+# 2. Node.js Dependencies & Build Outputs
+node_modules/
+**/node_modules/
+dist/
+**/dist/
+build/
+**/build/
+dist-ssr/
+**/dist-ssr/
+*.tsbuildinfo
+**/*.tsbuildinfo
+
+# 3. Package Manager Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+*.log
+
+# 4. Python Bytecode, Caches & Virtual Environments
+__pycache__/
+**/__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+ENV/
+env.bak/
+venv.bak/
+
+# 5. Heavy AI Model Weights & Cache Directories
+models_cache/
+**/models_cache/
+hf_cache/
+**/hf_cache/
+.cache/
+**/.cache/
+*.bin
+*.pt
+*.safetensors
+*.onnx
+
+# 6. Runtime File Uploads & Generated Document Outputs
+uploads/
+**/uploads/
+generated_pdfs/
+**/generated_pdfs/
+temp_*/
+*.tmp
+
+# 7. Database Files & Local Persistent Storage
+*.sqlite
+*.sqlite3
+*.db
+postgres_data/
+qdrant_data/
+
+# 8. OS & IDE System Files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+.vscode/
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?

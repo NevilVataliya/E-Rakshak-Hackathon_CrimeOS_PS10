@@ -1,0 +1,111 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: crimeos_postgres
+    environment:
+      POSTGRES_DB: crimeos_db
+      POSTGRES_USER: crimeos_user
+      POSTGRES_PASSWORD: crimeos_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database/schema.sql:/docker-entrypoint-initdb.d/01_schema.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U crimeos_user -d crimeos_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  qdrant:
+    image: qdrant/qdrant:latest
+    container_name: crimeos_qdrant
+    ports:
+      - "6333:6333"
+      - "6334:6334"
+    volumes:
+      - qdrant_data:/qdrant/storage
+
+  redis:
+    image: redis:7-alpine
+    container_name: crimeos_redis
+    ports:
+      - "6379:6379"
+
+  ai-service:
+    build:
+      context: ./ai-service
+      dockerfile: Dockerfile
+    container_name: crimeos_ai_service
+    ports:
+      - "8000:8000"
+    environment:
+      - PORT=8000
+      - DATABASE_URL=postgresql://crimeos_user:crimeos_password@postgres:5432/crimeos_db
+      - QDRANT_HOST=qdrant
+      - QDRANT_PORT=6333
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - GROQ_API_KEY=${GROQ_API_KEY}
+      - HUGGINGFACE_HUB_TOKEN=${HF_TOKEN}
+      - HF_TOKEN=${HF_TOKEN}
+      - HF_HOME=/app/models_cache
+      - SENTENCE_TRANSFORMERS_HOME=/app/models_cache
+    volumes:
+      - ./ai-service:/app
+      - ./database:/app/database
+      - hf_cache:/root/.cache/huggingface
+      - model_cache:/app/models_cache
+    depends_on:
+      postgres:
+        condition: service_healthy
+      qdrant:
+        condition: service_started
+      redis:
+        condition: service_started
+
+  gateway:
+    build:
+      context: ./gateway
+      dockerfile: Dockerfile
+    container_name: crimeos_gateway
+    ports:
+      - "4000:4000"
+    environment:
+      - PORT=4000
+      - DATABASE_URL=postgresql://crimeos_user:crimeos_password@postgres:5432/crimeos_db
+      - AI_SERVICE_URL=http://ai-service:8000
+      - MOCK_APIS_URL=http://mock-apis:5000
+      - JWT_SECRET=crimeos_secret_jwt_key_2026_investigation_suite
+    depends_on:
+      - ai-service
+      - postgres
+
+  mock-apis:
+    build:
+      context: ./mock-apis
+      dockerfile: Dockerfile
+    container_name: crimeos_mock_apis
+    ports:
+      - "5000:5000"
+
+  frontend:
+    build:
+      context: ./frontend3
+      dockerfile: Dockerfile
+    container_name: crimeos_frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - gateway
+
+volumes:
+  postgres_data:
+  qdrant_data:
+  hf_cache:
+  model_cache:

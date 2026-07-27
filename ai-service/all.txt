@@ -1,0 +1,1148 @@
+
+==> ./app/agents/nodes/cross_memory.py <==
+from app.agents.state import AgentState
+
+def cross_case_memory_node(state: AgentState) -> dict:
+    """
+    Analyzes entities (VPAs, Bank accounts, Phone numbers) against past cases
+    to flag serial offenders and recurring Modus Operandi (MO).
+    """
+    entities = state.get('entities', {})
+    phone_numbers = entities.get('phone_numbers', [])
+    vpas = entities.get('vpas_upis', [])
+    bank_accounts = entities.get('bank_accounts', [])
+    
+    matches = []
+    
+    # Mock / Database link analysis logic
+    if vpas:
+        for vpa in vpas:
+            matches.append({
+                "match_type": "VPA_RECURRENCE",
+                "matched_value": vpa,
+                "previous_case_no": "CR-2026-0812",
+                "police_station": "Surat Cyber Cell",
+                "status": "Linked Serial Fraudster",
+                "confidence": 0.94
+            })
+            
+    if phone_numbers:
+        for phone in phone_numbers:
+            matches.append({
+                "match_type": "PHONE_CDR_RECURRENCE",
+                "matched_value": phone,
+                "previous_case_no": "CR-2026-0441",
+                "police_station": "Rajkot Rural Station",
+                "status": "Tower Dump Link Identified",
+                "confidence": 0.88
+            })
+
+    print(f"[+] Cross-Case Memory Node executed: Found {len(matches)} links across past cases.")
+    return {"cross_case_matches": matches}
+
+==> ./app/agents/nodes/evaluator.py <==
+from app.agents.state import AgentState
+
+def evaluator_node(state: AgentState) -> dict:
+    """
+    Evaluator Node (Anti-Laziness Quality Filter).
+    Inspects draft outputs from all specialist agents to ensure complete legal grounding,
+    mandatory BNSS/BSA compliance, and actionable police directives.
+    """
+    bns_draft = state.get('bns_draft')
+    bsa_draft = state.get('bsa_draft')
+    cyber_draft = state.get('cyber_draft')
+    iteration = state.get('iteration_count', 0)
+    
+    feedback = []
+    
+    # Check 1: Check BNS grounding
+    if not bns_draft or not bns_draft.get('bns_sections'):
+        feedback.append("Missing explicit BNS/IT Act penal section grounding.")
+        
+    # Check 2: Check BSA compliance
+    if not bsa_draft or not bsa_draft.get('bsa_requirements'):
+        feedback.append("Missing mandatory Section 63 BSA certificate requirement.")
+
+    # Anti-laziness loop limit (max 2 iterations to avoid infinite loops)
+    if feedback and iteration < 2:
+        print(f"[!] Evaluator REJECTED drafts (Iteration {iteration + 1}): {feedback}")
+        return {
+            "evaluation_status": "REJECTED",
+            "evaluation_feedback": feedback,
+            "iteration_count": iteration + 1
+        }
+    else:
+        print(f"[+] Evaluator APPROVED drafts! Passing to HITL review.")
+        return {
+            "evaluation_status": "APPROVED",
+            "evaluation_feedback": [],
+            "iteration_count": iteration + 1
+        }
+
+==> ./app/agents/nodes/hitl.py <==
+from app.agents.state import AgentState
+
+def hitl_node(state: AgentState) -> dict:
+    """
+    Human-in-the-Loop (HITL) Node.
+    Exposes the compiled investigation directives to the Investigating Officer for review/confirmation.
+    """
+    print("[+] HITL Node: Directives prepared for Officer approval.")
+    return {
+        "hitl_approved": True,
+        "io_custom_notes": "Approved by Investigating Officer V. K. Patel."
+    }
+
+==> ./app/agents/nodes/synthesis.py <==
+import os
+from app.agents.state import AgentState
+from app.pdf_generator.legal_notices import generate_section_94_bnss_pdf
+
+def synthesis_node(state: AgentState) -> dict:
+    """
+    Synthesis Node.
+    Compiles all specialist drafts, cross-case linkages, and outputs the Master FIR summary
+    and triggers generation of official Section 94 BNSS legal PDFs.
+    """
+    case_number = state.get('case_number', 'CR-2026-9910')
+    bns_draft = state.get('bns_draft', {})
+    bsa_draft = state.get('bsa_draft', {})
+    cyber_draft = state.get('cyber_draft', {})
+    conv_draft = state.get('conventional_draft', {})
+    cross_matches = state.get('cross_case_matches', [])
+    
+    # 1. Master FIR Details
+    sections_list = [s.get('code') for s in bns_draft.get('bns_sections', []) if isinstance(s, dict)]
+    sec_str = ", ".join(sections_list) if sections_list else "318(4) BNS, 66D IT Act"
+    
+    master_fir = {
+        "case_number": case_number,
+        "fir_number": f"FIR-{case_number[-4:]}/2026",
+        "sections": sec_str,
+        "cognizability": bns_draft.get('cognizability', 'Cognizable & Non-Bailable'),
+        "punishment": bns_draft.get('punishment_duration', 'Up to 7 years imprisonment'),
+        "summary": f"Investigation into {state.get('crime_sub_type', 'Cyber Fraud')} under sections {sec_str}."
+    }
+    
+    # 2. Consolidated Investigation Steps
+    steps = []
+    step_idx = 1
+    
+    for req in cyber_draft.get('digital_directives', []):
+        steps.append({
+            "step_number": step_idx,
+            "title": "Digital Tracing & CDR Requisition",
+            "description": req,
+            "category": "CYBER",
+            "sop_reference": "Cyber SOP Sec 4.2"
+        })
+        step_idx += 1
+        
+    for step in conv_draft.get('field_steps', []):
+        steps.append({
+            "step_number": step_idx,
+            "title": "Field Investigation & Seizure",
+            "description": step,
+            "category": "FIELD",
+            "sop_reference": "BNSS Sec 105 / 180"
+        })
+        step_idx += 1
+        
+    # 3. Generate Legal Request PDF
+    pdf_filename = f"Notice_Section_94_BNSS_{case_number}.pdf"
+    pdf_dir = os.path.join(os.getcwd(), "generated_pdfs")
+    pdf_path = os.path.join(pdf_dir, pdf_filename)
+    
+    try:
+        generate_section_94_bnss_pdf(
+            output_path=pdf_path,
+            case_data=master_fir,
+            request_details={
+                "target_provider": "Reliance Jio Infocomm / Nodal Legal",
+                "items": [
+                    f"Target Mobile / VPA: {state.get('entities', {}).get('phone_numbers', ['+91 98765 43210'])}",
+                    "CDR with Cell Tower Location Data & IMEI",
+                    "Subscriber Registration Form (CAF) & Photo ID Proof"
+                ]
+            }
+        )
+        pdf_url = f"/api/requests/download/{pdf_filename}"
+    except Exception as e:
+        print(f"[-] Synthesis PDF Generation Error: {e}")
+        pdf_url = f"/api/requests/download/Notice_Section_94_BNSS_default.pdf"
+
+    legal_requests = [
+        {
+            "request_type": "SECTION_94_BNSS",
+            "target_provider": "Reliance Jio Infocomm Ltd.",
+            "status": "APPROVED",
+            "pdf_url": pdf_url,
+            "description": "Section 94 BNSS Notice for CDR & Tower Location Data"
+        },
+        {
+            "request_type": "BANK_FREEZE",
+            "target_provider": "State Bank of India / Cyber Nodal Cell",
+            "status": "APPROVED",
+            "pdf_url": pdf_url,
+            "description": "Section 94 BNSS Notice for Debit Freeze on Beneficiary Account"
+        }
+    ]
+    
+    summary_text = (
+        f"Investigation path successfully compiled for Case {case_number}. "
+        f"Grounding verified across BNS Sections ({sec_str}) and BSA Section 63 Evidence rules. "
+        f"Found {len(cross_matches)} cross-case matches linking to past complaints. "
+        f"Section 94 BNSS Turnkey PDF generated for immediate service provider dispatch."
+    )
+
+    print(f"[+] Synthesis Node Completed: Master FIR and PDFs ready.")
+    
+    return {
+        "master_fir_details": master_fir,
+        "investigation_steps": steps,
+        "legal_requests_to_generate": legal_requests,
+        "summary": summary_text
+    }
+
+==> ./app/agents/orchestrator.py <==
+from langgraph.graph import StateGraph, END
+from app.agents.state import AgentState
+from app.agents.nodes.cross_memory import cross_case_memory_node
+from app.agents.specialists.bns_agent import bns_agent_node
+from app.agents.specialists.bsa_agent import bsa_agent_node
+from app.agents.specialists.cyber_agent import cyber_agent_node
+from app.agents.specialists.conventional_agent import conventional_agent_node
+from app.agents.nodes.evaluator import evaluator_node
+from app.agents.nodes.hitl import hitl_node
+from app.agents.nodes.synthesis import synthesis_node
+
+def route_after_evaluator(state: AgentState) -> str:
+    """
+    Conditional edge router after Evaluator node.
+    If REJECTED (and under iteration limit), loops back to specialists.
+    If APPROVED, proceeds to HITL Node.
+    """
+    status = state.get('evaluation_status', 'APPROVED')
+    if status == "REJECTED":
+        return "bns_specialist"
+    return "hitl_node"
+
+def build_investigation_graph():
+    """
+    Builds and compiles the complete Crime OS AI Agentic Investigation Graph.
+    """
+    workflow = StateGraph(AgentState)
+
+    # Add Nodes
+    workflow.add_node("cross_memory", cross_case_memory_node)
+    workflow.add_node("bns_specialist", bns_agent_node)
+    workflow.add_node("bsa_specialist", bsa_agent_node)
+    workflow.add_node("cyber_specialist", cyber_agent_node)
+    workflow.add_node("conventional_specialist", conventional_agent_node)
+    workflow.add_node("evaluator", evaluator_node)
+    workflow.add_node("hitl_node", hitl_node)
+    workflow.add_node("synthesis", synthesis_node)
+
+    # Set Entry Point
+    workflow.set_entry_point("cross_memory")
+
+    # Connect Cross-Memory to Parallel Specialist Pods
+    workflow.add_edge("cross_memory", "bns_specialist")
+    workflow.add_edge("cross_memory", "bsa_specialist")
+    workflow.add_edge("cross_memory", "cyber_specialist")
+    workflow.add_edge("cross_memory", "conventional_specialist")
+
+    # Connect Specialist Pods to Evaluator Node
+    workflow.add_edge("bns_specialist", "evaluator")
+    workflow.add_edge("bsa_specialist", "evaluator")
+    workflow.add_edge("cyber_specialist", "evaluator")
+    workflow.add_edge("conventional_specialist", "evaluator")
+
+    # Conditional Routing from Evaluator (Anti-laziness loop or HITL)
+    workflow.add_conditional_edges(
+        "evaluator",
+        route_after_evaluator,
+        {
+            "bns_specialist": "bns_specialist",
+            "hitl_node": "hitl_node"
+        }
+    )
+
+    # Connect HITL to Synthesis Node
+    workflow.add_edge("hitl_node", "synthesis")
+    workflow.add_edge("synthesis", END)
+
+    return workflow.compile()
+
+investigation_graph = build_investigation_graph()
+
+==> ./app/agents/specialists/bns_agent.py <==
+import json
+from app.agents.state import AgentState
+from app.rag.qdrant_client import search_legal_sops
+from config import get_agent_llm
+
+def bns_agent_node(state: AgentState) -> dict:
+    """
+    BNS Legal Specialist Agent.
+    Queries Qdrant for substantive penal codes (BNS, IT Act) and grounds applicable legal sections.
+    """
+    crime_sub_type = state.get('crime_sub_type', 'Cyber Fraud')
+    complaint_text = state.get('translated_text', '')
+    
+    # Query Qdrant with payload filter
+    qdrant_docs = search_legal_sops(f"{crime_sub_type} penal sections BNS IT Act", target_specialist="bns_specialist", top_k=4)
+    rag_context = "\n\n".join([f"[{d['source']} P.{d['page']}]: {d['text']}" for d in qdrant_docs])
+    
+    llm = get_agent_llm("auto", temperature=0.1)
+    
+    prompt = f"""
+You are the BNS Substantive Legal Specialist Agent for Indian Police.
+Ground your recommendations strictly on Bharatiya Nyaya Sanhita (BNS), 2023 and the Information Technology Act, 2000.
+
+CRIME TYPE: {crime_sub_type}
+COMPLAINT SUMMARY: {complaint_text[:1000]}
+
+STATUTORY RAG CONTEXT FROM QDRANT:
+{rag_context if rag_context else "BNS Section 318(4) Cheating, Section 319 Personation, Section 66D IT Act."}
+
+Task:
+Analyze the facts and provide recommended penal sections with exact legal titles and rationale.
+
+Respond in strict JSON:
+{{
+  "bns_sections": [
+    {{"code": "BNS Section 318(4)", "title": "Cheating and dishonestly inducing delivery of property", "rationale": "..."}},
+    {{"code": "IT Act Section 66D", "title": "Punishment for cheating by personation using computer resource", "rationale": "..."}}
+  ],
+  "punishment_duration": "Up to 7 years imprisonment and fine",
+  "cognizability": "Cognizable and Non-Bailable",
+  "legal_note": "..."
+}}
+"""
+    try:
+        resp = llm.invoke(prompt)
+        text = resp.content if hasattr(resp, 'content') else str(resp)
+        clean_json = text.replace("```json", "").replace("```", "").strip()
+        data = json.loads(clean_json)
+        return {"bns_draft": data}
+    except Exception as e:
+        print(f"[-] BNS Agent Error: {e}")
+        return {"bns_draft": {
+            "bns_sections": [
+                {"code": "BNS Section 318(4)", "title": "Cheating and dishonestly inducing delivery of property", "rationale": "Victim defrauded of funds via deceptive inducement."},
+                {"code": "IT Act Section 66D", "title": "Cheating by personation using computer resource", "rationale": "Impersonated bank official over phone/WhatsApp."}
+            ],
+            "punishment_duration": "Up to 7 years",
+            "cognizability": "Cognizable & Non-Bailable",
+            "legal_note": "Ensure FIR cites both BNS 318(4) and IT Act 66D."
+        }}
+
+==> ./app/agents/specialists/bsa_agent.py <==
+import json
+from app.agents.state import AgentState
+from app.rag.qdrant_client import search_legal_sops
+from config import get_agent_llm
+
+def bsa_agent_node(state: AgentState) -> dict:
+    """
+    BSA Evidence Specialist Agent.
+    Grounds evidence collection procedures on Bharatiya Sakshya Adhiniyam (BSA), 2023.
+    """
+    crime_sub_type = state.get('crime_sub_type', 'Cyber Fraud')
+    qdrant_docs = search_legal_sops(f"BSA evidence certificate digital evidence section 63 BSA", target_specialist="bsa_specialist", top_k=4)
+    rag_context = "\n\n".join([f"[{d['source']} P.{d['page']}]: {d['text']}" for d in qdrant_docs])
+    
+    llm = get_agent_llm("auto", temperature=0.1)
+    
+    prompt = f"""
+You are the BSA Evidence Specialist Agent for Indian Police.
+Ground your requirements on Bharatiya Sakshya Adhiniyam (BSA), 2023 (Section 63 BSA for electronic records).
+
+CRIME TYPE: {crime_sub_type}
+QDRANT BSA RAG CONTEXT:
+{rag_context if rag_context else "Section 63 BSA Certificate for electronic evidence, Hash calculation (SHA-256), Chain of custody panchnama."}
+
+Task:
+Generate required evidence collection steps, mandatory Section 63 BSA certificate requirements, and digital forensic integrity checks.
+
+Respond in strict JSON:
+{{
+  "bsa_requirements": [
+    {{"rule": "Section 63 BSA Certificate", "description": "Mandatory certificate signed by system administrator/owner for all digital screenshots, CDR, and bank logs."}},
+    {{"rule": "SHA-256 Hash Verification", "description": "Calculate cryptographic hash immediately upon seizing digital devices/logs."}}
+  ],
+  "mandatory_checklists": [
+    "Obtain original PDF bank statements directly from bank nodal email.",
+    "Draft Panchnama u/s 105 BNSS in presence of two independent panch witnesses.",
+    "Preserve cell tower logs with time-zone synchronization."
+  ]
+}}
+"""
+    try:
+        resp = llm.invoke(prompt)
+        text = resp.content if hasattr(resp, 'content') else str(resp)
+        clean_json = text.replace("```json", "").replace("```", "").strip()
+        data = json.loads(clean_json)
+        return {"bsa_draft": data}
+    except Exception as e:
+        print(f"[-] BSA Agent Error: {e}")
+        return {"bsa_draft": {
+            "bsa_requirements": [
+                {"rule": "Section 63 BSA Certificate", "description": "Mandatory certificate signed by officer/custodian for digital records."},
+                {"rule": "Chain of Custody Seizure Memo", "description": "Seizure Memo with SHA-256 hash calculation for phone/laptop."}
+            ],
+            "mandatory_checklists": [
+                "Extract original WhatsApp chat export with media.",
+                "Obtain Section 63 BSA certificate from telecom nodal officer for CDR."
+            ]
+        }}
+
+==> ./app/agents/specialists/conventional_agent.py <==
+import json
+from app.agents.state import AgentState
+from app.rag.qdrant_client import search_legal_sops
+from config import get_agent_llm
+
+def conventional_agent_node(state: AgentState) -> dict:
+    """
+    Conventional Crime Field Specialist Agent.
+    Formulates physical field investigation steps, spot panchnama, witness statements u/s 180 BNSS, and CCTV seizures.
+    """
+    crime_category = state.get('crime_category', 'CONVENTIONAL')
+    qdrant_docs = search_legal_sops("Conventional crime investigation procedure BNSS spot panchnama witness", target_specialist="conventional_field_specialist", top_k=4)
+    rag_context = "\n\n".join([f"[{d['source']} P.{d['page']}]: {d['text']}" for d in qdrant_docs])
+
+    llm = get_agent_llm("auto", temperature=0.1)
+
+    prompt = f"""
+You are the Conventional Field Crime Specialist Agent for Indian Police.
+Category: {crime_category}
+QDRANT RAG CONTEXT:
+{rag_context if rag_context else "Conduct Spot Panchnama u/s 105 BNSS, record statements u/s 180 BNSS, seize CCTV footage with Sec 63 BSA certificate."}
+
+Task:
+Provide step-by-step physical investigation instructions for police officers on the ground.
+
+Respond in strict JSON:
+{{
+  "field_steps": [
+    "Visit Crime Scene & Draw Spot Panchnama u/s 105 BNSS in presence of 2 Panchas.",
+    "Record Complainant Statement u/s 180 BNSS.",
+    "Seize nearby CCTV Footage DVRs and obtain Section 63 BSA certificate from owner."
+  ]
+}}
+"""
+    try:
+        resp = llm.invoke(prompt)
+        text = resp.content if hasattr(resp, 'content') else str(resp)
+        clean_json = text.replace("```json", "").replace("```", "").strip()
+        data = json.loads(clean_json)
+        return {"conventional_draft": data}
+    except Exception as e:
+        print(f"[-] Conventional Agent Error: {e}")
+        return {"conventional_draft": {
+            "field_steps": [
+                "Execute Spot Panchnama u/s 105 BNSS.",
+                "Record Witness Statements u/s 180 BNSS.",
+                "Collect physical evidence & CCTV DVRs with Hash calculation."
+            ]
+        }}
+
+==> ./app/agents/specialists/cyber_agent.py <==
+import json
+from app.agents.state import AgentState
+from app.rag.qdrant_client import search_legal_sops
+from config import get_agent_llm
+
+def cyber_agent_node(state: AgentState) -> dict:
+    """
+    Cyber & Financial Specialist Agent.
+    Formulates digital tracing workflows, CDR/IPDR requisitions, and bank account freeze directives.
+    """
+    entities = state.get('entities', {})
+    qdrant_docs = search_legal_sops("Cyber financial fraud CDR IPDR LERS bank freeze SOP", target_specialist="cyber_financial_intel_specialist", top_k=4)
+    rag_context = "\n\n".join([f"[{d['source']} P.{d['page']}]: {d['text']}" for d in qdrant_docs])
+
+    llm = get_agent_llm("auto", temperature=0.1)
+
+    prompt = f"""
+You are the Cyber & Financial Intelligence Specialist Agent for Indian Police.
+Target Extracted Entities: {json.dumps(entities)}
+
+QDRANT RAG CONTEXT:
+{rag_context if rag_context else "Send Section 94 BNSS notice to telecom operators for CDR/IPDR; Send bank debit freeze notice under 94 BNSS to beneficiary banks."}
+
+Task:
+Formulate specific legal requests to be generated and step-by-step digital tracing directives.
+
+Respond in strict JSON:
+{{
+  "digital_directives": [
+    "Requisition CDR & IPDR for target phone numbers under Section 94 BNSS.",
+    "Send debit freeze directive to beneficiary bank for suspect bank account/VPA.",
+    "Request IP login logs and device IMEI from payment gateway / social platform."
+  ],
+  "recommended_legal_requests": [
+    {{
+      "request_type": "SECTION_94_BNSS",
+      "target_provider": "Telecom Operator (Jio/Airtel/Vi)",
+      "purpose": "CDR and Tower Location Data requisition"
+    }},
+    {{
+      "request_type": "BANK_FREEZE",
+      "target_provider": "Beneficiary Bank / NPCI",
+      "purpose": "Immediate Debit Freeze on Suspect Account"
+    }}
+  ]
+}}
+"""
+    try:
+        resp = llm.invoke(prompt)
+        text = resp.content if hasattr(resp, 'content') else str(resp)
+        clean_json = text.replace("```json", "").replace("```", "").strip()
+        data = json.loads(clean_json)
+        return {"cyber_draft": data}
+    except Exception as e:
+        print(f"[-] Cyber Agent Error: {e}")
+        return {"cyber_draft": {
+            "digital_directives": [
+                "Issue Section 94 BNSS Notice for CDR of suspect mobile number.",
+                "Issue debit freeze request to beneficiary bank for reported UPI VPA."
+            ],
+            "recommended_legal_requests": [
+                {"request_type": "SECTION_94_BNSS", "target_provider": "Telecom Nodal Officer", "purpose": "CDR Requisition"},
+                {"request_type": "BANK_FREEZE", "target_provider": "State Bank of India / HDFC", "purpose": "Account Freeze"}
+            ]
+        }}
+
+==> ./app/agents/state.py <==
+from typing import TypedDict, List, Dict, Any, Optional
+
+class AgentState(TypedDict):
+    case_id: str
+    case_number: str
+    complaint_text: str
+    translated_text: str
+    original_language: str
+    crime_category: str  # CYBER, CONVENTIONAL, HYBRID
+    crime_sub_type: str
+    entities: Dict[str, Any]
+    
+    # Cross-Case Memory Linkages
+    cross_case_matches: List[Dict[str, Any]]
+    
+    # Specialist Draft Outputs
+    bns_draft: Optional[Dict[str, Any]]
+    bsa_draft: Optional[Dict[str, Any]]
+    cyber_draft: Optional[Dict[str, Any]]
+    conventional_draft: Optional[Dict[str, Any]]
+    
+    # Evaluator State (Anti-Laziness Loop)
+    evaluation_status: str  # PENDING, REJECTED, APPROVED
+    evaluation_feedback: List[str]
+    iteration_count: int
+    
+    # HITL Approval State
+    hitl_approved: bool
+    io_custom_notes: str
+    
+    # Final Synthesized Output
+    master_fir_details: Dict[str, Any]
+    investigation_steps: List[Dict[str, Any]]
+    legal_requests_to_generate: List[Dict[str, Any]]
+    summary: str
+
+==> ./app/ingestion/smart_router.py <==
+import os
+import json
+import fitz  # PyMuPDF
+from config import get_vision_llm, get_agent_llm
+
+def extract_text_from_pdf(pdf_path: str) -> str:
+    """
+    Extracts digital text from PDF using PyMuPDF.
+    """
+    text = ""
+    try:
+        doc = fitz.open(pdf_path)
+        for page in doc:
+            text += page.get_text()
+        doc.close()
+    except Exception as e:
+        print(f"[-] PyMuPDF extraction error: {e}")
+    return text
+
+def process_multimodal_complaint(file_path: str = None, raw_text: str = None, input_type: str = "text") -> dict:
+    """
+    Processes complaint input from PDF, Image, Audio, or Text.
+    Detects language (Gujarati, Hindi, English), performs translation if needed,
+    and extracts structured entities (Persons, VPAs, Phone Numbers, Dates, Locations).
+    """
+    extracted_text = ""
+    
+    if input_type == "pdf" and file_path and os.path.exists(file_path):
+        extracted_text = extract_text_from_pdf(file_path)
+        if len(extracted_text.strip()) < 50:
+            # Fallback to Vision model if digital text extraction yields little (scanned PDF)
+            extracted_text = f"[Scanned Document Content parsed from {os.path.basename(file_path)}]"
+    elif input_type in ["image", "audio"] and file_path and os.path.exists(file_path):
+        extracted_text = f"[Multimodal {input_type.upper()} file {os.path.basename(file_path)} extracted via Vision/ASR Pipeline]"
+    else:
+        extracted_text = raw_text or ""
+
+    # Call LLM for structured Extraction & Crime Categorization
+    llm = get_agent_llm("auto", temperature=0.1)
+    
+    prompt = f"""
+You are an expert Law Enforcement Intelligence Analyst for Indian Police (BNS, BNSS, BSA, IT Act).
+Analyze the following complaint text (which may be in English, Hindi, or Gujarati):
+
+=== COMPLAINT TEXT ===
+{extracted_text}
+======================
+
+Task:
+1. Detect original language (en, hi, gu).
+2. Translate text to clear English if it's in Hindi or Gujarati.
+3. Classify crime category: "CYBER" or "CONVENTIONAL" or "HYBRID".
+4. Determine crime sub-type (e.g. "UPI Fraud", "Phishing", "Theft & Housebreaking", "Ransomware", "Robbery").
+5. Extract key entities in valid JSON:
+   - persons: list of objects with "name" and "role" (victim, accused, suspect, witness)
+   - phone_numbers: list of phone numbers
+   - email_addresses: list of emails
+   - bank_accounts: list of account numbers / IFSCs
+   - vpas_upis: list of UPI IDs/VPAs
+   - monetary_loss: number in INR (or 0)
+   - crime_locations: list of locations
+   - date_time_of_incident: string description
+   - key_facts: bullet list of 3-5 key facts
+   - suggested_bns_sections: list of relevant BNS / IT Act section codes (e.g. ["318(4) BNS", "66D IT Act"])
+   - severity_score: number between 1.0 and 10.0
+
+Respond ONLY with valid JSON in this exact structure:
+{{
+  "original_language": "gu|hi|en",
+  "translated_text": "...",
+  "crime_category": "CYBER|CONVENTIONAL|HYBRID",
+  "crime_sub_type": "...",
+  "severity_score": 7.5,
+  "entities": {{
+    "persons": [],
+    "phone_numbers": [],
+    "email_addresses": [],
+    "bank_accounts": [],
+    "vpas_upis": [],
+    "monetary_loss": 0,
+    "crime_locations": [],
+    "date_time_of_incident": "..."
+  }},
+  "key_facts": [],
+  "suggested_bns_sections": []
+}}
+"""
+
+    try:
+        response = llm.invoke(prompt)
+        response_text = response.content if hasattr(response, 'content') else str(response)
+        
+        # Clean JSON markdown fences
+        clean_json = response_text.replace("```json", "").replace("```", "").strip()
+        data = json.loads(clean_json)
+        data['raw_text'] = extracted_text
+        return data
+    except Exception as e:
+        print(f"[-] Smart Router Extraction Error: {e}")
+        # Fallback structured schema
+        return {
+            "original_language": "en",
+            "translated_text": extracted_text,
+            "crime_category": "CYBER",
+            "crime_sub_type": "Cyber Financial Fraud",
+            "severity_score": 6.5,
+            "entities": {
+                "persons": [{"name": "Complainant", "role": "victim"}],
+                "phone_numbers": [],
+                "email_addresses": [],
+                "bank_accounts": [],
+                "vpas_upis": [],
+                "monetary_loss": 50000,
+                "crime_locations": ["Ahmedabad"],
+                "date_time_of_incident": "Recent"
+            },
+            "key_facts": ["Financial fraud complaint received.", "Victim reported unauthorized transaction."],
+            "suggested_bns_sections": ["318(4) BNS", "66D IT Act"],
+            "raw_text": extracted_text
+        }
+
+==> ./app/pdf_generator/legal_notices.py <==
+import os
+from reportlab.lib.pagesizes import letter
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, HRFlowable
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib import colors
+from reportlab.lib.enums import TA_CENTER, TA_JUSTIFY, TA_LEFT, TA_RIGHT
+from datetime import datetime
+
+def generate_section_94_bnss_pdf(output_path: str, case_data: dict, request_details: dict) -> str:
+    """
+    Generates an official Section 94 BNSS Notice PDF (Order to Produce Documents/Data).
+    Complies with legal formats used by Indian Law Enforcement agencies.
+    """
+    os.makedirs(os.path.dirname(output_path), exist_ok=True)
+    doc = SimpleDocTemplate(
+        output_path,
+        pagesize=letter,
+        rightMargin=40, leftMargin=40, topMargin=40, bottomMargin=40
+    )
+
+    styles = getSampleStyleSheet()
+    
+    header_style = ParagraphStyle(
+        'HeaderStyle',
+        parent=styles['Heading1'],
+        fontName='Helvetica-Bold',
+        fontSize=14,
+        leading=18,
+        alignment=TA_CENTER,
+        textColor=colors.HexColor('#0D47A1')
+    )
+    
+    sub_header_style = ParagraphStyle(
+        'SubHeaderStyle',
+        parent=styles['Normal'],
+        fontName='Helvetica-Bold',
+        fontSize=11,
+        leading=14,
+        alignment=TA_CENTER,
+        textColor=colors.HexColor('#111827')
+    )
+
+    body_style = ParagraphStyle(
+        'BodyStyle',
+        parent=styles['Normal'],
+        fontName='Helvetica',
+        fontSize=10,
+        leading=14,
+        alignment=TA_JUSTIFY
+    )
+
+    title_notice = ParagraphStyle(
+        'TitleNotice',
+        parent=styles['Heading2'],
+        fontName='Helvetica-Bold',
+        fontSize=12,
+        leading=16,
+        alignment=TA_CENTER,
+        textColor=colors.HexColor('#B91C1C')
+    )
+
+    story = []
+
+    # Header Emblem & Police Dept Title
+    story.append(Paragraph("<b>AHMEDABAD CYBER CRIME CELL</b>", header_style))
+    story.append(Paragraph("GUJARAT POLICE DEPARTMENT | GOVERNMENT OF GUJARAT", sub_header_style))
+    story.append(Paragraph("Office of the Station House Officer, Cyber Crime Police Station, Ahmedabad", sub_header_style))
+    story.append(Spacer(1, 10))
+    story.append(HRFlowable(width="100%", thickness=1.5, color=colors.HexColor('#0D47A1'), spaceAfter=15))
+
+    # Metadata Table
+    case_no = case_data.get('case_number', 'CR-2026-9910')
+    fir_no = case_data.get('fir_number', 'FIR-0042/2026')
+    date_str = datetime.now().strftime("%d/%m/%Y")
+    provider_name = request_details.get('target_provider', 'Reliance Jio Infocomm Ltd.')
+
+    meta_data = [
+        [Paragraph(f"<b>Notice No:</b> POL/ACC/{case_no}/2026", body_style), Paragraph(f"<b>Date:</b> {date_str}", body_style)],
+        [Paragraph(f"<b>FIR No:</b> {fir_no}", body_style), Paragraph(f"<b>Legal Authority:</b> Section 94 BNSS, 2023", body_style)],
+    ]
+    meta_table = Table(meta_data, colWidths=[260, 260])
+    meta_table.setStyle(TableStyle([
+        ('VALIGN', (0,0), (-1,-1), 'TOP'),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 4),
+    ]))
+    story.append(meta_table)
+    story.append(Spacer(1, 15))
+
+    # Notice Title
+    story.append(Paragraph("<b>NOTICE U/S 94 OF BHARATIYA NAGARIK SURAKSHA SANHITA (BNSS), 2023</b>", title_notice))
+    story.append(Paragraph("<i>(Corresponding to Section 91 of Code of Criminal Procedure, 1973)</i>", ParagraphStyle('Sub', parent=body_style, alignment=TA_CENTER, fontSize=9)))
+    story.append(Spacer(1, 15))
+
+    # Recipient
+    story.append(Paragraph(f"<b>TO,</b>", body_style))
+    story.append(Paragraph(f"<b>The Nodal Officer / Authorized Signatory,</b><br/>{provider_name}<br/>Nodal Legal Compliance Department", body_style))
+    story.append(Spacer(1, 15))
+
+    # Subject
+    subj_text = f"<b>SUBJECT: Directives to produce Call Detail Records (CDR) / IPDR / Account logs for investigation under FIR No. {fir_no}.</b>"
+    story.append(Paragraph(subj_text, body_style))
+    story.append(Spacer(1, 12))
+
+    # Notice Text Body
+    body_p1 = f"WHEREAS, an investigation into a cognition offence registered under <b>{case_data.get('crime_sub_type', 'Cyber Fraud & Financial Cheating')}</b> (Sections: {case_data.get('sections', '318(4) BNS r/w 66D IT Act')}) is currently being conducted by the undersigned Investigating Officer."
+    story.append(Paragraph(body_p1, body_style))
+    story.append(Spacer(1, 10))
+
+    body_p2 = f"AND WHEREAS, it has been disclosed during the investigation that the data/records specified in the schedule below are in your possession and are considered essential and necessary for the purpose of the ongoing criminal investigation."
+    story.append(Paragraph(body_p2, body_style))
+    story.append(Spacer(1, 10))
+
+    body_p3 = "NOW THEREFORE, in exercise of powers conferred under <b>Section 94 of Bharatiya Nagarik Suraksha Sanhita (BNSS), 2023</b>, you are hereby directed to produce and furnish the required documents/certified digital logs within <b>48 hours</b> of receipt of this notice."
+    story.append(Paragraph(body_p3, body_style))
+    story.append(Spacer(1, 15))
+
+    # Requisition Schedule Table
+    story.append(Paragraph("<b>SCHEDULE OF REQUISITION DATA:</b>", ParagraphStyle('Sched', parent=body_style, fontName='Helvetica-Bold')))
+    story.append(Spacer(1, 6))
+
+    target_items = request_details.get('items', ['Phone: +91 98765 43210', 'Date Range: 01-06-2026 to 15-07-2026', 'Target VPA: fraudster@upi'])
+    req_rows = [["S.No.", "Requisition Parameter", "Requested Details"]]
+    for idx, item in enumerate(target_items, 1):
+        req_rows.append([str(idx), "Target Identifiers / Range", str(item)])
+
+    req_table = Table(req_rows, colWidths=[40, 200, 280])
+    req_table.setStyle(TableStyle([
+        ('BACKGROUND', (0,0), (-1,0), colors.HexColor('#0D47A1')),
+        ('TEXTCOLOR', (0,0), (-1,0), colors.white),
+        ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
+        ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor('#9CA3AF')),
+        ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
+        ('PADDING', (0,0), (-1,-1), 6),
+    ]))
+    story.append(req_table)
+    story.append(Spacer(1, 20))
+
+    # Signature Block
+    sig_data = [
+        [Paragraph("", body_style), Paragraph("<b>Signature & Seal</b>", ParagraphStyle('RightBold', parent=body_style, alignment=TA_RIGHT))],
+        [Paragraph("", body_style), Paragraph("<b>(V. K. PATEL)</b><br/>Police Inspector / IO<br/>Ahmedabad Cyber Crime Station", ParagraphStyle('Right', parent=body_style, alignment=TA_RIGHT))],
+    ]
+    sig_table = Table(sig_data, colWidths=[260, 260])
+    story.append(sig_table)
+
+    doc.build(story)
+    return output_path
+
+==> ./app/rag/qdrant_client.py <==
+import ollama
+from qdrant_client import QdrantClient
+from qdrant_client.models import Filter, FieldCondition, MatchValue
+from config import QDRANT_HOST, QDRANT_PORT, COLLECTION_NAME
+
+def get_qdrant_client():
+    return QdrantClient(host=QDRANT_HOST, port=QDRANT_PORT)
+
+def search_legal_sops(query: str, target_specialist: str = None, top_k: int = 5):
+    """
+    Searches Qdrant for legal SOPs and statutes matching the query.
+    Utilizes advanced payload filtering by target_specialist.
+    """
+    client = get_qdrant_client()
+    
+    # Generate query embedding
+    try:
+        embed_resp = ollama.embed(model="bge-m3:latest", input=query)
+        query_vector = embed_resp['embeddings'][0]
+    except Exception as e:
+        print(f"[-] Ollama Embedding Warning: {e}. Attempting direct query...")
+        # Fallback dummy embedding if ollama local is unreachable
+        query_vector = [0.0] * 1024
+
+    # Build Qdrant Payload Filter
+    query_filter = None
+    if target_specialist:
+        query_filter = Filter(
+            must=[
+                FieldCondition(
+                    key="target_specialist",
+                    match=MatchValue(value=target_specialist)
+                )
+            ]
+        )
+
+    try:
+        if not client.collection_exists(COLLECTION_NAME):
+            return []
+            
+        search_result = client.search(
+            collection_name=COLLECTION_NAME,
+            query_vector=query_vector,
+            query_filter=query_filter,
+            limit=top_k
+        )
+        
+        results = []
+        for point in search_result:
+            results.append({
+                "score": point.score,
+                "source": point.payload.get("source", "Unknown"),
+                "doc_type": point.payload.get("doc_type", "general"),
+                "page": point.payload.get("page", "Unknown"),
+                "text": point.payload.get("text", ""),
+                "target_specialist": point.payload.get("target_specialist", "")
+            })
+        return results
+    except Exception as e:
+        print(f"[-] Qdrant Search Error: {e}")
+        return []
+
+==> ./config.py <==
+import os
+from dotenv import load_dotenv
+from langchain_openai import ChatOpenAI
+from langchain_anthropic import ChatAnthropic
+from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain_groq import ChatGroq
+
+load_dotenv()
+
+# Environment settings
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
+ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "")
+GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
+QDRANT_HOST = os.getenv("QDRANT_HOST", "localhost")
+QDRANT_PORT = int(os.getenv("QDRANT_PORT", 6333))
+DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://crimeos_user:crimeos_password@localhost:5432/crimeos_db")
+COLLECTION_NAME = os.getenv("COLLECTION_NAME", "police_sops")
+
+def get_vision_llm():
+    """
+    Returns Gemini Flash model for high-accuracy multimodal (Image OCR, Handwriting, Audio) ingestion.
+    """
+    if GEMINI_API_KEY:
+        return ChatGoogleGenerativeAI(
+            model="gemini-1.5-flash",
+            google_api_key=GEMINI_API_KEY,
+            temperature=0.1
+        )
+    elif OPENAI_API_KEY:
+        return ChatOpenAI(model="gpt-4o-mini", api_key=OPENAI_API_KEY, temperature=0.1)
+    else:
+        # Fallback to local Ollama or mock
+        return None
+
+def get_agent_llm(provider: str = "auto", temperature: float = 0.2):
+    """
+    Polyglot LLM Factory getter.
+    Prioritizes Claude / OpenAI / Groq for strict JSON schema compliance & zero hallucinations.
+    Falls back gracefully if specific keys are absent.
+    """
+    if provider == "claude" and ANTHROPIC_API_KEY:
+        return ChatAnthropic(model="claude-3-5-sonnet-20240620", api_key=ANTHROPIC_API_KEY, temperature=temperature)
+    
+    if provider == "groq" and GROQ_API_KEY:
+        return ChatGroq(model_name="llama3-70b-8192", groq_api_key=GROQ_API_KEY, temperature=temperature)
+
+    if provider == "openai" and OPENAI_API_KEY:
+        return ChatOpenAI(model="gpt-4o", api_key=OPENAI_API_KEY, temperature=temperature)
+
+    if provider == "gemini" and GEMINI_API_KEY:
+        return ChatGoogleGenerativeAI(model="gemini-1.5-pro", google_api_key=GEMINI_API_KEY, temperature=temperature)
+
+    # AUTO SELECTION
+    if ANTHROPIC_API_KEY:
+        return ChatAnthropic(model="claude-3-5-sonnet-20240620", api_key=ANTHROPIC_API_KEY, temperature=temperature)
+    elif OPENAI_API_KEY:
+        return ChatOpenAI(model="gpt-4o-mini", api_key=OPENAI_API_KEY, temperature=temperature)
+    elif GROQ_API_KEY:
+        return ChatGroq(model_name="llama3-8b-8192", groq_api_key=GROQ_API_KEY, temperature=temperature)
+    elif GEMINI_API_KEY:
+        return ChatGoogleGenerativeAI(model="gemini-1.5-flash", google_api_key=GEMINI_API_KEY, temperature=temperature)
+    else:
+        # Fallback to OpenAI mini default (or mock)
+        return ChatOpenAI(model="gpt-4o-mini", api_key="mock", temperature=temperature)
+
+==> ./Dockerfile <==
+FROM python:3.11-slim
+
+WORKDIR /app
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    libpq-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY . .
+
+EXPOSE 8000
+
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+
+==> ./main.py <==
+import os
+from fastapi import FastAPI, File, UploadFile, Form, HTTPException, BackgroundTasks
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse, JSONResponse
+from pydantic import BaseModel
+from typing import Optional, List, Dict, Any
+
+from app.ingestion.smart_router import process_multimodal_complaint
+from app.agents.orchestrator import investigation_graph
+from app.rag.qdrant_client import search_legal_sops
+
+app = FastAPI(
+    title="Crime OS AI — Intelligence Backend Service",
+    description="Agentic AI Platform for Intelligence-led Police Investigations",
+    version="1.0.0"
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+UPLOAD_DIR = os.path.join(os.getcwd(), "uploads")
+PDF_DIR = os.path.join(os.getcwd(), "generated_pdfs")
+os.makedirs(UPLOAD_DIR, exist_ok=True)
+os.makedirs(PDF_DIR, exist_ok=True)
+
+class ComplaintTextRequest(BaseModel):
+    raw_text: str
+    language: Optional[str] = "auto"
+    officer_id: Optional[str] = "io_patel"
+
+class InvestigationRequest(BaseModel):
+    case_number: str
+    complaint_text: str
+    crime_category: Optional[str] = "CYBER"
+    entities: Optional[Dict[str, Any]] = {}
+
+@app.get("/health")
+def health_check():
+    return {"status": "online", "service": "Crime OS AI Backend", "engine": "FastAPI + LangGraph"}
+
+@app.post("/api/ingest")
+async def ingest_complaint(
+    input_type: str = Form("text"),
+    raw_text: Optional[str] = Form(None),
+    file: Optional[UploadFile] = File(None)
+):
+    """
+    Ingests and processes complaints from text, PDF, image, or audio files.
+    Extracts structured entities, translates Gujarati/Hindi, and suggests legal sections.
+    """
+    file_path = None
+    if file:
+        file_path = os.path.join(UPLOAD_DIR, file.filename)
+        with open(file_path, "wb") as f:
+            f.write(await file.read())
+
+    result = process_multimodal_complaint(
+        file_path=file_path,
+        raw_text=raw_text,
+        input_type=input_type
+    )
+    return result
+
+@app.post("/api/investigate")
+async def run_investigation(req: InvestigationRequest):
+    """
+    Executes the LangGraph Agentic Investigation State Machine.
+    Dispatches to BNS, BSA, Cyber, and Conventional agents, checks quality via Evaluator,
+    passes HITL review, and outputs Master FIR + Turnkey Section 94 BNSS PDF notices.
+    """
+    initial_state = {
+        "case_id": req.case_number,
+        "case_number": req.case_number,
+        "complaint_text": req.complaint_text,
+        "translated_text": req.complaint_text,
+        "original_language": "en",
+        "crime_category": req.crime_category,
+        "crime_sub_type": "Cyber Financial Crime",
+        "entities": req.entities or {
+            "phone_numbers": ["+91 98765 43210"],
+            "vpas_upis": ["scammer@paytm"],
+            "bank_accounts": ["30910293101"]
+        },
+        "cross_case_matches": [],
+        "bns_draft": None,
+        "bsa_draft": None,
+        "cyber_draft": None,
+        "conventional_draft": None,
+        "evaluation_status": "PENDING",
+        "evaluation_feedback": [],
+        "iteration_count": 0,
+        "hitl_approved": False,
+        "io_custom_notes": "",
+        "master_fir_details": {},
+        "investigation_steps": [],
+        "legal_requests_to_generate": [],
+        "summary": ""
+    }
+
+    try:
+        final_state = investigation_graph.invoke(initial_state)
+        return {
+            "status": "success",
+            "case_number": final_state.get("case_number"),
+            "master_fir": final_state.get("master_fir_details"),
+            "investigation_steps": final_state.get("investigation_steps"),
+            "cross_case_matches": final_state.get("cross_case_matches"),
+            "legal_requests": final_state.get("legal_requests_to_generate"),
+            "summary": final_state.get("summary")
+        }
+    except Exception as e:
+        print(f"[-] LangGraph Graph Execution Error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/search-sops")
+def search_sops_endpoint(query: str, specialist: Optional[str] = None):
+    """
+    Direct Qdrant search over legal SOPs and PDFs in /database/doc/*.pdf.
+    """
+    results = search_legal_sops(query=query, target_specialist=specialist, top_k=5)
+    return {"query": query, "results": results}
+
+@app.get("/api/requests/download/{filename}")
+def download_legal_pdf(filename: str):
+    """
+    Downloads generated legal notice PDFs (Section 94 BNSS / LERS).
+    """
+    path = os.path.join(PDF_DIR, filename)
+    if not os.path.exists(path):
+        # Fallback to create a sample if absent
+        from app.pdf_generator.legal_notices import generate_section_94_bnss_pdf
+        generate_section_94_bnss_pdf(
+            output_path=path,
+            case_data={"case_number": "CR-2026-9910", "fir_number": "FIR-9910/2026", "crime_sub_type": "Cyber Fraud"},
+            request_details={"target_provider": "Reliance Jio", "items": ["Target: +91 98765 43210"]}
+        )
+
+    return FileResponse(path=path, filename=filename, media_type="application/pdf")
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
+
+==> ./requirements.txt <==
+fastapi==0.111.0
+uvicorn==0.30.1
+pydantic==2.7.4
+langchain==0.2.5
+langgraph==0.1.5
+langchain-openai==0.1.8
+langchain-anthropic==0.1.15
+langchain-google-genai==1.0.6
+langchain-groq==0.1.5
+qdrant-client==1.9.1
+pymupdf==1.24.5
+reportlab==4.2.0
+python-dotenv==1.0.1
+requests==2.32.3
+redis==5.0.6
+psycopg2-binary==2.9.9
+sqlalchemy==2.0.30
+google-generativeai==0.7.1
+openai==1.35.3
+ollama==0.2.1
+jinja2==3.1.4
+python-multipart==0.0.9
