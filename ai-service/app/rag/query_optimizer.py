@@ -88,24 +88,14 @@ def optimize_and_search(
 
     if RAG_ENABLE_MULTI_QUERY:
         # Phase 1 & 2: Concept-based decomposition with HyDE
-        concept_queries = decompose_complaint_to_legal_queries(
+        sub_queries = decompose_complaint_to_legal_queries(
             complaint_text=complaint_text,
             crime_sub_type=crime_sub_type,
             crime_category=crime_category,
             entities=entities,
             specialist_domain=target_specialist or "",
-            max_queries=max(1, RAG_MAX_SUB_QUERIES - 1)  # Reserve slot 1 for raw complaint
+            max_queries=RAG_MAX_SUB_QUERIES
         )
-
-        # HYBRID: Always inject the raw complaint narrative as query #1
-        # The raw text carries the strongest semantic signal for dense matching.
-        # Concept queries are SUPPLEMENTARY — they add breadth, not replace depth.
-        raw_complaint_query = {
-            "query": f"{complaint_text[:600]} {crime_sub_type}".strip(),
-            "hyde_passage": complaint_text[:600],  # Use raw text as its own HyDE
-            "intent": "raw_complaint_narrative"
-        }
-        sub_queries = [raw_complaint_query] + (concept_queries or [])
 
     # Phase 3: Multi-query RRF Qdrant search (or single-query fallback)
     retrieval_top_k = max(top_k * 3, 20) if enable_reranker else top_k  # Fetch more for reranker
