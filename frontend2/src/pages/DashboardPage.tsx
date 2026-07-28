@@ -1,13 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { 
-  Layers, 
-  FileCheck2, 
-  AlertTriangle, 
-  Cpu, 
-  ArrowRight, 
-  Play, 
-  FileUp, 
+import {
+  Layers,
+  FileCheck2,
+  AlertTriangle,
+  Cpu,
+  ArrowRight,
+  Play,
+  FileUp,
   Sparkles,
   Activity,
   ShieldCheck
@@ -41,7 +41,7 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-5">
-      
+
       {/* Header Banner */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-b border-slate-800 pb-4">
         <div>
@@ -69,7 +69,7 @@ export default function DashboardPage() {
 
       {/* KPI Stats Grid */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        
+
         {/* Active Investigations */}
         <div className="pro-card pro-card-hover p-4">
           <div className="flex items-center justify-between text-slate-400">
@@ -131,7 +131,7 @@ export default function DashboardPage() {
             <span className="text-[11px] font-medium text-blue-400">Dense + BM25 RRF</span>
           </div>
           <p className="mt-2 text-[11px] text-slate-400 font-mono">
-            police_sops_universal Active
+            police_sops_v2 Active
           </p>
         </div>
 
@@ -139,7 +139,7 @@ export default function DashboardPage() {
 
       {/* Main Grid: Active Case Register & Action Launchpad */}
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
-        
+
         {/* Active Police Case Register */}
         <div className="pro-card p-5 lg:col-span-2">
           <div className="flex items-center justify-between border-b border-slate-800 pb-3">
@@ -175,11 +175,10 @@ export default function DashboardPage() {
                       <div className="text-[10px] font-mono font-normal text-slate-400">{row.fir_number}</div>
                     </td>
                     <td className="py-2.5 px-2">
-                      <span className={`rounded px-2 py-0.5 text-[10px] font-semibold ${
-                        row.crime_category === 'CYBER'
+                      <span className={`rounded px-2 py-0.5 text-[10px] font-semibold ${row.crime_category === 'CYBER'
                           ? 'border border-blue-500/30 bg-blue-500/10 text-blue-300'
                           : 'border border-indigo-500/30 bg-indigo-500/10 text-indigo-300'
-                      }`}>
+                        }`}>
                         {row.crime_category}
                       </span>
                     </td>

@@ -24,7 +24,7 @@ from docling.chunking import HybridChunker
 from transformers import AutoTokenizer
 
 # --- ZERO-HARDCODE HIGH-PERFORMANCE UNIVERSAL CONFIGURATION ---
-COLLECTION_NAME = os.getenv("COLLECTION_NAME", "police_sops_universal")
+COLLECTION_NAME = os.getenv("COLLECTION_NAME", "police_sops_v2")
 TRACKING_FILE = f"ingested_history_{COLLECTION_NAME}.json"
 DOCS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "doc")
 

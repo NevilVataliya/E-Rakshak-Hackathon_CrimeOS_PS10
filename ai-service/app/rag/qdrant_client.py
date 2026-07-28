@@ -87,14 +87,22 @@ def compute_bm25_score(query_tokens: List[str], text_tokens: List[str], avg_len:
             score += (tf * (k1 + 1.0)) / denom
     return score
 
+from app.rag.query_optimizer import enrich_query_for_universal_rag
+
 def search_legal_sops(query: str, target_specialist: str = None, top_k: int = 15, use_hyde: bool = False):
     """
-    Universal High-Precision Qdrant RAG Engine combining Dense Vector Similarity (bge-m3)
-    and BM25 Sparse Keyword Matching via Reciprocal Rank Fusion (RRF).
+    Native Dense + BM25 Sparse Hybrid Search Engine with Reciprocal Rank Fusion (RRF).
+    
+    Combines:
+    1. Parallel Dense Vector Search (bge-m3 1024D)
+    2. BM25 Sparse Token Matching
+    3. RRF Score Fusion: RRF(d) = 1 / (60 + Rank_dense(d)) + 1 / (60 + Rank_sparse(d))
+    4. Soft-Domain Filtering to allow cross-domain legal manual retrieval.
     """
     client = get_qdrant_client()
-    query_vector = get_query_embedding(query)
-    query_tokens = tokenize_text(query)
+    search_q = enrich_query_for_universal_rag(query) if use_hyde else query
+    query_vector = get_query_embedding(search_q)
+    query_tokens = tokenize_text(search_q)
 
     try:
         if not client.collection_exists(COLLECTION_NAME):
@@ -104,11 +112,11 @@ def search_legal_sops(query: str, target_specialist: str = None, top_k: int = 15
                 raise RuntimeError(err_msg)
             return []
 
-        # 1. Fetch Candidate Pool via Dense Vector Search (High-Density Candidate Window)
+        # 1. Candidate Pool Retrieval via Dense Vector Similarity
         global_results = client.search(
             collection_name=COLLECTION_NAME,
             query_vector=query_vector,
-            limit=200
+            limit=100
         )
 
         candidate_map: Dict[str, Any] = {}
@@ -141,21 +149,17 @@ def search_legal_sops(query: str, target_specialist: str = None, top_k: int = 15
         sparse_sorted = sorted(sparse_scored, key=lambda x: x[1], reverse=True)
         sparse_rank_map = {item[0]: r for r, item in enumerate(sparse_sorted, 1)}
 
-        # 4. Reciprocal Rank Fusion (RRF) Calculation
+        # 4. Pure Reciprocal Rank Fusion (RRF) Calculation: RRF = 1/(60 + r_dense) + 1/(60 + r_sparse)
         rrf_scored = []
         for pt in candidates:
             pid = str(pt.id)
             r_dense = dense_rank_map.get(pid, 100)
             r_sparse = sparse_rank_map.get(pid, 100)
             
-            # Standard RRF Formula: 1 / (60 + R_dense) + 1 / (60 + R_sparse)
+            # Pure Standard RRF Formula: RRF(d) = 1/(60 + r_dense) + 1/(60 + r_sparse)
             rrf_score = (1.0 / (60.0 + r_dense)) + (1.0 / (60.0 + r_sparse))
             payload = pt.payload or {}
-            
-            # Specialist Soft Boost
             pt_spec = payload.get("target_specialist", "")
-            if target_specialist and pt_spec == target_specialist:
-                rrf_score += 0.005
 
             rrf_scored.append({
                 "id": pid,
@@ -170,14 +174,14 @@ def search_legal_sops(query: str, target_specialist: str = None, top_k: int = 15
                 "target_specialist": pt_spec
             })
 
-        # Sort candidates by RRF score descending
+        # Sort candidate chunks by RRF score descending
         rrf_scored.sort(key=lambda x: x["score"], reverse=True)
         results = rrf_scored[:top_k]
 
-        print(f"[+] Qdrant Universal RRF Search ({target_specialist}): Found {len(results)} grounded chunks from '{COLLECTION_NAME}'.")
+        print(f"[+] Qdrant Universal Native RRF Search ({target_specialist}): Found {len(results)} grounded chunks from '{COLLECTION_NAME}'.")
         return results
     except Exception as e:
-        print(f"[-] Qdrant Search Exception: {e}")
+        print(f"[-] Qdrant Native RRF Search Exception: {e}")
         if not ENABLE_DEMO_FALLBACKS:
             raise e
         return []

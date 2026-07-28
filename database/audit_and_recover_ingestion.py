@@ -13,7 +13,7 @@ from transformers import AutoTokenizer
 sys.modules['torchcodec'] = None
 warnings.filterwarnings("ignore")
 
-COLLECTION_NAME = os.getenv("COLLECTION_NAME", "police_sops_universal")
+COLLECTION_NAME = os.getenv("COLLECTION_NAME", "police_sops_v2")
 DOCS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "doc")
 TRACKING_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), f"ingested_history_{COLLECTION_NAME}.json")
 

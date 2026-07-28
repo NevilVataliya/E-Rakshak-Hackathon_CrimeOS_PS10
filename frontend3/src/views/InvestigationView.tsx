@@ -1,16 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { 
-  Bot, 
-  Sparkles, 
-  CheckCircle, 
-  FileText, 
-  Gavel, 
-  ShieldCheck, 
-  Download, 
-  ChevronDown, 
-  ChevronUp, 
-  Loader2, 
+import {
+  Bot,
+  Sparkles,
+  CheckCircle,
+  FileText,
+  Gavel,
+  ShieldCheck,
+  Download,
+  ChevronDown,
+  ChevronUp,
+  Loader2,
   ArrowRight,
   BookmarkCheck,
   BookOpen,
@@ -40,7 +40,7 @@ export default function InvestigationView() {
 
   return (
     <div className="flex-1 flex flex-col p-4 overflow-hidden gap-3 select-none">
-      
+
       {/* Header Bar */}
       <div className="flex items-center justify-between border-b border-white/10 pb-3 shrink-0">
         <div>
@@ -88,13 +88,13 @@ export default function InvestigationView() {
 
       {/* Main Grid: Directives Matrix & Penal Grounding */}
       <div className="flex-1 grid grid-cols-12 gap-3 overflow-hidden">
-        
+
         {/* Left Column: SOP Directives Execution Matrix (7 Cols) */}
         <div className="col-span-7 rounded border border-white/10 bg-[#0d1322] p-3 flex flex-col overflow-hidden space-y-2.5">
           <div className="flex items-center justify-between border-b border-white/10 pb-2 shrink-0">
             <span className="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
               <ShieldCheck className="h-4 w-4 text-blue-400" />
-              SOP Directives Matrix (police_sops_universal)
+              SOP Directives Matrix (police_sops_v2)
             </span>
             <span className="text-[10px] font-mono text-emerald-400 font-bold">
               Dense + BM25 RRF Hybrid Search
@@ -105,7 +105,7 @@ export default function InvestigationView() {
             {investigationData?.investigation_steps?.map((step: GroundedSOPStep, idx: number) => {
               const isOpen = expandedStep === idx;
               return (
-                <div 
+                <div
                   key={idx}
                   className="rounded border border-white/10 bg-[#050811] overflow-hidden"
                 >
@@ -128,7 +128,7 @@ export default function InvestigationView() {
                   {isOpen && (
                     <div className="px-3 pb-3 pt-1 border-t border-white/10 space-y-2 text-xs">
                       <p className="text-slate-300 leading-relaxed font-sans">{step.description}</p>
-                      
+
                       <div className="rounded border border-white/10 bg-[#0d1322] p-2 space-y-1">
                         <div className="flex items-center justify-between font-mono font-bold text-blue-400 text-[11px]">
                           <span className="flex items-center gap-1"><BookOpen className="h-3 w-3" /> {step.document_name}</span>
@@ -149,7 +149,7 @@ export default function InvestigationView() {
 
         {/* Right Column: Penal Grounding & Turnkey Notice Trigger (5 Cols) */}
         <div className="col-span-5 flex flex-col gap-3 overflow-hidden">
-          
+
           {/* Statutory Penal Grounding */}
           <div className="rounded border border-white/10 bg-[#0d1322] p-3 space-y-2 shrink-0">
             <span className="text-xs font-bold uppercase tracking-wider text-slate-300 border-b border-white/10 pb-1.5 flex items-center gap-1.5">

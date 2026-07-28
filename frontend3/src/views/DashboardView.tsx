@@ -19,7 +19,7 @@ export default function DashboardView() {
 
   return (
     <div className="flex-1 flex flex-col p-4 overflow-hidden gap-4 select-none">
-      
+
       {/* Top Banner */}
       <div className="flex items-center justify-between border-b border-white/10 pb-3 shrink-0">
         <div>
@@ -78,13 +78,13 @@ export default function DashboardView() {
             <Cpu className="h-3.5 w-3.5 text-indigo-400" />
           </div>
           <p className="text-xl font-extrabold text-white font-mono">7,337 Chunks</p>
-          <p className="text-[10px] text-indigo-400 font-mono">police_sops_universal</p>
+          <p className="text-[10px] text-indigo-400 font-mono">police_sops_v2</p>
         </div>
       </div>
 
       {/* Main Grid Layout: Active Cases Table & Action Launchpad */}
       <div className="flex-1 grid grid-cols-3 gap-3 overflow-hidden">
-        
+
         {/* Left: Active Cases Table */}
         <div className="col-span-2 rounded border border-white/10 bg-[#0d1322] flex flex-col overflow-hidden">
           <div className="h-9 border-b border-white/10 px-3 flex items-center justify-between bg-[#080d1a] shrink-0">

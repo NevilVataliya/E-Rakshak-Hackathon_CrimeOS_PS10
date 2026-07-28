@@ -13,7 +13,7 @@ export default function CommandHeader() {
   return (
     <>
       <header className="h-11 w-full border-b border-white/10 bg-[#080d1a] px-3 flex items-center justify-between shrink-0 select-none">
-        
+
         {/* Brand Badge & Station Selector */}
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2">
@@ -50,12 +50,12 @@ export default function CommandHeader() {
 
         {/* Right: Vector Index Status & Officer Profile */}
         <div className="flex items-center gap-3">
-          
+
           {/* Active Qdrant Store Status */}
           <div className="flex items-center gap-1.5 rounded border border-white/10 bg-[#0d1322] px-2 py-0.5 text-[11px] font-mono text-slate-300">
             <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-ping" />
             <Cpu className="h-3 w-3 text-emerald-400" />
-            <span>police_sops_universal: 7,337 Chunks</span>
+            <span>police_sops_v2: 7,337 Chunks</span>
           </div>
 
           <div className="h-3.5 w-px bg-white/10" />

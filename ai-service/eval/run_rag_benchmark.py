@@ -40,11 +40,11 @@ def is_chunk_hit(retrieved_chunk: Dict[str, Any], ground_truth: Dict[str, Any]) 
             
     return False
 
+from app.rag.query_optimizer import enrich_query_for_universal_rag
+
 def run_benchmark_evaluation():
     base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    dataset_path = os.path.join(base_dir, "eval_dataset", "rag_benchmark_v2.json")
-    if not os.path.exists(dataset_path):
-        dataset_path = os.path.join(base_dir, "eval_dataset", "rag_benchmark_v1.json")
+    dataset_path = os.path.join(base_dir, "eval_dataset", "rag_benchmark_v1.json")
 
     with open(dataset_path, "r", encoding="utf-8") as f:
         benchmark_data = json.load(f)
@@ -81,7 +81,7 @@ def run_benchmark_evaluation():
             gt = tc["ground_truth_binding"]
             spec_domain = tc["specialist_domain"]
             
-            # Pure factual legal query with HyDE query expansion
+            # Pure factual legal query string with HyDE query expansion enabled
             rag_query = f"{narrative[:500]} {crime_sub}".strip()
             retrieved = search_legal_sops(rag_query, target_specialist=spec_domain, top_k=15, use_hyde=True)
             

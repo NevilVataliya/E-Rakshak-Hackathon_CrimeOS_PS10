@@ -1,16 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { 
-  Bot, 
-  Sparkles, 
-  CheckCircle, 
-  FileText, 
-  Gavel, 
-  ShieldCheck, 
-  Download, 
-  ChevronDown, 
-  ChevronUp, 
-  Loader2, 
+import {
+  Bot,
+  Sparkles,
+  CheckCircle,
+  FileText,
+  Gavel,
+  ShieldCheck,
+  Download,
+  ChevronDown,
+  ChevronUp,
+  Loader2,
   ArrowRight,
   BookmarkCheck,
   BookOpen
@@ -49,7 +49,7 @@ export default function AgentStudioPage() {
 
   return (
     <div className="space-y-5">
-      
+
       {/* Case Header & Selector Bar */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-b border-slate-800 pb-4">
         <div className="flex flex-wrap items-center gap-3">
@@ -117,13 +117,13 @@ export default function AgentStudioPage() {
 
       {/* Main Grid: SOP Directives & Statutory Grounding */}
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-12">
-        
+
         {/* Left Column: Step-by-Step SOP Directives */}
         <div className="pro-card p-5 lg:col-span-7 space-y-3">
           <div className="flex items-center justify-between border-b border-slate-800 pb-3">
             <h2 className="text-sm font-bold text-white flex items-center gap-2">
               <ShieldCheck className="h-4 w-4 text-blue-400" />
-              SOP-Grounded Investigation Directives (police_sops_universal)
+              SOP-Grounded Investigation Directives (police_sops_v2)
             </h2>
             <span className="text-[11px] font-mono text-slate-400">
               BM25 + Dense RRF Hybrid Search
@@ -135,8 +135,8 @@ export default function AgentStudioPage() {
               {investigationData.investigation_steps?.map((step: GroundedSOPStep, idx: number) => {
                 const isOpen = expandedStep === idx;
                 return (
-                  <div 
-                    key={idx} 
+                  <div
+                    key={idx}
                     className="rounded-lg border border-slate-800 bg-slate-900/60 overflow-hidden transition-colors hover:border-slate-700"
                   >
                     <button
@@ -206,7 +206,7 @@ export default function AgentStudioPage() {
 
         {/* Right Column: Statutory Penal Grounding & PDF Directives */}
         <div className="space-y-5 lg:col-span-5">
-          
+
           {/* Statutory Penal Grounding */}
           <div className="pro-card p-5 space-y-3">
             <h2 className="text-sm font-bold text-white flex items-center gap-2 border-b border-slate-800 pb-3">

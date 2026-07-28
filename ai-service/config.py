@@ -38,7 +38,7 @@ GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
 QDRANT_HOST = os.getenv("QDRANT_HOST", "localhost")
 QDRANT_PORT = int(os.getenv("QDRANT_PORT", 6333))
 DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://crimeos_user:crimeos_password@localhost:5432/crimeos_db")
-COLLECTION_NAME = os.getenv("COLLECTION_NAME", "police_sops_universal")
+COLLECTION_NAME = os.getenv("COLLECTION_NAME", "police_sops")
 
 print(f"[*] Configuration Loaded: DEBUG={DEBUG} | ENABLE_DEMO_FALLBACKS={ENABLE_DEMO_FALLBACKS} | MODEL_CACHE={MODEL_CACHE_DIR}")
 

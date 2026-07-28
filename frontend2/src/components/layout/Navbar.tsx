@@ -17,9 +17,9 @@ export default function Navbar() {
   return (
     <header className="sticky top-0 z-50 w-full border-b border-slate-800 bg-slate-950/95 backdrop-blur-md">
       <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-        
+
         {/* Brand & System Title */}
-        <div 
+        <div
           onClick={() => navigate('/')}
           className="flex cursor-pointer items-center gap-3"
         >
@@ -39,7 +39,7 @@ export default function Navbar() {
 
         {/* Station Metadata & Officer Profile */}
         <div className="flex items-center gap-3">
-          
+
           {/* Station Badge */}
           <div className="hidden items-center gap-1.5 rounded-lg border border-slate-800 bg-slate-900 px-3 py-1 text-xs text-slate-300 sm:flex">
             <Building2 className="h-3.5 w-3.5 text-blue-400" />
@@ -49,7 +49,7 @@ export default function Navbar() {
           {/* Active Vector Index */}
           <div className="hidden items-center gap-1.5 rounded-lg border border-slate-800 bg-slate-900 px-3 py-1 text-xs text-slate-300 md:flex">
             <Cpu className="h-3.5 w-3.5 text-emerald-400" />
-            <span className="font-mono text-[11px] text-slate-300">police_sops_universal</span>
+            <span className="font-mono text-[11px] text-slate-300">police_sops_v2</span>
           </div>
 
           {/* User Profile Dropdown */}
