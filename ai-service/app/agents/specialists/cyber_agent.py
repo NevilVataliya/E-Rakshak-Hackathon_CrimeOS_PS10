@@ -1,6 +1,7 @@
 import json
 from app.agents.state import AgentState
 from app.rag.qdrant_client import search_legal_sops
+from app.rag.query_optimizer import decompose_query_for_specialist
 from app.utils.json_helper import parse_llm_json
 from app.models.schemas import CyberDraftSchema
 from config import get_agent_llm, ENABLE_DEMO_FALLBACKS
@@ -16,10 +17,7 @@ def cyber_agent_node(state: AgentState) -> dict:
     crime_sub = state.get('crime_sub_type') or 'Cyber Fraud'
     complaint_text = state.get('translated_text') or state.get('complaint_text') or ''
     
-    vpas = ", ".join(entities.get('vpas_upis') or [])
-    phones = ", ".join(entities.get('phone_numbers') or [])
-    
-    rag_query = f"{crime_sub} digital evidence CDR IPDR LERS bank debit freeze SOP {vpas} {phones}".strip()
+    rag_query = decompose_query_for_specialist(complaint_text, target_specialist="cyber_specialist", crime_sub_type=crime_sub, entities=entities)
     qdrant_docs = search_legal_sops(rag_query, target_specialist="cyber_financial_intel_specialist", top_k=4)
     
     formatted_chunks = []

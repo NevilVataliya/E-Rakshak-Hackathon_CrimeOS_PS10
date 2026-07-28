@@ -8,6 +8,7 @@ from typing import List, Dict, Any
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from app.rag.qdrant_client import search_legal_sops
+from app.rag.query_optimizer import decompose_query_for_specialist
 
 def parse_page_num(val: Any) -> int:
     if isinstance(val, int):
@@ -42,9 +43,9 @@ def is_chunk_hit(retrieved_chunk: Dict[str, Any], ground_truth: Dict[str, Any]) 
 
 def run_benchmark_evaluation():
     base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    dataset_path = os.path.join(base_dir, "eval_dataset", "rag_benchmark_v2.json")
+    dataset_path = os.path.join(base_dir, "eval_dataset", "rag_benchmark_v2.1.json")
     if not os.path.exists(dataset_path):
-        dataset_path = os.path.join(base_dir, "eval_dataset", "rag_benchmark_v1.json")
+        dataset_path = os.path.join(base_dir, "eval_dataset", "rag_benchmark_v2.json")
 
     with open(dataset_path, "r", encoding="utf-8") as f:
         benchmark_data = json.load(f)
@@ -83,7 +84,7 @@ def run_benchmark_evaluation():
             
             # Pure factual legal query with HyDE query expansion
             rag_query = f"{narrative[:500]} {crime_sub}".strip()
-            retrieved = search_legal_sops(rag_query, target_specialist=spec_domain, top_k=15, use_hyde=True)
+            retrieved = search_legal_sops(rag_query, target_specialist=spec_domain, top_k=30, use_hyde=True)
             
             # Calculate Rank & Hit@K
             rank = None
@@ -131,8 +132,8 @@ def run_benchmark_evaluation():
             retrieved_all = []
             for tgt in targets:
                 spec = tgt["target_specialist"]
-                query_str = f"{narrative[:400]} {crime_sub}".strip()
-                res = search_legal_sops(query_str, target_specialist=spec, top_k=15, use_hyde=False)
+                query_str = decompose_query_for_specialist(narrative, target_specialist=spec, crime_sub_type=crime_sub)
+                res = search_legal_sops(query_str, target_specialist=spec, top_k=30, use_hyde=False)
                 retrieved_all.extend(res)
 
             targets_hit = 0

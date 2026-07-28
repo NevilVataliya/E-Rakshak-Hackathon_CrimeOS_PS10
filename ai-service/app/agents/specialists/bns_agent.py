@@ -1,6 +1,7 @@
 import json
 from app.agents.state import AgentState
 from app.rag.qdrant_client import search_legal_sops
+from app.rag.query_optimizer import decompose_query_for_specialist
 from app.utils.json_helper import parse_llm_json
 from app.models.schemas import BNSDraftSchema
 from config import get_agent_llm, ENABLE_DEMO_FALLBACKS
@@ -16,7 +17,7 @@ def bns_agent_node(state: AgentState) -> dict:
     feedback = state.get('evaluation_feedback') or []
     entities = state.get('entities') or {}
     
-    rag_query = f"{crime_sub_type} {complaint_text[:300]} penal section punishment statute BNS IT Act".strip()
+    rag_query = decompose_query_for_specialist(complaint_text, target_specialist="bns_specialist", crime_sub_type=crime_sub_type, entities=entities)
     qdrant_docs = search_legal_sops(rag_query, target_specialist="bns_specialist", top_k=6)
     
     formatted_chunks = []

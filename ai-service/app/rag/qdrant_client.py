@@ -8,6 +8,8 @@ from qdrant_client import QdrantClient
 from qdrant_client.models import Filter, FieldCondition, MatchValue
 from config import QDRANT_HOST, QDRANT_PORT, COLLECTION_NAME, ENABLE_DEMO_FALLBACKS, HF_TOKEN, MODEL_CACHE_DIR
 
+ENABLE_OLLAMA_EMBEDDINGS = os.getenv("ENABLE_OLLAMA_EMBEDDINGS", "false").lower() == "true"
+
 _st_model = None
 _model_lock = threading.Lock()
 _qdrant_client = None
@@ -33,17 +35,17 @@ def get_qdrant_client():
 
 def get_query_embedding(query: str):
     global _st_model
-    try:
-        if hasattr(ollama, 'embed'):
-            embed_resp = ollama.embed(model="bge-m3:latest", input=query)
-            if embed_resp and isinstance(embed_resp, dict) and 'embeddings' in embed_resp and embed_resp['embeddings']:
-                return embed_resp['embeddings'][0]
-        elif hasattr(ollama, 'embeddings'):
-            embed_resp = ollama.embeddings(model="bge-m3:latest", prompt=query)
-            if embed_resp and isinstance(embed_resp, dict) and 'embedding' in embed_resp:
-                return embed_resp['embedding']
-    except (AttributeError, Exception) as e:
-        if not ENABLE_DEMO_FALLBACKS:
+    if ENABLE_OLLAMA_EMBEDDINGS:
+        try:
+            if hasattr(ollama, 'embed'):
+                embed_resp = ollama.embed(model="bge-m3:latest", input=query)
+                if embed_resp and isinstance(embed_resp, dict) and 'embeddings' in embed_resp and embed_resp['embeddings']:
+                    return embed_resp['embeddings'][0]
+            elif hasattr(ollama, 'embeddings'):
+                embed_resp = ollama.embeddings(model="bge-m3:latest", prompt=query)
+                if embed_resp and isinstance(embed_resp, dict) and 'embedding' in embed_resp:
+                    return embed_resp['embedding']
+        except Exception as e:
             print(f"[*] Ollama embedding fallback triggered: {e}")
 
     try:
@@ -59,7 +61,7 @@ def get_query_embedding(query: str):
         vector = _st_model.encode(query).tolist()
         return vector
     except Exception as e:
-        print(f"[-] SentenceTransformer Fallback Exception: {e}")
+        print(f"[-] SentenceTransformer Exception: {e}")
         if not ENABLE_DEMO_FALLBACKS:
             raise e
         return [0.001] * 1024
@@ -87,10 +89,10 @@ def compute_bm25_score(query_tokens: List[str], text_tokens: List[str], avg_len:
             score += (tf * (k1 + 1.0)) / denom
     return score
 
-def search_legal_sops(query: str, target_specialist: str = None, top_k: int = 15, use_hyde: bool = False):
+def search_legal_sops(query: str, target_specialist: str = None, top_k: int = 30, use_hyde: bool = False):
     """
-    Universal High-Precision Qdrant RAG Engine combining Dense Vector Similarity (bge-m3)
-    and BM25 Sparse Keyword Matching via Reciprocal Rank Fusion (RRF).
+    Universal High-Precision Qdrant RAG Engine combining Dense Vector Similarity (bge-m3),
+    BM25 Sparse Keyword Matching via Reciprocal Rank Fusion (RRF), and CrossEncoder Reranking.
     """
     client = get_qdrant_client()
     query_vector = get_query_embedding(query)
@@ -157,6 +159,15 @@ def search_legal_sops(query: str, target_specialist: str = None, top_k: int = 15
             if target_specialist and pt_spec == target_specialist:
                 rrf_score += 0.005
 
+            # Step 2: Canonical Section Match Soft Boost (+0.025)
+            from app.rag.query_optimizer import canonicalize_section_string
+            q_sections = canonicalize_section_string(query)
+            if q_sections:
+                chunk_text = payload.get("text", "")
+                c_sections = canonicalize_section_string(chunk_text)
+                if any(qs in c_sections or qs in chunk_text.upper() for qs in q_sections):
+                    rrf_score += 0.025
+
             rrf_scored.append({
                 "id": pid,
                 "score": rrf_score,
@@ -172,9 +183,39 @@ def search_legal_sops(query: str, target_specialist: str = None, top_k: int = 15
 
         # Sort candidates by RRF score descending
         rrf_scored.sort(key=lambda x: x["score"], reverse=True)
-        results = rrf_scored[:top_k]
 
-        print(f"[+] Qdrant Universal RRF Search ({target_specialist}): Found {len(results)} grounded chunks from '{COLLECTION_NAME}'.")
+        # 5. Fast Cross-Encoder Reranking with MinMax Linear Rank Blending (50% RRF, 50% CE)
+        try:
+            from app.rag.reranker import get_fast_reranker_model
+            model = get_fast_reranker_model()
+            if model != "FALLBACK" and model is not None:
+                candidate_pool = rrf_scored[:40]
+                pairs = [[query, f"{c['source']} {c['text']}"] for c in candidate_pool]
+                ce_scores = model.predict(pairs)
+
+                # MinMax Scaling
+                rrf_vals = [c["score"] for c in candidate_pool]
+                min_r, max_r = min(rrf_vals), max(rrf_vals)
+                r_range = (max_r - min_r) if (max_r - min_r) > 1e-6 else 1.0
+
+                min_ce, max_ce = min(ce_scores), max(ce_scores)
+                ce_range = (max_ce - min_ce) if (max_ce - min_ce) > 1e-6 else 1.0
+
+                alpha = 0.80
+                for idx, c in enumerate(candidate_pool):
+                    norm_rrf = (c["score"] - min_r) / r_range
+                    norm_ce = (float(ce_scores[idx]) - min_ce) / ce_range
+                    c["score"] = alpha * norm_rrf + (1.0 - alpha) * norm_ce
+
+                candidate_pool.sort(key=lambda x: x["score"], reverse=True)
+                results = candidate_pool[:top_k]
+            else:
+                results = rrf_scored[:top_k]
+        except Exception as re_err:
+            print(f"[-] Reranker Blending Warning: {re_err}")
+            results = rrf_scored[:top_k]
+
+        print(f"[+] Qdrant Universal RRF+Blended-Reranker Search ({target_specialist}): Found {len(results)} grounded chunks from '{COLLECTION_NAME}'.")
         return results
     except Exception as e:
         print(f"[-] Qdrant Search Exception: {e}")

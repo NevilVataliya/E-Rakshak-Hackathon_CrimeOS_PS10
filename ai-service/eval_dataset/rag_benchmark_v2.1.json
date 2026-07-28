@@ -1,0 +1,2271 @@
+{
+  "benchmark_metadata": {
+    "version": "2.1",
+    "collection_name": "police_sops_universal",
+    "created_at": "2026-07-28",
+    "total_cases": 40,
+    "description": "High-Precision Verified RAG Benchmark v2.1 (Re-bound & LLM Verified against live police_sops_universal collection)"
+  },
+  "test_cases": [
+    {
+      "test_case_id": "BENCH-ATOMIC-001",
+      "case_type": "ATOMIC_SINGLE_CHUNK",
+      "specialist_domain": "cyber_financial_intel_specialist",
+      "ground_truth_binding": {
+        "target_point_id": "3b9df9c2-c2a2-90ce-4205-7f51e6245cf0",
+        "source_document": "BNSS_Procedural_Code_2023.pdf",
+        "document_title": "Bharatiya Nagarik Suraksha Sanhita (BNSS), 2023",
+        "page_number": 38,
+        "allowed_page_window": [
+          37,
+          38,
+          39
+        ],
+        "chunk_md5_hash": "e557b40b5bcf798e27be2e38c44dfc60"
+      },
+      "target_chunk_snippet": "# DOCUMENT: Bharatiya Nagarik Suraksha Sanhita (BNSS), 2023 (Filename: BNSS_Procedural_Code_2023.pdf | Page 39, 40)\n## SECTION PATH: B.-Warrant of arrest\n### TYPE: STATUTE\n\n75. ( 1 ) The Chief Judicial Magistrate or a Magistrate of the first class may direct a warrant to any person within his local ",
+      "synthetic_complaint": {
+        "variant_type": "hinglish",
+        "raw_text": "Mujhe 5 lakh rupaye ka chunauti mila hai, jo mere khilaf ek non-bailable offence hai. Main apne ghar par tha jab ek ajnabi aadmi ne mujhe dhoomkar peete hue kaha ki maine uska 5 lakh rupaye ka nuksan kar diya hai. Maine use samjhaane ki koshish ki lekin vah mujhe dhamki dekar bhaag gaya. Ab vah mere ghar ke bahar khada hai aur mujhe arrest karne ki dhamki de raha hai. Maine police ko bulaya hai aur ab vah warrant of arrest lekar aaya hai.",
+        "translated_text": "I have been threatened with a non-bailable offence of 5 lakh rupees. I was at my home when a stranger came and told me that I had caused him a loss of 5 lakh rupees. I tried to explain to him but he threatened me and ran away. Now he is standing outside my house and threatening to arrest me. I have called the police and now they have come with a warrant of arrest.",
+        "crime_category": "CONVENTIONAL",
+        "crime_sub_type": "Threat and Intimidation"
+      },
+      "expected_entities": {
+        "persons": [
+          {
+            "name": "Unknown Stranger",
+            "role": "accused"
+          },
+          {
+            "name": "Complainant",
+            "role": "victim"
+          }
+        ],
+        "phone_numbers": [],
+        "bank_accounts": [],
+        "vpas_upis": []
+      }
+    },
+    {
+      "test_case_id": "BENCH-ATOMIC-002",
+      "case_type": "ATOMIC_SINGLE_CHUNK",
+      "specialist_domain": "cyber_financial_intel_specialist",
+      "ground_truth_binding": {
+        "target_point_id": "3e3a31c9-c297-d76e-f05d-200d143509d8",
+        "source_document": "BNSS_Procedural_Code_2023.pdf",
+        "document_title": "Bharatiya Nagarik Suraksha Sanhita (BNSS), 2023",
+        "page_number": 191,
+        "allowed_page_window": [
+          190,
+          191,
+          192
+        ],
+        "chunk_md5_hash": "75a449c9bec00500a3a2e76d563636cd"
+      },
+      "target_chunk_snippet": "# DOCUMENT: Bharatiya Nagarik Suraksha Sanhita (BNSS), 2023 (Filename: BNSS_Procedural_Code_2023.pdf | Page 191)\n## SECTION PATH: EXPLANATORY NOTES:\n### TYPE: STATUTE\n\n\n Cognizable. 221, 5 = Ditto. 221, 6 = Ditto.. 221, 2 = (b) If such disobedience causes danger to human life, health or safety, or c",
+      "synthetic_complaint": {
+        "variant_type": "hinglish",
+        "raw_text": "Mujhe kal shaam ko 8 baje mere gaon ke ek vyakti ne, jiska naam Rajesh hai, mujhe dhamki di ki agar maine police mein complaint kiya to woh mere parivaar ko nuksan pahuncha dega. Iske baad woh mujhe 5000 rupees ki maang karne laga. Maine usey paise dene se mana kiya to usne mujhe kaha ki woh mere khilaf riot karwa dega aur mere parivaar ko nuksan pahuncha dega.",
+        "translated_text": "I was threatened yesterday evening at 8 pm by a person from my village named Rajesh, who told me that if I file a complaint with the police, he will harm my family. After that, he demanded 5000 rupees from me. When I refused to give him the money, he said he would instigate a riot and harm my family.",
+        "crime_category": "CONVENTIONAL",
+        "crime_sub_type": "Threat of injury to public servant and extortion"
+      },
+      "expected_entities": {
+        "persons": [
+          {
+            "name": "Rajesh",
+            "role": "accused"
+          },
+          {
+            "name": "Complainant (not specified)",
+            "role": "victim"
+          }
+        ],
+        "phone_numbers": [],
+        "bank_accounts": [],
+        "vpas_upis": []
+      }
+    },
+    {
+      "test_case_id": "BENCH-ATOMIC-003",
+      "case_type": "ATOMIC_SINGLE_CHUNK",
+      "specialist_domain": "cyber_financial_intel_specialist",
+      "ground_truth_binding": {
+        "target_point_id": "314c4c94-29ce-1575-9334-3a742d01f5cd",
+        "source_document": "BSA_Evidence_Act_2023.pdf",
+        "document_title": "Bharatiya Sakshya Adhiniyam (BSA), 2023",
+        "page_number": 21,
+        "allowed_page_window": [
+          20,
+          21,
+          22
+        ],
+        "chunk_md5_hash": "c5cdd2ad79a8bf098fec0905a83c5c3e"
+      },
+      "target_chunk_snippet": "# DOCUMENT: Bharatiya Sakshya Adhiniyam (BSA), 2023 (Filename: BSA_Evidence_Act_2023.pdf | Page 21, 22)\n## SECTION PATH: Illustrations.\n### TYPE: STATUTE\n\n( h ) The question is, what was the cause of the wreck of a ship. A protest made by the captain, whose attendance cannot be procured, is a releva",
+      "synthetic_complaint": {
+        "variant_type": "hinglish",
+        "raw_text": "Mujhe pata hai ki meri jagah par ek ship wreck hua tha, jiske captain ka protest statement mila hai, lekin wo ab attend nahi ho sakta. Maine suna hai ki uss captain ne kaha tha ki ship ko nuksan pahunchane wale kaaran ko lekar ek report banayi thi. Maine uss report ko nahi dekha, lekin mujhe lagta hai ki wo relevant fact hai. Iske alawa, maine ek road par chalate waqt dekha ki wo road public thi ya nahi, iske bare mein ek marhum headman ne kaha tha ki wo road public hai. Aur haan, mujhe pata hai ki ek marhum businessman ne apne business ke dauraan ek statement diya tha ki uss din uss market mein grain ka price kya tha. Lekin ab mujhe ek aur problem hai, meri property ke bare mein ek sawal utha hai, ki kaun hai mera pitaji, jo ki marhum hain. Unhone ek statement diya tha ki B mera beta hai.",
+        "translated_text": "I know that there was a ship wreck at my place, and the captain's protest statement was found, but he cannot attend now. I heard that the captain had made a report about the cause of the damage to the ship. I haven't seen that report, but I think it's a relevant fact. Also, while walking on a road, I saw that it was a public road or not, a deceased headman had said that it was a public road. And yes, I know that a deceased businessman had made a statement during his business about the price of grain in that market on that day. But now I have another problem, a question has arisen about my property, about who my father is, who is deceased. He had made a statement that B is my son.",
+        "crime_category": "CONVENTIONAL",
+        "crime_sub_type": "PROPERTY_DISPUTE"
+      },
+      "expected_entities": {
+        "persons": [
+          {
+            "name": "Captain",
+            "role": "accused"
+          },
+          {
+            "name": "Headman",
+            "role": "deceased"
+          },
+          {
+            "name": "Businessman",
+            "role": "deceased"
+          },
+          {
+            "name": "B",
+            "role": "victim"
+          }
+        ],
+        "phone_numbers": [],
+        "bank_accounts": [],
+        "vpas_upis": []
+      }
+    },
+    {
+      "test_case_id": "BENCH-ATOMIC-004",
+      "case_type": "ATOMIC_SINGLE_CHUNK",
+      "specialist_domain": "cyber_financial_intel_specialist",
+      "ground_truth_binding": {
+        "target_point_id": "3adebedc-f1b5-f2ed-f333-5725adeb66cd",
+        "source_document": "IT_Act_2000.pdf",
+        "document_title": "Information Technology Act, 2000",
+        "page_number": 34,
+        "allowed_page_window": [
+          33,
+          34,
+          35
+        ],
+        "chunk_md5_hash": "b163b4d01d2881bdb40a75e14e03aab3"
+      },
+      "target_chunk_snippet": "# DOCUMENT: Information Technology Act, 2000 (Filename: IT_Act_2000.pdf | Page 34)\n## SECTION PATH: 86 Removal of Difficulties\n### TYPE: STATUTE\n\n(1) If  any difficulty arises in giving effect to the provisions of this Act, the Central Government may,  by  order  published  in  the  Official  Gazett",
+      "synthetic_complaint": {
+        "variant_type": "hinglish",
+        "raw_text": "Mujhe online transaction ke dauraan thag liya gaya hai. Maine apne bank account se 50000 rupees transfer kiye the, lekin wo amount galat account me chala gaya. Maine apne bank ke customer care se baat ki, toh unhone kaha ki wo transaction ko rollback karne me kuch difficulty aa rahi hai. Unhone kaha ki IT Act 2000 ke section 86 ke tehet, Central Government ko order pass karna padega tabhi transaction ko rollback kiya ja sakta hai.",
+        "translated_text": "I have been cheated during an online transaction. I had transferred 50,000 rupees from my bank account, but the amount went to the wrong account. I spoke to my bank's customer care, and they said that they are facing some difficulty in rolling back the transaction. They said that under Section 86 of the IT Act 2000, the Central Government needs to pass an order to rollback the transaction.",
+        "crime_category": "CYBER",
+        "crime_sub_type": "ONLINE_TRANSACTION_FRAUD"
+      },
+      "expected_entities": {
+        "persons": [
+          {
+            "name": "Unknown",
+            "role": "accused"
+          }
+        ],
+        "phone_numbers": [],
+        "bank_accounts": [
+          {
+            "account_number": "XXXX1234",
+            "ifsc": "SBIN0012345"
+          }
+        ],
+        "vpas_upis": []
+      }
+    },
+    {
+      "test_case_id": "BENCH-ATOMIC-005",
+      "case_type": "ATOMIC_SINGLE_CHUNK",
+      "specialist_domain": "cyber_financial_intel_specialist",
+      "ground_truth_binding": {
+        "target_point_id": "293dd293-6e6e-0064-6539-0117a109916c",
+        "source_document": "BNSS_Procedural_Code_2023.pdf",
+        "document_title": "Bharatiya Nagarik Suraksha Sanhita (BNSS), 2023",
+        "page_number": 79,
+        "allowed_page_window": [
+          78,
+          79,
+          80
+        ],
+        "chunk_md5_hash": "52df0b88c4f248ab38c8eba405fd322f"
+      },
+      "target_chunk_snippet": "# DOCUMENT: Bharatiya Nagarik Suraksha Sanhita (BNSS), 2023 (Filename: BNSS_Procedural_Code_2023.pdf | Page 79)\n## SECTION PATH: Magistrate.\"\n### TYPE: STATUTE\n\nProvided that if any complainant or witness refuses to attend or to execute a bond as directed in section 190, the officer in charge of the",
+      "synthetic_complaint": {
+        "variant_type": "hinglish",
+        "raw_text": "Mujhe online fraud hua hai, mere account se 50,000 rupees kat gaye hain. Maine complaint darj karayi thi lekin witness ko summon karne ke liye court mein bond execute karna pada. Maine police station mein diary entry bhi karwai thi, jismein investigation ki details hain. Ab magistrate ke samne case chal raha hai.",
+        "translated_text": "I have been a victim of online fraud, with 50,000 rupees being deducted from my account. I had filed a complaint, but the witness had to be summoned to court to execute a bond. I also got a diary entry made at the police station, which contains the details of the investigation. The case is now pending before the magistrate.",
+        "crime_category": "CYBER",
+        "crime_sub_type": "ONLINE_FRAUD"
+      },
+      "expected_entities": {
+        "persons": [
+          {
+            "name": "Rahul Kumar",
+            "role": "victim"
+          }
+        ],
+        "phone_numbers": [
+          "9876543210"
+        ],
+        "bank_accounts": [
+          {
+            "account_number": "1234567890",
+            "ifsc": "SBIN0012345"
+          }
+        ],
+        "vpas_upis": [
+          "rahul123@upi"
+        ]
+      }
+    },
+    {
+      "test_case_id": "BENCH-ATOMIC-006",
+      "case_type": "ATOMIC_SINGLE_CHUNK",
+      "specialist_domain": "cyber_financial_intel_specialist",
+      "ground_truth_binding": {
+        "target_point_id": "33672d26-0ae5-7554-2e47-02232ac4cabb",
+        "source_document": "BNSS_Procedural_Code_2023.pdf",
+        "document_title": "Bharatiya Nagarik Suraksha Sanhita (BNSS), 2023",
+        "page_number": 138,
+        "allowed_page_window": [
+          137,
+          138,
+          139
+        ],
+        "chunk_md5_hash": "921ca28bf74b046894d18460f19725fe"
+      },
+      "target_chunk_snippet": "# DOCUMENT: Bharatiya Nagarik Suraksha Sanhita (BNSS), 2023 (Filename: BNSS_Procedural_Code_2023.pdf | Page 138)\n## SECTION PATH: CHAPTER XXIX\n### TYPE: STATUTE\n\n( 2 ) The provisions of Chapter XXXI shall, so far as they are applicable, apply to appeals under this section, and the Appellate Court ma",
+      "synthetic_complaint": {
+        "variant_type": "hinglish",
+        "raw_text": "Mujhe pata chala ki mere khilaf Court of Small Causes mein ek case chalaya gaya tha, jismein mujhe 5 lakh rupaye ka nuksan hua hai. Maine appeal kiya hai Court of Session mein, lekin ab tak koi sunvai nahi hui hai. Maine apne advocate se baat ki hai, unhone kaha hai ki hume Chapter XXXI ke tahat appeal karna chahiye.",
+        "translated_text": "I found out that a case was filed against me in the Court of Small Causes, in which I suffered a loss of 5 lakh rupees. I have appealed to the Court of Session, but so far no hearing has taken place. I have spoken to my advocate, they said that we should appeal under Chapter XXXI.",
+        "crime_category": "CONVENTIONAL",
+        "crime_sub_type": "CIVIL_DISPUTE"
+      },
+      "expected_entities": {
+        "persons": [
+          {
+            "name": "Victim",
+            "role": "victim"
+          }
+        ],
+        "phone_numbers": [],
+        "bank_accounts": [
+          {
+            "account_number": "1234567890",
+            "ifsc": "SBIN0012345"
+          }
+        ],
+        "vpas_upis": []
+      }
+    },
+    {
+      "test_case_id": "BENCH-ATOMIC-007",
+      "case_type": "ATOMIC_SINGLE_CHUNK",
+      "specialist_domain": "bns_specialist",
+      "ground_truth_binding": {
+        "target_point_id": "3e0f3e1e-ea3f-ee5e-6ed1-901bb877768e",
+        "source_document": "Telecommunications_Act_2023.pdf",
+        "document_title": "Telecommunications Act, 2023",
+        "page_number": 11,
+        "allowed_page_window": [
+          10,
+          11,
+          12
+        ],
+        "chunk_md5_hash": "0b5ebdf3322279538931e95ea9094174"
+      },
+      "target_chunk_snippet": "# DOCUMENT: Telecommunications Act, 2023 (Filename: Telecommunications_Act_2023.pdf | Page 11, 12)\n## SECTION PATH: STANDARDS, PUBLIC SAFETY, NATIONAL SECURITY AND PROTECTION OF TELECOMMUNICATION NETWORKS\n### TYPE: STATUTE\n\n19.  Power  to  notify  standards.The  Central  Government  may  notify  sta",
+      "synthetic_complaint": {
+        "variant_type": "hinglish",
+        "raw_text": "Mujhe pata chala ki mere mobile phone mein ek ajeeb sa malware hai jo mere personal data ko chura raha hai. Maine apne phone ko ek local shop par scan karwaya toh pata chala ki wo ek telecommunication equipment hai jo Telecom Regulatory Authority of India ke standards ke anusaar nahi banaya gaya hai. Iske alawa, mujhe lagta hai ki mere phone ki security compromise ho gayi hai aur mere account se paise nikal rahe hain. Maine apne bank account ki detail check ki toh pata chala ki mere account se 50000 rupees nikal liye gaye hain. Maine police station mein complaint darj karayi hai aur main chahta hoon ki aap is matter ko dekhenge aur mujhe nyay dilayenge.",
+        "translated_text": "I found out that my mobile phone has a strange malware that is stealing my personal data. I got my phone scanned at a local shop and found out that it is a telecommunication equipment that is not made according to the standards of the Telecom Regulatory Authority of India. Also, I think my phone's security has been compromised and money is being withdrawn from my account. I checked my bank account details and found out that 50,000 rupees have been withdrawn from my account. I have filed a complaint at the police station and I want you to look into this matter and give me justice.",
+        "crime_category": "CYBER",
+        "crime_sub_type": "Telecommunication Equipment Malware and Financial Fraud"
+      },
+      "expected_entities": {
+        "persons": [
+          {
+            "name": "Victim",
+            "role": "victim"
+          }
+        ],
+        "phone_numbers": [],
+        "bank_accounts": [
+          {
+            "account_number": "XXXX1234",
+            "ifsc": "SBIN0012345"
+          }
+        ],
+        "vpas_upis": []
+      }
+    },
+    {
+      "test_case_id": "BENCH-ATOMIC-008",
+      "case_type": "ATOMIC_SINGLE_CHUNK",
+      "specialist_domain": "bns_specialist",
+      "ground_truth_binding": {
+        "target_point_id": "32baa2bc-61bd-470c-b9ef-1f188c63b155",
+        "source_document": "BNSS_Procedural_Code_2023.pdf",
+        "document_title": "Bharatiya Nagarik Suraksha Sanhita (BNSS), 2023",
+        "page_number": 161,
+        "allowed_page_window": [
+          160,
+          161,
+          162
+        ],
+        "chunk_md5_hash": "79ad0c08008de0e31025b4062c736020"
+      },
+      "target_chunk_snippet": "# DOCUMENT: Bharatiya Nagarik Suraksha Sanhita (BNSS), 2023 (Filename: BNSS_Procedural_Code_2023.pdf | Page 161, 162)\n## SECTION PATH: CHAPTER XXXV\n### TYPE: STATUTE\n\n( 2 ) Notwithstanding anything contained in sub-section ( 1 ), where an investigation, inquiry or trial in more than one offence or i",
+      "synthetic_complaint": {
+        "variant_type": "hinglish",
+        "raw_text": "Mujhe 5 din phele apne dukaan se 50,000 rupaye chori ho gaye. Maine police ko report kiya lekin ab tak koi action nahi hua. Abhi tak 3 case mere khilaf court me chal rahe hain. Maine suna hai ki agar itne case chal rahe hon toh bail bhi nahi mil sakti. Meri dukaan ki location hai Sadar Bazar, Delhi. Mera naam hai Rohan Kumar aur mere dukaan ke paas ek CCTV camera bhi hai jo chori ke samay ka footage capture kar raha tha.",
+        "translated_text": "I was robbed of 50,000 rupees from my shop 5 days ago. I reported it to the police but no action has been taken yet. There are currently 3 cases against me in court. I've heard that if there are so many cases, bail can't be granted. My shop is located in Sadar Bazar, Delhi. My name is Rohan Kumar and there's a CCTV camera near my shop that captured the footage of the theft.",
+        "crime_category": "CONVENTIONAL",
+        "crime_sub_type": "THEFT"
+      },
+      "expected_entities": {
+        "persons": [
+          {
+            "name": "Rohan Kumar",
+            "role": "victim"
+          }
+        ],
+        "phone_numbers": [],
+        "bank_accounts": [],
+        "vpas_upis": []
+      }
+    },
+    {
+      "test_case_id": "BENCH-ATOMIC-009",
+      "case_type": "ATOMIC_SINGLE_CHUNK",
+      "specialist_domain": "bns_specialist",
+      "ground_truth_binding": {
+        "target_point_id": "3a10a4e3-2298-b0c0-7fc7-ec7b63101bc2",
+        "source_document": "DPDP_Act_2023.pdf",
+        "document_title": "Digital Personal Data Protection (DPDP) Act, 2023",
+        "page_number": 8,
+        "allowed_page_window": [
+          7,
+          8,
+          9
+        ],
+        "chunk_md5_hash": "d28f8c2521626335c04cfa5e6f2cabb4"
+      },
+      "target_chunk_snippet": "# DOCUMENT: Digital Personal Data Protection (DPDP) Act, 2023 (Filename: DPDP_Act_2023.pdf | Page 8, 9)\n## SECTION PATH: Illustrations.\n### TYPE: STATUTE\n\nExplanation. -For the purpose of this sub-section, the expression 'consent of the parent' includes the consent of lawful guardian, wherever appli",
+      "synthetic_complaint": {
+        "variant_type": "hinglish",
+        "raw_text": "Mera 10 saal ka beta hai, uska ek online gaming account hai jisme uske personal data ko collect kiya ja raha hai. Maine dekha ki uske account me targeted advertising ho raha hai, jo uske liye harmful ho sakta hai. Maine data fiduciary se contact kiya lekin unhone koi madad nahi ki. Maine unse poora data delete karne ko kaha lekin abhi tak kuch nahi hua. Main yeh complaint darj kar raha hun, kyunki meri samajh me yeh DPDP Act 2023 ke under aata hai.",
+        "translated_text": "I have a 10-year-old son who has an online gaming account where his personal data is being collected. I noticed that his account has targeted advertising, which can be harmful to him. I contacted the data fiduciary but they didn't help me. I asked them to delete all his data but nothing has happened yet. I am filing this complaint because I believe it falls under the DPDP Act 2023.",
+        "crime_category": "CYBER",
+        "crime_sub_type": "Data Protection Violation"
+      },
+      "expected_entities": {
+        "persons": [
+          {
+            "name": "Complainant's son",
+            "role": "victim"
+          }
+        ],
+        "phone_numbers": [],
+        "bank_accounts": [],
+        "vpas_upis": []
+      }
+    },
+    {
+      "test_case_id": "BENCH-ATOMIC-010",
+      "case_type": "ATOMIC_SINGLE_CHUNK",
+      "specialist_domain": "bns_specialist",
+      "ground_truth_binding": {
+        "target_point_id": "34053dda-e4cc-121b-0844-e1f08c865f20",
+        "source_document": "BNSS_Procedural_Code_2023.pdf",
+        "document_title": "Bharatiya Nagarik Suraksha Sanhita (BNSS), 2023",
+        "page_number": 282,
+        "allowed_page_window": [
+          281,
+          282,
+          283
+        ],
+        "chunk_md5_hash": "154256beecb1d7cb1413aab47d90cb5d"
+      },
+      "target_chunk_snippet": "# DOCUMENT: Bharatiya Nagarik Suraksha Sanhita (BNSS), 2023 (Filename: BNSS_Procedural_Code_2023.pdf | Page 282, 283)\n## SECTION PATH: NOTES ON CLAUSES\n### TYPE: STATUTE\n\nClause 281 of the Bill relates to Power to stop proceedings in certain cases.\nThis Clause provides that any summons-case institut",
+      "synthetic_complaint": {
+        "variant_type": "hinglish",
+        "raw_text": "Mujhe pata hai ki meri beti ke saath kuch galat hua hai, toh maine thane mein report darj karayi hai. Meri beti ko kisi ne dhokha diya tha aur uske account se 50,000 rupees nikal liye the. Maine apne beti ke saath court mein case darj karaya tha, lekin ab humein pata chala hai ki woh case ko band karne ki koshish kar rahe hain. Hum chahte hain ki case ko band na kiya jaaye aur nyay mile.",
+        "translated_text": "I have come to know that something wrong has happened with my daughter, so I have filed a report at the police station. My daughter was cheated and 50,000 rupees were withdrawn from her account. I filed a case in court with my daughter, but now we have come to know that they are trying to close the case. We want the case not to be closed and justice to be served.",
+        "crime_category": "CONVENTIONAL",
+        "crime_sub_type": "Cheating and Fraud"
+      },
+      "expected_entities": {
+        "persons": [
+          {
+            "name": "Meri beti",
+            "role": "victim"
+          }
+        ],
+        "phone_numbers": [],
+        "bank_accounts": [
+          {
+            "account_number": "not mentioned",
+            "ifsc": "not mentioned"
+          }
+        ],
+        "vpas_upis": []
+      }
+    },
+    {
+      "test_case_id": "BENCH-ATOMIC-011",
+      "case_type": "ATOMIC_SINGLE_CHUNK",
+      "specialist_domain": "bns_specialist",
+      "ground_truth_binding": {
+        "target_point_id": "2cce565c-9fdf-c57d-170b-94861f5d78aa",
+        "source_document": "BNSS_Procedural_Code_2023.pdf",
+        "document_title": "Bharatiya Nagarik Suraksha Sanhita (BNSS), 2023",
+        "page_number": 167,
+        "allowed_page_window": [
+          166,
+          167,
+          168
+        ],
+        "chunk_md5_hash": "e60f94bf32ad063cb0435cded81dcb12"
+      },
+      "target_chunk_snippet": "# DOCUMENT: Bharatiya Nagarik Suraksha Sanhita (BNSS), 2023 (Filename: BNSS_Procedural_Code_2023.pdf | Page 167)\n## SECTION PATH: DISPOSAL OF PROPERTY\n### TYPE: STATUTE\n\n( 5 ) In this section, the term \"property\" includes, in the case of property regarding which an offence appears to have been commi",
+      "synthetic_complaint": {
+        "variant_type": "hinglish",
+        "raw_text": "Mujhe 5 din phele apna phone aur cash chor liya gaya tha, jo mere dost ke cousin ne khareeda tha. Mera phone Rs. 50,000 ka tha aur usme mere important documents bhi the. Ab mujhe pata chala hai ki wo phone mere dost ke cousin ne Rs. 20,000 me khareeda tha, lekin usne mujhe bataya nahi ki wo phone choraya hua hai. Maine police station me report darj karwai hai, lekin ab tak koi action nahi hua hai. Maine apne phone me Rs. 10,000 ka UPI transaction bhi kiya tha, jo mere State Bank of India ke account se hua tha. Mera account number 1234567890 hai aur IFSC code SBIN0012345 hai.",
+        "translated_text": "I was robbed of my phone and cash 5 days ago, which was bought by my friend's cousin. My phone was worth Rs. 50,000 and had important documents in it. Now I have found out that my friend's cousin bought the phone for Rs. 20,000, but he didn't tell me that it was stolen. I have filed a report at the police station, but no action has been taken yet. I had also made a UPI transaction of Rs. 10,000 from my phone, which was from my State Bank of India account. My account number is 1234567890 and the IFSC code is SBIN0012345.",
+        "crime_category": "CONVENTIONAL",
+        "crime_sub_type": "Theft/Receiving Stolen Property"
+      },
+      "expected_entities": {
+        "persons": [
+          {
+            "name": "Victim",
+            "role": "victim"
+          },
+          {
+            "name": "Friend's Cousin",
+            "role": "accused"
+          }
+        ],
+        "phone_numbers": [],
+        "bank_accounts": [
+          {
+            "account_number": "1234567890",
+            "ifsc": "SBIN0012345"
+          }
+        ],
+        "vpas_upis": [
+          "UPI transaction of Rs. 10,000"
+        ]
+      }
+    },
+    {
+      "test_case_id": "BENCH-ATOMIC-012",
+      "case_type": "ATOMIC_SINGLE_CHUNK",
+      "specialist_domain": "bns_specialist",
+      "ground_truth_binding": {
+        "target_point_id": "3222665c-930e-888b-047c-a50fe6bbecbb",
+        "source_document": "BNS_Penal_Code_2024.pdf",
+        "document_title": "Bharatiya Nyaya Sanhita (BNS), 2023",
+        "page_number": 85,
+        "allowed_page_window": [
+          84,
+          85,
+          86
+        ],
+        "chunk_md5_hash": "2fd6bc47fc7082c44675a927349c1baa"
+      },
+      "target_chunk_snippet": "# DOCUMENT: Bharatiya Nyaya Sanhita (BNS), 2023 (Filename: BNS_Penal_Code_2024.pdf | Page 85, 86)\n## SECTION PATH: Of  receiving stolen property\n### TYPE: STATUTE\n\n317. ( 1 ) Property, the possession whereof has been transferred by theft or extortion or robbery or cheating, and property which has be",
+      "synthetic_complaint": {
+        "variant_type": "hinglish",
+        "raw_text": "Mujhe pata chala hai ki mere ghar se 5 lakh rupaye ke jewelery aur 2 lakh rupaye ke cash chori ho gaye hain. Maine police ko report kiya aur pata chala ki mere cousin ke dost ne ye chori ki hai. Ab usne wo jewelery aur cash apne friend ko bech diya hai jo ki Delhi mein rehta hai. Maine uss friend ka number bhi nikal liya hai - 9810123456. Usne ye sab cheezein 3 lakh rupaye mein bechi hain.",
+        "translated_text": "I have found out that jewelry worth 5 lakhs and cash worth 2 lakhs have been stolen from my house. I reported it to the police and found out that my cousin's friend committed the theft. Now, he has sold the jewelry and cash to his friend who lives in Delhi. I have also retrieved his friend's phone number - 9810123456. He sold all these items for 3 lakhs.",
+        "crime_category": "CONVENTIONAL",
+        "crime_sub_type": "Receiving Stolen Property"
+      },
+      "expected_entities": {
+        "persons": [
+          {
+            "name": "Cousin's friend",
+            "role": "accused"
+          },
+          {
+            "name": "Cousin's friend's friend",
+            "role": "accused"
+          }
+        ],
+        "phone_numbers": [
+          "9810123456"
+        ],
+        "bank_accounts": [],
+        "vpas_upis": []
+      }
+    },
+    {
+      "test_case_id": "BENCH-ATOMIC-013",
+      "case_type": "ATOMIC_SINGLE_CHUNK",
+      "specialist_domain": "bsa_specialist",
+      "ground_truth_binding": {
+        "target_point_id": "35e5b549-bc2f-7e8c-24aa-b9efa1850471",
+        "source_document": "BNSS_Procedural_Code_2023.pdf",
+        "document_title": "Bharatiya Nagarik Suraksha Sanhita (BNSS), 2023",
+        "page_number": 270,
+        "allowed_page_window": [
+          269,
+          270,
+          271
+        ],
+        "chunk_md5_hash": "c1d1a7c33781b29c7e42c83c7be31798"
+      },
+      "target_chunk_snippet": "# DOCUMENT: Bharatiya Nagarik Suraksha Sanhita (BNSS), 2023 (Filename: BNSS_Procedural_Code_2023.pdf | Page 270, 271)\n## SECTION PATH: NOTES ON CLAUSES\n### TYPE: STATUTE\n\nThis Clause seeks to provide, upon receipt of a letter of request from a Court or an authority in a country or place outside Indi",
+      "synthetic_complaint": {
+        "variant_type": "hinglish",
+        "raw_text": "Mujhe pata hai ki mere dost ka beta London mein rehta hai aur wahan par ek case chal raha hai. Unhone mujhe bataya ki London court ne ek letter bheja hai Bharat sarkar ko, jismein mere naam ka ullekh hai. Maine kuch galat nahin kiya hai, lekin mujhe pata hai ki London police mere bayan record karne ke liye mujhe bula sakti hai. Maine suna hai ki Bharatiya Nagarik Suraksha Sanhita ke tahat, Central Government aise letter ko Chief Judicial Magistrate ko bhej sakti hai, jo mujhe summon kar sakte hain.",
+        "translated_text": "I know that my friend's son lives in London and there's a case going on there. They told me that the London court has sent a letter to the Indian government, which mentions my name. I haven't done anything wrong, but I know that the London police can call me to record my statement. I've heard that under the Bharatiya Nagarik Suraksha Sanhita, the Central Government can forward such letters to the Chief Judicial Magistrate, who can summon me.",
+        "crime_category": "CONVENTIONAL",
+        "crime_sub_type": "International Judicial Assistance"
+      },
+      "expected_entities": {
+        "persons": [
+          {
+            "name": "My friend's son",
+            "role": "accused"
+          },
+          {
+            "name": "Myself",
+            "role": "victim"
+          }
+        ],
+        "phone_numbers": [],
+        "bank_accounts": [],
+        "vpas_upis": []
+      }
+    },
+    {
+      "test_case_id": "BENCH-ATOMIC-014",
+      "case_type": "ATOMIC_SINGLE_CHUNK",
+      "specialist_domain": "bsa_specialist",
+      "ground_truth_binding": {
+        "target_point_id": "3e98eeac-fec8-f449-df18-ed0eb573cafd",
+        "source_document": "BNS_Penal_Code_2024.pdf",
+        "document_title": "Bharatiya Nyaya Sanhita (BNS), 2023",
+        "page_number": 90,
+        "allowed_page_window": [
+          89,
+          90,
+          91
+        ],
+        "chunk_md5_hash": "dadbece4da7e472110cbdac2389004fe"
+      },
+      "target_chunk_snippet": "# DOCUMENT: Bharatiya Nyaya Sanhita (BNS), 2023 (Filename: BNS_Penal_Code_2024.pdf | Page 90)\n## SECTION PATH: Of criminal trespass\n### TYPE: STATUTE\n\n329. ( 1 ) Whoever enters into or upon property in the possession of another with intent to commit an offence or to intimidate, insult or annoy any p",
+      "synthetic_complaint": {
+        "variant_type": "hinglish",
+        "raw_text": "Mujhe ghar ke andar ghuse aadmi ne mujhe dhakeli aur daraya, maine police ko phone kiya aur ab woh ghar ke andar hi baitha hai, ghar mein mere saath meri behen bhi thi, woh mandir ke paas wala ghar hai, jiske paas ek dukaan bhi hai, usne mujhe 500 rupaye bhi churaaye, maine use 2-3 baar samjhaaya par woh nahi maana, ab woh ghar ke andar baithkar mujhe aur meri behen ko dhakele ki dhamki de raha hai.",
+        "translated_text": "A man entered my house, intimidated and threatened me, I called the police and now he is sitting inside my house, my sister was also with me at home, the house is near the temple and has a shop nearby, he also stole 500 rupees from me, I tried to reason with him 2-3 times but he didn't listen, now he is sitting inside the house and threatening to intimidate me and my sister.",
+        "crime_category": "CONVENTIONAL",
+        "crime_sub_type": "Criminal Trespass"
+      },
+      "expected_entities": {
+        "persons": [
+          {
+            "name": "Unknown",
+            "role": "accused"
+          },
+          {
+            "name": "Complainant",
+            "role": "victim"
+          },
+          {
+            "name": "Complainant's sister",
+            "role": "victim"
+          }
+        ],
+        "phone_numbers": [
+          "Police Helpline Number"
+        ],
+        "bank_accounts": [],
+        "vpas_upis": []
+      }
+    },
+    {
+      "test_case_id": "BENCH-ATOMIC-015",
+      "case_type": "ATOMIC_SINGLE_CHUNK",
+      "specialist_domain": "bsa_specialist",
+      "ground_truth_binding": {
+        "target_point_id": "2a3d16e4-fafa-8e1a-0c28-b2c4ed7d25bd",
+        "source_document": "BPRD_First_Responder_Handbook_Computer_System_Acquisition.pdf",
+        "document_title": "BPRD First Responder Computer System Acquisition Handbook",
+        "page_number": 54,
+        "allowed_page_window": [
+          53,
+          54,
+          55
+        ],
+        "chunk_md5_hash": "741ac9bd7ce3e96a869a7099a89f6182"
+      },
+      "target_chunk_snippet": "# DOCUMENT: BPRD First Responder Computer System Acquisition Handbook (Filename: BPRD_First_Responder_Handbook_Computer_System_Acquisition.pdf | Page 54)\n## SECTION PATH: Summary-\n### TYPE: SOP\n\n6JG FCVC CESWKUKVKQP RTQEGUU HQT FKHHGTGPV QRGTCVKPI U[UVGO ƀCXQWTU UWEJ CU 9KPFQYU  .KPWZ CPF /#% U[UVGO",
+      "synthetic_complaint": {
+        "variant_type": "hinglish",
+        "raw_text": "मेरे कंप्यूटर सिस्टम से डेटा चोरी हुआ है, जिसमें मेरे बैंक अकाउंट की जानकारी और अन्य महत्वपूर्ण दस्तावेज़ थे। मैंने पुलिस स्टेशन में शिकायत दर्ज कराई है और उन्होंने मुझे बताया है कि वे BPRD First Responder Computer System Acquisition Handbook के अनुसार जांच करेंगे। मेरे कंप्यूटर सिस्टम को FTK इमेजर से जांचा जाएगा और मुझे उम्मीद है कि वे मेरे डेटा को रिकवर कर पाएंगे।",
+        "translated_text": "My computer system has been hacked and my bank account information and other important documents have been stolen. I have filed a complaint at the police station and they have told me that they will investigate according to the BPRD First Responder Computer System Acquisition Handbook. My computer system will be examined using the FTK imager and I hope they can recover my data.",
+        "crime_category": "CYBER",
+        "crime_sub_type": "DATA_THEFT"
+      },
+      "expected_entities": {
+        "persons": [
+          {
+            "name": "Rahul Kumar",
+            "role": "victim"
+          }
+        ],
+        "phone_numbers": [
+          "9876543210"
+        ],
+        "bank_accounts": [
+          {
+            "account_number": "1234567890",
+            "ifsc": "SBIN0012345"
+          }
+        ],
+        "vpas_upis": [
+          "rahul123@upi"
+        ]
+      }
+    },
+    {
+      "test_case_id": "BENCH-ATOMIC-016",
+      "case_type": "ATOMIC_SINGLE_CHUNK",
+      "specialist_domain": "bsa_specialist",
+      "ground_truth_binding": {
+        "target_point_id": "3d5747ce-b373-f466-c0fe-d697cfdb9cac",
+        "source_document": "BNSS_Procedural_Code_2023.pdf",
+        "document_title": "Bharatiya Nagarik Suraksha Sanhita (BNSS), 2023",
+        "page_number": 178,
+        "allowed_page_window": [
+          177,
+          178,
+          179
+        ],
+        "chunk_md5_hash": "be3322a921311226cbcd2096ae8d79e8"
+      },
+      "target_chunk_snippet": "# DOCUMENT: Bharatiya Nagarik Suraksha Sanhita (BNSS), 2023 (Filename: BNSS_Procedural_Code_2023.pdf | Page 178)\n## SECTION PATH: EXPLANATORY NOTES:\n### TYPE: STATUTE\n\n 83, 4 = . 83, 5 = Ditto. 83, 6 = Any Magistrate.",
+      "synthetic_complaint": {
+        "variant_type": "hinglish",
+        "raw_text": "Mujhe pata hai ki mere ghar ke paas ek aadmi hai jo mere khilaf galat kaam kar raha hai, aur maine usse 2-3 baar roka hai, lekin vah abhi bhi mere khilaf kaam kar raha hai. Maine uske khilaf thane mein complaint ki thi, lekin abhi tak koi action nahi hua hai. Maine ek Magistrate ke paas bhi gaya tha, lekin unhone bhi abhi tak koi action nahi li hai. Maine us aadmi ko 5 lakh rupaye bhi diye the, lekin vah abhi bhi mere khilaf kaam kar raha hai. Maine uske khilaf 83, 4, 83, 5 aur 83, 6 ke tahat case darj karne ke liye kaha hai.",
+        "translated_text": "I know that there is a man near my house who is doing wrong things against me, and I have stopped him 2-3 times, but he is still doing wrong things against me. I had filed a complaint against him at the police station, but no action has been taken yet. I also went to a Magistrate, but they have not taken any action yet. I had given that man 5 lakh rupees, but he is still doing wrong things against me. I have asked to file a case against him under sections 83, 4, 83, 5, and 83, 6.",
+        "crime_category": "CONVENTIONAL",
+        "crime_sub_type": "Harassment"
+      },
+      "expected_entities": {
+        "persons": [
+          {
+            "name": "Unknown",
+            "role": "accused"
+          },
+          {
+            "name": "Complainant",
+            "role": "victim"
+          }
+        ],
+        "phone_numbers": [],
+        "bank_accounts": [
+          {
+            "account_number": "Not mentioned",
+            "ifsc": "Not mentioned"
+          }
+        ],
+        "vpas_upis": []
+      }
+    },
+    {
+      "test_case_id": "BENCH-ATOMIC-017",
+      "case_type": "ATOMIC_SINGLE_CHUNK",
+      "specialist_domain": "bsa_specialist",
+      "ground_truth_binding": {
+        "target_point_id": "37803056-b5ba-2e31-ca3e-89ee5033a9d0",
+        "source_document": "IT_Act_2000.pdf",
+        "document_title": "Information Technology Act, 2000",
+        "page_number": 1,
+        "allowed_page_window": [
+          1,
+          1,
+          2
+        ],
+        "chunk_md5_hash": "f85d58804eaaff35ae7e73477210c9d0"
+      },
+      "target_chunk_snippet": "# DOCUMENT: Information Technology Act, 2000 (Filename: IT_Act_2000.pdf | Page 1)\n## SECTION PATH: The Information Technology ACT, 2008\n### TYPE: STATUTE\n\nMinistry of Law, Justice and Company Affairs (Legislative Department)\nNew Delhi, the 9th June 2000/Jyaistha 19, 1922 (Saka)\nThe following Act of ",
+      "synthetic_complaint": {
+        "variant_type": "hinglish",
+        "raw_text": "Mujhe online fraud hua hai, mere bank account se 50000 rupaye kat gaye hain. Maine apna password kisi ko nahi diya tha, lekin phir bhi mere account se transaction ho gayi. Maine apna account SBI mein hai, jiska account number 123456789012 aur IFSC code SBIN0012345 hai. Mujhe lagta hai ki mere computer ko hack kar liya gaya hai.",
+        "translated_text": "I have been a victim of online fraud, with 50,000 rupees being deducted from my bank account. I did not share my password with anyone, but still, a transaction was made from my account. I have an account with SBI, with the account number 123456789012 and IFSC code SBIN0012345. I suspect that my computer has been hacked.",
+        "crime_category": "CYBER",
+        "crime_sub_type": "ONLINE_BANKING_FRAUD"
+      },
+      "expected_entities": {
+        "persons": [
+          {
+            "name": "Unknown",
+            "role": "accused"
+          }
+        ],
+        "phone_numbers": [],
+        "bank_accounts": [
+          {
+            "account_number": "123456789012",
+            "ifsc": "SBIN0012345"
+          }
+        ],
+        "vpas_upis": []
+      }
+    },
+    {
+      "test_case_id": "BENCH-ATOMIC-018",
+      "case_type": "ATOMIC_SINGLE_CHUNK",
+      "specialist_domain": "bsa_specialist",
+      "ground_truth_binding": {
+        "target_point_id": "3dde9891-aad6-dbd8-ac55-826a216a147e",
+        "source_document": "BNSS_Procedural_Code_2023.pdf",
+        "document_title": "Bharatiya Nagarik Suraksha Sanhita (BNSS), 2023",
+        "page_number": 157,
+        "allowed_page_window": [
+          156,
+          157,
+          158
+        ],
+        "chunk_md5_hash": "09250dfa6165bba11e3927c8423dc065"
+      },
+      "target_chunk_snippet": "# DOCUMENT: Bharatiya Nagarik Suraksha Sanhita (BNSS), 2023 (Filename: BNSS_Procedural_Code_2023.pdf | Page 157, 158)\n## SECTION PATH: D.-General provisions regarding execution\n### TYPE: STATUTE\n\n466. Every warrant for the execution of a sentence may be issued either by the Judge or Magistrate who p",
+      "synthetic_complaint": {
+        "variant_type": "hinglish",
+        "raw_text": "Mujhe pata chala ki mere bhai ko court ne 5 saal ki saza sunayi hai, lekin vah jail se bhag gaya tha. Ab court ne phir se uski saza badhadi hai. Maine police station mein complaint darj karayi hai, jismein maine bataya ki mere bhai ne jail se bhagne ke baad mujhe phone kiya tha aur kaha tha ki vah apne dost ke ghar chhupa hua hai. Maine uski baat suni aur usse samjhaya ki vah surrender kar de, lekin vah nahin mana. Ab main chahta hoon ki police usse pakde aur court ke order ke anusaar uski saza ko pura karne ke liye use jail bheje.",
+        "translated_text": "I came to know that my brother was sentenced to 5 years of imprisonment by the court, but he escaped from jail. Now the court has enhanced his sentence. I filed a complaint at the police station, where I mentioned that my brother called me after escaping from jail and told me that he is hiding at his friend's house. I listened to him and advised him to surrender, but he refused. Now I want the police to catch him and send him to jail to complete his sentence as per the court's order.",
+        "crime_category": "CONVENTIONAL",
+        "crime_sub_type": "ESCAPE FROM CUSTODY"
+      },
+      "expected_entities": {
+        "persons": [
+          {
+            "name": "Bhai (brother)",
+            "role": "accused"
+          }
+        ],
+        "phone_numbers": [
+          "none"
+        ],
+        "bank_accounts": [
+          {
+            "account_number": "none",
+            "ifsc": "none"
+          }
+        ],
+        "vpas_upis": [
+          "none"
+        ]
+      }
+    },
+    {
+      "test_case_id": "BENCH-ATOMIC-019",
+      "case_type": "ATOMIC_SINGLE_CHUNK",
+      "specialist_domain": "conventional_field_specialist",
+      "ground_truth_binding": {
+        "target_point_id": "3ac79fda-b702-a785-7660-e01f5641477c",
+        "source_document": "SOP_Ranking_Police_Training_Institutes.pdf",
+        "document_title": "SOP for Ranking Police Training Institutes",
+        "page_number": 22,
+        "allowed_page_window": [
+          21,
+          22,
+          23
+        ],
+        "chunk_md5_hash": "26b23b7e5b4384d308168d9422224251"
+      },
+      "target_chunk_snippet": "# DOCUMENT: SOP for Ranking Police Training Institutes (Filename: SOP_Ranking_Police_Training_Institutes.pdf | Page 22)\n## SECTION PATH: Distribution of Marks:\n### TYPE: SOP\n\nThe  Forensic  Science  Laboratories  (CFSLs/SFSLs)  ranking  system  assigns  100  total points distributed across different",
+      "synthetic_complaint": {
+        "variant_type": "hinglish",
+        "raw_text": "Mujhe pata chala hai ki mere gaon ke ek forensic lab mein kuch galat kaam ho raha hai. Unhone research aur development par sirf 5% budget allocate kiya hai, jo ki SOP ke hisab se kam hai. Iske alawa, unke infrastructure aur facilities bhi theek nahi hain. Maine dekha hai ki unke pas purane machines aur equipment hain. Maine police ko report kiya hai, lekin abhi tak koi action nahi liya gaya hai. Maine 10,000 rupees ka nuksan uthaya hai is lab ke karan.",
+        "translated_text": "I have found out that something is wrong in a forensic lab in my village. They have allocated only 5% of their budget to research and development, which is less than what is required by the SOP. Also, their infrastructure and facilities are not up to the mark. I have seen that they have old machines and equipment. I have reported this to the police, but no action has been taken yet. I have suffered a loss of 10,000 rupees due to this lab.",
+        "crime_category": "CONVENTIONAL",
+        "crime_sub_type": "Negligence in Forensic Lab"
+      },
+      "expected_entities": {
+        "persons": [
+          {
+            "name": "Unknown",
+            "role": "accused"
+          }
+        ],
+        "phone_numbers": [],
+        "bank_accounts": [],
+        "vpas_upis": []
+      }
+    },
+    {
+      "test_case_id": "BENCH-ATOMIC-020",
+      "case_type": "ATOMIC_SINGLE_CHUNK",
+      "specialist_domain": "conventional_field_specialist",
+      "ground_truth_binding": {
+        "target_point_id": "3949a465-06b1-8bad-7d34-9b9e3fe9dc81",
+        "source_document": "THE_GUJARAT_POLICE_MANUAL.pdf",
+        "document_title": "The Gujarat Police Manual (Volume I-III)",
+        "page_number": 496,
+        "allowed_page_window": [
+          495,
+          496,
+          497
+        ],
+        "chunk_md5_hash": "6f065e279fee47f0d40a7c955741ec00"
+      },
+      "target_chunk_snippet": "# DOCUMENT: The Gujarat Police Manual (Volume I-III) (Filename: THE_GUJARAT_POLICE_MANUAL.pdf | Page 496)\n## SECTION PATH: Appendix VIII\n### TYPE: SOP\n\n- (d) The expenditure on account of travelling allowance and daily allowance to the Circle Inspectors should be borne by the department to which he ",
+      "synthetic_complaint": {
+        "variant_type": "hinglish",
+        "raw_text": "Mujhe pata hai ki meri gaadi ko kuch logon ne chori kiya hai, jo ki Collector sahab ke office ke paas se guzarte hain. Maine police ko report kiya aur unhone mujhe bataya ki ve meri madad karne ke liye taiyar hain. Lekin abhi tak koi action nahi liya gaya hai. Maine Circle Inspector se baat ki aur unhone kaha ki ve meri case ki jaanch karne ke liye taiyar hain, lekin unhe travelling allowance aur daily allowance ki zarurat hai. Maine suna hai ki Government Circular, Revenue Department, No.CTS-1568/88517-H ke hisaab se, Collector sahab ko police ko sahayata karni chahiye.",
+        "translated_text": "I know that my car has been stolen by some people who pass by the Collector's office. I reported it to the police and they told me that they are ready to help me. But so far, no action has been taken. I spoke to the Circle Inspector and they said that they are ready to investigate my case, but they need travelling allowance and daily allowance. I have heard that according to the Government Circular, Revenue Department, No.CTS-1568/88517-H, the Collector should provide assistance to the police.",
+        "crime_category": "CONVENTIONAL",
+        "crime_sub_type": "Vehicle Theft"
+      },
+      "expected_entities": {
+        "persons": [
+          {
+            "name": "Collector sahab",
+            "role": "government official"
+          },
+          {
+            "name": "Circle Inspector",
+            "role": "investigating officer"
+          }
+        ],
+        "phone_numbers": [],
+        "bank_accounts": [],
+        "vpas_upis": []
+      }
+    },
+    {
+      "test_case_id": "BENCH-ATOMIC-021",
+      "case_type": "ATOMIC_SINGLE_CHUNK",
+      "specialist_domain": "conventional_field_specialist",
+      "ground_truth_binding": {
+        "target_point_id": "3d9e71bb-fe3b-1913-8784-ca91d89ad4d4",
+        "source_document": "THE_GUJARAT_POLICE_MANUAL.pdf",
+        "document_title": "The Gujarat Police Manual (Volume I-III)",
+        "page_number": 26,
+        "allowed_page_window": [
+          25,
+          26,
+          27
+        ],
+        "chunk_md5_hash": "4b0d7aa05c1403b99dc309839e75c2e3"
+      },
+      "target_chunk_snippet": "# DOCUMENT: The Gujarat Police Manual (Volume I-III) (Filename: THE_GUJARAT_POLICE_MANUAL.pdf | Page 26)\n## SECTION PATH: (G. C. L, H. D. NO.SD.1053. dated 20th November 1957 and G. C., H. D. No.SBI/RAF-1057, dated 14th December  1957).\n### TYPE: SOP\n\n52. Instructions  for  the  guidance  of  office",
+      "synthetic_complaint": {
+        "variant_type": "hinglish",
+        "raw_text": "मैं रामपुर का निवासी हूँ, कल शाम को मेरे इलाके में दो समुदायों के बीच तनाव हो गया था जब एक समुदाय के लोग धार्मिक जुलूस के लिए सार्वजनिक सड़क पर गुजरने की कोशिश कर रहे थे। दूसरे समुदाय ने इसका विरोध किया और दोनों पक्षों में झड़प हो गई। पुलिस के आने पर मामला शांत हुआ लेकिन मेरी दुकान को नुकसान पहुँचाया गया और मेरा 50,000 रुपये का सामान चोरी हो गया।",
+        "translated_text": "I am a resident of Rampur. Yesterday evening, there was tension between two communities in my area when people from one community tried to pass through a public road for a religious procession. The other community opposed it and there was a clash between the two groups. The situation calmed down after the police arrived, but my shop was damaged and goods worth 50,000 rupees were stolen.",
+        "crime_category": "CONVENTIONAL",
+        "crime_sub_type": "Communal Dispute and Theft"
+      },
+      "expected_entities": {
+        "persons": [
+          {
+            "name": "Ram",
+            "role": "victim"
+          }
+        ],
+        "phone_numbers": [],
+        "bank_accounts": [],
+        "vpas_upis": []
+      }
+    },
+    {
+      "test_case_id": "BENCH-ATOMIC-022",
+      "case_type": "ATOMIC_SINGLE_CHUNK",
+      "specialist_domain": "conventional_field_specialist",
+      "ground_truth_binding": {
+        "target_point_id": "3ccc7d4d-80e0-6880-494d-ad456db2f784",
+        "source_document": "THE_GUJARAT_POLICE_MANUAL.pdf",
+        "document_title": "The Gujarat Police Manual (Volume I-III)",
+        "page_number": 430,
+        "allowed_page_window": [
+          429,
+          430,
+          431
+        ],
+        "chunk_md5_hash": "aa6d66349a4140117b27151dad305348"
+      },
+      "target_chunk_snippet": "# DOCUMENT: The Gujarat Police Manual (Volume I-III) (Filename: THE_GUJARAT_POLICE_MANUAL.pdf | Page 430)\n## SECTION PATH: (J. D., Letter No. 3377, dated 1st May. 1912)\n### TYPE: SOP\n\n580. Place of camp of inspecting officers during inspection. -(1) All inspecting officers should camp within eight K",
+      "synthetic_complaint": {
+        "variant_type": "hinglish",
+        "raw_text": "Mujhe pata chala hai ki hamare thane ke records mein kuch galat tarike se likha gaya hai. Maine dekha hai ki Superintendent of Police ji ne apni inspection ke dauran kuch records ko check nahi kiya tha, aur wo 8 kilometer se bahar camp kar rahe the. Isse mujhe lagta hai ki yeh kuch galat ho raha hai. Maine apne paise bhi khoye hain, jo ki mere bank account se nikal gaye hain. Mera account number hai 1234567890, aur IFSC code hai ABCD1234.",
+        "translated_text": "I have found out that some of the records in our police station have been written incorrectly. I saw that the Superintendent of Police did not check some records during his inspection, and he was camping more than 8 kilometers away. This seems suspicious to me. I have also lost some money, which has been withdrawn from my bank account. My account number is 1234567890, and the IFSC code is ABCD1234.",
+        "crime_category": "CONVENTIONAL",
+        "crime_sub_type": "Fraud and Misconduct by Public Servant"
+      },
+      "expected_entities": {
+        "persons": [
+          {
+            "name": "Superintendent of Police",
+            "role": "accused"
+          }
+        ],
+        "phone_numbers": [],
+        "bank_accounts": [
+          {
+            "account_number": "1234567890",
+            "ifsc": "ABCD1234"
+          }
+        ],
+        "vpas_upis": []
+      }
+    },
+    {
+      "test_case_id": "BENCH-ATOMIC-023",
+      "case_type": "ATOMIC_SINGLE_CHUNK",
+      "specialist_domain": "conventional_field_specialist",
+      "ground_truth_binding": {
+        "target_point_id": "36b58a78-1b84-5b00-b7af-51c4ebdd1646",
+        "source_document": "THE_GUJARAT_POLICE_MANUAL.pdf",
+        "document_title": "The Gujarat Police Manual (Volume I-III)",
+        "page_number": 271,
+        "allowed_page_window": [
+          270,
+          271,
+          272
+        ],
+        "chunk_md5_hash": "a4e245467296d3af5faf4c8c16e74bcf"
+      },
+      "target_chunk_snippet": "# DOCUMENT: The Gujarat Police Manual (Volume I-III) (Filename: THE_GUJARAT_POLICE_MANUAL.pdf | Page 271)\n## SECTION PATH: Chapter VIII\n### TYPE: SOP\n\n- (3) The Deputy Director of Social Welfare (Correctional Administration) has been appointed to be the Chief Inspector for all the Protection Homes i",
+      "synthetic_complaint": {
+        "variant_type": "hinglish",
+        "raw_text": "Mujhe pata chala hai ki mere gaon ke ek protection home mein kuch galat kaam ho raha hai. Maine suna hai ki wahan ke adhikariyon ne kuch ladkiyon ko galat tareeke se rakha hai. Maine Deputy Director of Social Welfare (Correctional Administration) ko complaint karna chahta hoon.",
+        "translated_text": "I have come to know that some wrong activities are going on in a protection home in my village. I have heard that the officials there are keeping some girls in a wrong manner. I want to file a complaint with the Deputy Director of Social Welfare (Correctional Administration).",
+        "crime_category": "CONVENTIONAL",
+        "crime_sub_type": "Exploitation and Abuse in Protection Homes"
+      },
+      "expected_entities": {
+        "persons": [
+          {
+            "name": "Deputy Director of Social Welfare (Correctional Administration)",
+            "role": "authority"
+          }
+        ],
+        "phone_numbers": [],
+        "bank_accounts": [],
+        "vpas_upis": []
+      }
+    },
+    {
+      "test_case_id": "BENCH-ATOMIC-024",
+      "case_type": "ATOMIC_SINGLE_CHUNK",
+      "specialist_domain": "conventional_field_specialist",
+      "ground_truth_binding": {
+        "target_point_id": "39d6dfdb-515f-f848-d168-1692f4f80208",
+        "source_document": "THE_GUJARAT_POLICE_MANUAL.pdf",
+        "document_title": "The Gujarat Police Manual (Volume I-III)",
+        "page_number": 402,
+        "allowed_page_window": [
+          401,
+          402,
+          403
+        ],
+        "chunk_md5_hash": "2240eadd2e4a11f3a2670649fda7e373"
+      },
+      "target_chunk_snippet": "# DOCUMENT: The Gujarat Police Manual (Volume I-III) (Filename: THE_GUJARAT_POLICE_MANUAL.pdf | Page 402)\n## SECTION PATH: (G. R., H. D., No. 6273-2, dated 20th September, 1930)\n### TYPE: SOP\n\n(4)  District  Magistrates  will  carefully  protect  and  control  the  Patels.  Charges  of  neglect  of ",
+      "synthetic_complaint": {
+        "variant_type": "hinglish",
+        "raw_text": "Mujhe pata chala hai ki hamare gaon ke patel ne apni duty mein negligence ki hai. Unhone ek case ko investigate nahi kiya aur ab woh case bada ho gaya hai. Maine district magistrate ko complaint ki hai lekin ab tak koi action nahi hua hai. Maine 5000 rupaye bhi diye the patel ko lekin woh bhi gayab ho gaye hai.",
+        "translated_text": "I have come to know that our village patel has been negligent in his duty. He did not investigate a case and now the case has become big. I have complained to the district magistrate but no action has been taken yet. I had also given 5000 rupees to the patel but that has also disappeared.",
+        "crime_category": "CONVENTIONAL",
+        "crime_sub_type": "Neglect of Duty"
+      },
+      "expected_entities": {
+        "persons": [
+          {
+            "name": "Village Patel",
+            "role": "accused"
+          }
+        ],
+        "phone_numbers": [],
+        "bank_accounts": [],
+        "vpas_upis": []
+      }
+    },
+    {
+      "test_case_id": "BENCH-COMPOSITE-001",
+      "case_type": "COMPOSITE_MULTI_DOCUMENT",
+      "specialist_domain": "multi_domain",
+      "ground_truth_targets": [
+        {
+          "target_specialist": "cyber_financial_intel_specialist",
+          "source_document": "BNSS_Procedural_Code_2023.pdf",
+          "page_number": 38,
+          "allowed_page_window": [
+            37,
+            38,
+            39
+          ],
+          "point_id": "3b9df9c2-c2a2-90ce-4205-7f51e6245cf0"
+        },
+        {
+          "target_specialist": "bns_specialist",
+          "source_document": "Telecommunications_Act_2023.pdf",
+          "page_number": 11,
+          "allowed_page_window": [
+            10,
+            11,
+            12
+          ],
+          "point_id": "3e0f3e1e-ea3f-ee5e-6ed1-901bb877768e"
+        },
+        {
+          "target_specialist": "bsa_specialist",
+          "source_document": "BNSS_Procedural_Code_2023.pdf",
+          "page_number": 270,
+          "allowed_page_window": [
+            269,
+            270,
+            271
+          ],
+          "point_id": "35e5b549-bc2f-7e8c-24aa-b9efa1850471"
+        },
+        {
+          "target_specialist": "conventional_field_specialist",
+          "source_document": "SOP_Ranking_Police_Training_Institutes.pdf",
+          "page_number": 22,
+          "allowed_page_window": [
+            21,
+            22,
+            23
+          ],
+          "point_id": "3ac79fda-b702-a785-7660-e01f5641477c"
+        }
+      ],
+      "synthetic_complaint": {
+        "variant_type": "hinglish",
+        "raw_text": "Mujhe apni shikayat darj karwani hai ki mere pati, Rohan, ne mujhe aur mere parivaar ko dhokha diya hai. Unhone mere naam par ek bank account khulwaya tha, jiske baad unhone us account se paise nikalne ke liye ek VPA/UPi ka upyog kiya. Maine dekha ki unhone mere phone ka upyog karke ek ajnabi mahila se sampark kiya tha, jiske baad unhone mujhe aur mere parivaar ko dhyan se hataya. Maine police ko shikayat darj karayi, lekin ab tak koi karyawahi nahin hui hai. Maine suna hai ki police ko ek warrant jari karna hoga, lekin mujhe nahin pata ki yeh kaise hoga. Maine ek application bhi di thi ki mere pati ke khilaf ek case darj kiya jaye, lekin ab tak koi sunwai nahin hui hai.",
+        "translated_text": "I want to file a complaint that my husband, Rohan, has cheated me and my family. He opened a bank account in my name and then used a VPA/UPi to withdraw money from that account. I saw that he used my phone to contact a stranger woman, after which he ignored me and my family. I filed a complaint with the police, but no action has been taken yet. I heard that the police need to issue a warrant, but I don't know how this will happen. I also submitted an application to register a case against my husband, but so far, no hearing has taken place.",
+        "crime_category": "HYBRID",
+        "crime_sub_type": "Cyber Crime and Domestic Violence"
+      },
+      "expected_entities": {
+        "persons": [
+          {
+            "name": "Rohan",
+            "role": "accused"
+          },
+          {
+            "name": "Complainant's name not specified",
+            "role": "victim"
+          }
+        ],
+        "phone_numbers": [
+          "not specified"
+        ],
+        "bank_accounts": [
+          {
+            "account_number": "not specified",
+            "ifsc": "not specified"
+          }
+        ],
+        "vpas_upis": [
+          "not specified"
+        ]
+      }
+    },
+    {
+      "test_case_id": "BENCH-COMPOSITE-002",
+      "case_type": "COMPOSITE_MULTI_DOCUMENT",
+      "specialist_domain": "multi_domain",
+      "ground_truth_targets": [
+        {
+          "target_specialist": "cyber_financial_intel_specialist",
+          "source_document": "BNSS_Procedural_Code_2023.pdf",
+          "page_number": 191,
+          "allowed_page_window": [
+            190,
+            191,
+            192
+          ],
+          "point_id": "3e3a31c9-c297-d76e-f05d-200d143509d8"
+        },
+        {
+          "target_specialist": "bns_specialist",
+          "source_document": "BNSS_Procedural_Code_2023.pdf",
+          "page_number": 161,
+          "allowed_page_window": [
+            160,
+            161,
+            162
+          ],
+          "point_id": "32baa2bc-61bd-470c-b9ef-1f188c63b155"
+        },
+        {
+          "target_specialist": "bsa_specialist",
+          "source_document": "BNS_Penal_Code_2024.pdf",
+          "page_number": 90,
+          "allowed_page_window": [
+            89,
+            90,
+            91
+          ],
+          "point_id": "3e98eeac-fec8-f449-df18-ed0eb573cafd"
+        },
+        {
+          "target_specialist": "conventional_field_specialist",
+          "source_document": "THE_GUJARAT_POLICE_MANUAL.pdf",
+          "page_number": 496,
+          "allowed_page_window": [
+            495,
+            496,
+            497
+          ],
+          "point_id": "3949a465-06b1-8bad-7d34-9b9e3fe9dc81"
+        }
+      ],
+      "synthetic_complaint": {
+        "variant_type": "hinglish",
+        "raw_text": "Mujhe apni shikayat darj karwani hai ki mere ghar par kuchh ajeeb aadmi aaye the, jinhone mere parivaar ko dhमकaya aur mere ghar mein ghuse aaye (Section 329, BNS). Maine police ko phone kiya, lekin ve aane mein deri kar rahe the (Section 221, BNSS). Jab police aayi, to unhone pata lagaya ki ye aadmi mere business rival ke saath milkar mere khilaf saazish kar rahe the (Section 221, BNSS). Maine police ko ye bhi bataya ki ye log mere khilaf pichhle kuchh dinon se kai saazish kar rahe the, jismein mere ghar par hamla bhi shamil hai (Section 2, Chapter XXXV, BNSS). Maine police se anurodh kiya hai ki ve is mamle ki jaanch karein aur mere parivaar ki suraksha sunishchit karein. Maine police ko ye bhi bataya ki maine is mamle mein kuchh kharcha kiya hai, jismein travelling allowance aur daily allowance bhi shamil hai (Appendix VIII, The Gujarat Police Manual).",
+        "translated_text": "I want to file a complaint that some suspicious men came to my house, threatened my family, and trespassed into my home (Section 329, BNS). I called the police, but they were delayed in responding (Section 221, BNSS). When the police arrived, they found out that these men were conspiring against me with my business rival (Section 221, BNSS). I told the police that these men had been conspiring against me for the past few days, including an attack on my house (Section 2, Chapter XXXV, BNSS). I requested the police to investigate this matter and ensure my family's safety. I also informed the police that I had incurred some expenses in this matter, including traveling allowance and daily allowance (Appendix VIII, The Gujarat Police Manual).",
+        "crime_category": "HYBRID",
+        "crime_sub_type": "COMPOSITE_CRIME_SUB_TYPE"
+      },
+      "expected_entities": {
+        "persons": [
+          {
+            "name": "Rajesh Kumar",
+            "role": "victim"
+          },
+          {
+            "name": "Rahul Singh",
+            "role": "accused"
+          }
+        ],
+        "phone_numbers": [
+          "9999999999"
+        ],
+        "bank_accounts": [
+          {
+            "account_number": "1234567890",
+            "ifsc": "SBIN0012345"
+          }
+        ],
+        "vpas_upis": [
+          "rajeshkumar@upi"
+        ]
+      }
+    },
+    {
+      "test_case_id": "BENCH-COMPOSITE-003",
+      "case_type": "COMPOSITE_MULTI_DOCUMENT",
+      "specialist_domain": "multi_domain",
+      "ground_truth_targets": [
+        {
+          "target_specialist": "cyber_financial_intel_specialist",
+          "source_document": "BSA_Evidence_Act_2023.pdf",
+          "page_number": 21,
+          "allowed_page_window": [
+            20,
+            21,
+            22
+          ],
+          "point_id": "314c4c94-29ce-1575-9334-3a742d01f5cd"
+        },
+        {
+          "target_specialist": "bns_specialist",
+          "source_document": "DPDP_Act_2023.pdf",
+          "page_number": 8,
+          "allowed_page_window": [
+            7,
+            8,
+            9
+          ],
+          "point_id": "3a10a4e3-2298-b0c0-7fc7-ec7b63101bc2"
+        },
+        {
+          "target_specialist": "bsa_specialist",
+          "source_document": "BPRD_First_Responder_Handbook_Computer_System_Acquisition.pdf",
+          "page_number": 54,
+          "allowed_page_window": [
+            53,
+            54,
+            55
+          ],
+          "point_id": "2a3d16e4-fafa-8e1a-0c28-b2c4ed7d25bd"
+        },
+        {
+          "target_specialist": "conventional_field_specialist",
+          "source_document": "THE_GUJARAT_POLICE_MANUAL.pdf",
+          "page_number": 26,
+          "allowed_page_window": [
+            25,
+            26,
+            27
+          ],
+          "point_id": "3d9e71bb-fe3b-1913-8784-ca91d89ad4d4"
+        }
+      ],
+      "synthetic_complaint": {
+        "variant_type": "hinglish",
+        "raw_text": "Mujhe apne bete ki shikaayat karni hai, jiske khilaf ek ship wreck ke maamlon mein captain ne protest kiya tha, lekin ab uska attendance nahi ho raha hai. Iske alawa, mere bete ka personal data bhi leak ho gaya hai, jiske liye maine DPDP Act ke tahat shikaayat ki hai. Maine apne bete ke computer system ko acquire karne ke liye BPRD First Responder Handbook ka paalan kiya hai, lekin ab mujhe pata chala hai ki usmein kuchh galat transactions hui hain. Maine Gujarat Police Manual ke mutabik apne bete ke bank account aur vpa/upi transactions ki jaanch karwai hai, lekin ab mujhe lagta hai ki yeh sab ek bada scam hai.",
+        "translated_text": "I want to file a complaint against my son, who is involved in a ship wreck case where the captain had made a protest, but now his attendance is not possible. Additionally, my son's personal data has been leaked, for which I have filed a complaint under the DPDP Act. I followed the BPRD First Responder Handbook to acquire my son's computer system, but now I have found some incorrect transactions. I have investigated my son's bank account and vpa/upi transactions as per the Gujarat Police Manual, but now I think this is a big scam.",
+        "crime_category": "HYBRID",
+        "crime_sub_type": "Cybercrime and Maritime Offense"
+      },
+      "expected_entities": {
+        "persons": [
+          {
+            "name": "Captain",
+            "role": "accused"
+          },
+          {
+            "name": "My son",
+            "role": "victim"
+          }
+        ],
+        "phone_numbers": [
+          "1234567890"
+        ],
+        "bank_accounts": [
+          {
+            "account_number": "1234567890123456",
+            "ifsc": "SBIN0001234"
+          }
+        ],
+        "vpas_upis": [
+          "myson@upi"
+        ]
+      }
+    },
+    {
+      "test_case_id": "BENCH-COMPOSITE-004",
+      "case_type": "COMPOSITE_MULTI_DOCUMENT",
+      "specialist_domain": "multi_domain",
+      "ground_truth_targets": [
+        {
+          "target_specialist": "cyber_financial_intel_specialist",
+          "source_document": "IT_Act_2000.pdf",
+          "page_number": 34,
+          "allowed_page_window": [
+            33,
+            34,
+            35
+          ],
+          "point_id": "3adebedc-f1b5-f2ed-f333-5725adeb66cd"
+        },
+        {
+          "target_specialist": "bns_specialist",
+          "source_document": "BNSS_Procedural_Code_2023.pdf",
+          "page_number": 282,
+          "allowed_page_window": [
+            281,
+            282,
+            283
+          ],
+          "point_id": "34053dda-e4cc-121b-0844-e1f08c865f20"
+        },
+        {
+          "target_specialist": "bsa_specialist",
+          "source_document": "BNSS_Procedural_Code_2023.pdf",
+          "page_number": 178,
+          "allowed_page_window": [
+            177,
+            178,
+            179
+          ],
+          "point_id": "3d5747ce-b373-f466-c0fe-d697cfdb9cac"
+        },
+        {
+          "target_specialist": "conventional_field_specialist",
+          "source_document": "THE_GUJARAT_POLICE_MANUAL.pdf",
+          "page_number": 430,
+          "allowed_page_window": [
+            429,
+            430,
+            431
+          ],
+          "point_id": "3ccc7d4d-80e0-6880-494d-ad456db2f784"
+        }
+      ],
+      "synthetic_complaint": {
+        "variant_type": "hinglish",
+        "raw_text": "मैं शिकायत दर्ज कराना चाहता हूँ कि मेरे खिलाफ कुछ लोगों ने मिलकर मेरे ऑनलाइन बैंक अकाउंट से पैसे निकाल लिए हैं और मुझे धमकी दे रहे हैं कि अगर मैंने पुलिस में शिकायत की तो वे मेरे खिलाफ फर्जी मामले दर्ज करा देंगे। मैंने अपने बैंक अकाउंट की जानकारी किसी को नहीं दी थी, लेकिन फिर भी मेरे अकाउंट से पैसे निकाले गए हैं। मैं संदेह करता हूँ कि यह मामला साइबर क्राइम से जुड़ा हो सकता है और मेरे खिलाफ कुछ लोगों ने मिलकर यह अपराध किया है। मैं चाहता हूँ कि पुलिस इस मामले की जाँच करे और दोषियों को सजा दिलाए। मेरे पास एक वीडियो रिकॉर्डिंग है जिसमें आरोपियों की आवाजें हैं और वे मुझे धमकी दे रहे हैं।",
+        "translated_text": "I want to file a complaint that some people have conspired against me and withdrawn money from my online bank account, and are now threatening me that if I file a complaint with the police, they will file false cases against me. I had not shared my bank account information with anyone, but still, money was withdrawn from my account. I suspect that this case may be related to cybercrime and that some people have committed this crime against me. I want the police to investigate this case and punish the culprits. I have a video recording in which the voices of the accused are heard and they are threatening me.",
+        "crime_category": "HYBRID",
+        "crime_sub_type": "CYBERCRIME_AND_EXTORTION"
+      },
+      "expected_entities": {
+        "persons": [
+          {
+            "name": "Rahul Kumar",
+            "role": "victim"
+          }
+        ],
+        "phone_numbers": [
+          "9999999999"
+        ],
+        "bank_accounts": [
+          {
+            "account_number": "1234567890",
+            "ifsc": "SBIN0012345"
+          }
+        ],
+        "vpas_upis": [
+          "rahulkumar@upi"
+        ]
+      }
+    },
+    {
+      "test_case_id": "BENCH-COMPOSITE-005",
+      "case_type": "COMPOSITE_MULTI_DOCUMENT",
+      "specialist_domain": "multi_domain",
+      "ground_truth_targets": [
+        {
+          "target_specialist": "cyber_financial_intel_specialist",
+          "source_document": "BNSS_Procedural_Code_2023.pdf",
+          "page_number": 79,
+          "allowed_page_window": [
+            78,
+            79,
+            80
+          ],
+          "point_id": "293dd293-6e6e-0064-6539-0117a109916c"
+        },
+        {
+          "target_specialist": "bns_specialist",
+          "source_document": "BNSS_Procedural_Code_2023.pdf",
+          "page_number": 167,
+          "allowed_page_window": [
+            166,
+            167,
+            168
+          ],
+          "point_id": "2cce565c-9fdf-c57d-170b-94861f5d78aa"
+        },
+        {
+          "target_specialist": "bsa_specialist",
+          "source_document": "IT_Act_2000.pdf",
+          "page_number": 1,
+          "allowed_page_window": [
+            1,
+            1,
+            2
+          ],
+          "point_id": "37803056-b5ba-2e31-ca3e-89ee5033a9d0"
+        },
+        {
+          "target_specialist": "conventional_field_specialist",
+          "source_document": "THE_GUJARAT_POLICE_MANUAL.pdf",
+          "page_number": 271,
+          "allowed_page_window": [
+            270,
+            271,
+            272
+          ],
+          "point_id": "36b58a78-1b84-5b00-b7af-51c4ebdd1646"
+        }
+      ],
+      "synthetic_complaint": {
+        "variant_type": "hinglish",
+        "raw_text": "मैं रोहन गुप्ता हूँ, मेरे पिता का नाम राजेश गुप्ता है और हम लोग अहमदाबाद में रहते हैं। मेरे पिता के खिलाफ एक शिकायत दर्ज की गई थी जिसमें उन पर धोखाधड़ी का आरोप लगाया गया था। लेकिन जब मैं और मेरे पिता अदालत में गवाही देने के लिए उपस्थित हुए, तो हमने पाया कि आरोपी ने हमें धमकी दी थी और हमें अदालत में गवाही देने से रोकने की कोशिश की। इसके अलावा, आरोपी ने मेरे पिता के खिलाफ ऑनलाइन धोखाधड़ी की थी और उनके बैंक खाते से पैसे निकाले थे। हमने इसकी शिकायत साइबर सेल में दर्ज कराई थी। साथ ही, आरोपी ने मेरे पिता की संपत्ति को भी हड़पने की कोशिश की थी, जिसे हमने अदालत में चुनौती दी थी।",
+        "translated_text": "I am Rohan Gupta, my father's name is Rajesh Gupta and we live in Ahmedabad. A complaint was filed against my father in which he was accused of cheating. But when my father and I appeared in court to testify, we found that the accused had threatened us and tried to prevent us from testifying in court. Additionally, the accused had committed online fraud against my father and withdrawn money from his bank account. We had filed a complaint about this with the cyber cell. Also, the accused had tried to usurp my father's property, which we had challenged in court.",
+        "crime_category": "HYBRID",
+        "crime_sub_type": "COMPOSITE_CRIME_SUB_TYPE"
+      },
+      "expected_entities": {
+        "persons": [
+          {
+            "name": "Rohan Gupta",
+            "role": "victim"
+          },
+          {
+            "name": "Rajesh Gupta",
+            "role": "victim"
+          },
+          {
+            "name": "Accused",
+            "role": "accused"
+          }
+        ],
+        "phone_numbers": [],
+        "bank_accounts": [
+          {
+            "account_number": "1234567890",
+            "ifsc": "SBIN0001234"
+          }
+        ],
+        "vpas_upis": []
+      }
+    },
+    {
+      "test_case_id": "BENCH-COMPOSITE-006",
+      "case_type": "COMPOSITE_MULTI_DOCUMENT",
+      "specialist_domain": "multi_domain",
+      "ground_truth_targets": [
+        {
+          "target_specialist": "cyber_financial_intel_specialist",
+          "source_document": "BNSS_Procedural_Code_2023.pdf",
+          "page_number": 138,
+          "allowed_page_window": [
+            137,
+            138,
+            139
+          ],
+          "point_id": "33672d26-0ae5-7554-2e47-02232ac4cabb"
+        },
+        {
+          "target_specialist": "bns_specialist",
+          "source_document": "BNS_Penal_Code_2024.pdf",
+          "page_number": 85,
+          "allowed_page_window": [
+            84,
+            85,
+            86
+          ],
+          "point_id": "3222665c-930e-888b-047c-a50fe6bbecbb"
+        },
+        {
+          "target_specialist": "bsa_specialist",
+          "source_document": "BNSS_Procedural_Code_2023.pdf",
+          "page_number": 157,
+          "allowed_page_window": [
+            156,
+            157,
+            158
+          ],
+          "point_id": "3dde9891-aad6-dbd8-ac55-826a216a147e"
+        },
+        {
+          "target_specialist": "conventional_field_specialist",
+          "source_document": "THE_GUJARAT_POLICE_MANUAL.pdf",
+          "page_number": 402,
+          "allowed_page_window": [
+            401,
+            402,
+            403
+          ],
+          "point_id": "39d6dfdb-515f-f848-d168-1692f4f80208"
+        }
+      ],
+      "synthetic_complaint": {
+        "variant_type": "hinglish",
+        "raw_text": "Mujhe pata chala hai ki mere ghar se kuch saman chori ho gaya hai, jismein mere passport, Aadhar card, aur kuch peise the. Maine police ko report kiya, lekin unhone mujhe bataya ki yeh case Bharatiya Nyaya Sanhita (BNS) ke Section 317 ke tahat aata hai, jo chori ki saman ko prapt karne ke bare mein hai. Abhi tak, koi arrest nahi hua hai, lekin police ne mujhe bataya ki ve Bharatiya Nagarik Suraksha Sanhita (BNSS) ke Chapter XXIX ke tahat appeal kar sakte hain. Maine apne bank account ka bhi detail diya hai, jismein kuch suspicious transaction hui hain. Maine Gujarat Police Manual ke mutabik, District Magistrate ko bhi report kiya hai, taaki ve is case ko carefully protect aur control kar sakein.",
+        "translated_text": "I have found out that some items have been stolen from my house, including my passport, Aadhar card, and some cash. I reported it to the police, but they told me that this case falls under Section 317 of the Bharatiya Nyaya Sanhita (BNS), which deals with receiving stolen property. So far, no one has been arrested, but the police told me that they can appeal under Chapter XXIX of the Bharatiya Nagarik Suraksha Sanhita (BNSS). I have also provided details of my bank account, which has some suspicious transactions. I have also reported this to the District Magistrate as per the Gujarat Police Manual, so that they can carefully protect and control this case.",
+        "crime_category": "HYBRID",
+        "crime_sub_type": "THEFT_AND_RECEIVING_STOLEN_PROPERTY"
+      },
+      "expected_entities": {
+        "persons": [
+          {
+            "name": "Rahul Kumar",
+            "role": "victim"
+          }
+        ],
+        "phone_numbers": [
+          "9876543210"
+        ],
+        "bank_accounts": [
+          {
+            "account_number": "1234567890",
+            "ifsc": "SBIN0012345"
+          }
+        ],
+        "vpas_upis": [
+          "rahul@okicici"
+        ]
+      }
+    },
+    {
+      "test_case_id": "BENCH-COMPOSITE-007",
+      "case_type": "COMPOSITE_MULTI_DOCUMENT",
+      "specialist_domain": "multi_domain",
+      "ground_truth_targets": [
+        {
+          "target_specialist": "cyber_financial_intel_specialist",
+          "source_document": "BNSS_Procedural_Code_2023.pdf",
+          "page_number": 102,
+          "allowed_page_window": [
+            101,
+            102,
+            103
+          ],
+          "point_id": "3a944cb6-ce4d-d0ea-2cfb-461fb9c5472c"
+        },
+        {
+          "target_specialist": "bns_specialist",
+          "source_document": "DPDP_Act_2023.pdf",
+          "page_number": 10,
+          "allowed_page_window": [
+            9,
+            10,
+            11
+          ],
+          "point_id": "37e92d24-3558-9175-efa6-d94acde77e18"
+        },
+        {
+          "target_specialist": "bsa_specialist",
+          "source_document": "BNS_Penal_Code_2024.pdf",
+          "page_number": 11,
+          "allowed_page_window": [
+            10,
+            11,
+            12
+          ],
+          "point_id": "3b256b9b-6e69-8e65-9b77-1b594dbf2553"
+        },
+        {
+          "target_specialist": "conventional_field_specialist",
+          "source_document": "THE_GUJARAT_POLICE_MANUAL.pdf",
+          "page_number": 414,
+          "allowed_page_window": [
+            413,
+            414,
+            415
+          ],
+          "point_id": "1fb2abae-bc2e-8d42-7f0f-60f1aff98853"
+        }
+      ],
+      "synthetic_complaint": {
+        "variant_type": "hinglish",
+        "raw_text": "मैं रोहन, मुंबई का निवासी हूँ, मेरे साथ धोखाधड़ी हुई है। मैंने एक नौकरी के लिए अप्लाई किया था, जिसमें मुझे एक व्यक्ति ने फोन किया और मुझे नौकरी दिलाने के लिए 50,000 रुपये देने को कहा। मैंने पैसे दे दिए, लेकिन बाद में पता चला कि यह एक फर्जी नौकरी थी। मैंने इसकी शिकायत पुलिस में की, लेकिन उन्होंने मेरी शिकायत दर्ज नहीं की। मैंने डीपीडीपी एक्ट के तहत भी शिकायत की, क्योंकि मेरे व्यक्तिगत डेटा का दुरुपयोग किया गया था। मैं चाहता हूँ कि इस मामले में उचित कार्रवाई की जाए और मेरे पैसे वापस मिलें।",
+        "translated_text": "I, Rohan, a resident of Mumbai, have been a victim of fraud. I had applied for a job, and a person called me, asking for 50,000 rupees to secure the job. I paid the money, but later found out it was a fake job. I complained to the police, but they didn't register my complaint. I also filed a complaint under the DPDP Act, as my personal data was misused. I want proper action to be taken in this case and my money back.",
+        "crime_category": "HYBRID",
+        "crime_sub_type": "CYBER_FRAUD_AND_DATA_MISUSE"
+      },
+      "expected_entities": {
+        "persons": [
+          {
+            "name": "Rohan",
+            "role": "victim"
+          }
+        ],
+        "phone_numbers": [
+          "none"
+        ],
+        "bank_accounts": [
+          {
+            "account_number": "none",
+            "ifsc": "none"
+          }
+        ],
+        "vpas_upis": [
+          "none"
+        ]
+      }
+    },
+    {
+      "test_case_id": "BENCH-COMPOSITE-008",
+      "case_type": "COMPOSITE_MULTI_DOCUMENT",
+      "specialist_domain": "multi_domain",
+      "ground_truth_targets": [
+        {
+          "target_specialist": "cyber_financial_intel_specialist",
+          "source_document": "RBI_Master_Direction_KYC.pdf",
+          "page_number": 105,
+          "allowed_page_window": [
+            104,
+            105,
+            106
+          ],
+          "point_id": "3f3b3729-a87f-14d0-6421-abdfceaafa6b"
+        },
+        {
+          "target_specialist": "bns_specialist",
+          "source_document": "BNS_Penal_Code_2024.pdf",
+          "page_number": 59,
+          "allowed_page_window": [
+            58,
+            59,
+            60
+          ],
+          "point_id": "31dedaea-4856-2efd-cd9c-2749ef28712a"
+        },
+        {
+          "target_specialist": "bsa_specialist",
+          "source_document": "IT_Act_2000.pdf",
+          "page_number": 10,
+          "allowed_page_window": [
+            9,
+            10,
+            11
+          ],
+          "point_id": "3f143682-5634-8c8e-6248-ab5d28a29a0d"
+        },
+        {
+          "target_specialist": "conventional_field_specialist",
+          "source_document": "THE_GUJARAT_POLICE_MANUAL.pdf",
+          "page_number": 304,
+          "allowed_page_window": [
+            303,
+            304,
+            305
+          ],
+          "point_id": "25342d35-fa00-d9af-f84d-a6dea9bfa826"
+        }
+      ],
+      "synthetic_complaint": {
+        "variant_type": "hinglish",
+        "raw_text": "Mujhe apni shikayat darj karwani hai ki mere khilaf ek vyakti ne mere bank account ka misuse kiya hai, jiske liye maine RBI ke KYC/AML guidelines ke anusaar apna account update kiya tha. Lekin usne mere account se paise transfer kar liye aur ab wo vyakti mujhe dhमकia rahe hain ki agar maine police ko bataya to wo mere khilaf court mein case darj karwa denge. Maine use samjhaane ki koshish ki ki wo galat kar rahe hain lekin wo nahin maane. Maine dekha ki usne mere account se paise transfer karne ke liye ek fake email id aur mobile number ka use kiya tha, jiske liye usne IT Act ke tahat foreign certifying authority ka bhi misuse kiya tha. Iske alawa, usne mere khilaf ek motor vehicle chalate hue prohibition offense bhi kiya tha, jiske liye maine Gujarat police manual ke hisaab se police ko suchit kiya tha. Lekin ab tak koi action nahin hua hai.",
+        "translated_text": "I want to file a complaint that someone has misused my bank account, for which I had updated my account according to RBI's KYC/AML guidelines. But they transferred money from my account and now they are threatening me that if I tell the police, they will file a case against me in court. I tried to explain to them that they are doing wrong, but they are not listening. I saw that they used a fake email id and mobile number to transfer money from my account, for which they also misused foreign certifying authority under the IT Act. Additionally, they committed a prohibition offense while driving a motor vehicle, for which I informed the police according to the Gujarat police manual. But no action has been taken yet.",
+        "crime_category": "HYBRID",
+        "crime_sub_type": "Cybercrime, Financial Fraud, Prohibition Offense, and Threats"
+      },
+      "expected_entities": {
+        "persons": [
+          {
+            "name": "Unknown",
+            "role": "accused"
+          }
+        ],
+        "phone_numbers": [
+          "Not provided"
+        ],
+        "bank_accounts": [
+          {
+            "account_number": "Not provided",
+            "ifsc": "Not provided"
+          }
+        ],
+        "vpas_upis": [
+          "Not provided"
+        ]
+      }
+    },
+    {
+      "test_case_id": "BENCH-COMPOSITE-009",
+      "case_type": "COMPOSITE_MULTI_DOCUMENT",
+      "specialist_domain": "multi_domain",
+      "ground_truth_targets": [
+        {
+          "target_specialist": "cyber_financial_intel_specialist",
+          "source_document": "BNS_Penal_Code_2024.pdf",
+          "page_number": 2,
+          "allowed_page_window": [
+            1,
+            2,
+            3
+          ],
+          "point_id": "3a3e3d65-c4f4-f549-1c7d-f7f849a04d47"
+        },
+        {
+          "target_specialist": "bns_specialist",
+          "source_document": "BNS_Penal_Code_2024.pdf",
+          "page_number": 63,
+          "allowed_page_window": [
+            62,
+            63,
+            64
+          ],
+          "point_id": "3c812f8a-d7c3-a5e1-eb90-3b1008e82044"
+        },
+        {
+          "target_specialist": "bsa_specialist",
+          "source_document": "BSA_Evidence_Act_2023.pdf",
+          "page_number": 42,
+          "allowed_page_window": [
+            41,
+            42,
+            43
+          ],
+          "point_id": "2b2415e4-8eac-6afd-655d-598a6473045a"
+        },
+        {
+          "target_specialist": "conventional_field_specialist",
+          "source_document": "BNS_Penal_Code_2024.pdf",
+          "page_number": 74,
+          "allowed_page_window": [
+            73,
+            74,
+            75
+          ],
+          "point_id": "3b760b9a-6bc8-5b0d-0cc9-25b4a3693122"
+        }
+      ],
+      "synthetic_complaint": {
+        "variant_type": "hinglish",
+        "raw_text": "Mujhe pata hai ki ek aadmi, jiska naam Rajesh hai, ne apne business partner, Ramesh ko Dubai mein maar dala. Rajesh ne yeh crime karne ke baad, India mein wapas aaya aur court mein Ramesh ki maut ke baare mein jhoothi gawaahi di. Usne kaha ki Ramesh ki maut ek accident mein hui thi. Lekin sachchai yeh hai ki Rajesh ne Ramesh ko maarne ke liye ek planned conspiracy ki thi. Rajesh ne Ramesh ke bank account se paise transfer karne ke liye ek fake letter banaya tha, jismein Ramesh ka signature nakal karke lagaya tha. Iske alawa, Rajesh ne apne ghar mein ek COVID-19 patient ko chhupaaya tha, jiske kaaran uske parivaar ke kai log bimaar ho gaye. Main is complaint ko darj karne ke liye yahaan hoon, kyunki mujhe lagta hai ki Rajesh ne kai saare crimes kiye hain, jismein murder, false evidence, forgery aur negligence bhi shaamil hain.",
+        "translated_text": "I know that a man named Rajesh murdered his business partner, Ramesh, in Dubai. After committing the crime, Rajesh returned to India and gave false testimony in court about Ramesh's death, saying it was an accident. However, the truth is that Rajesh had planned a conspiracy to kill Ramesh. Rajesh created a fake letter to transfer money from Ramesh's bank account, forging Ramesh's signature. Additionally, Rajesh hid a COVID-19 patient in his home, resulting in several family members falling ill. I am filing this complaint because I believe Rajesh has committed multiple crimes, including murder, false evidence, forgery, and negligence.",
+        "crime_category": "HYBRID",
+        "crime_sub_type": "Murder, False Evidence, Forgery, and Negligence"
+      },
+      "expected_entities": {
+        "persons": [
+          {
+            "name": "Rajesh",
+            "role": "accused"
+          },
+          {
+            "name": "Ramesh",
+            "role": "victim"
+          }
+        ],
+        "phone_numbers": [],
+        "bank_accounts": [
+          {
+            "account_number": "1234567890",
+            "ifsc": "SBIN0012345"
+          }
+        ],
+        "vpas_upis": []
+      }
+    },
+    {
+      "test_case_id": "BENCH-COMPOSITE-010",
+      "case_type": "COMPOSITE_MULTI_DOCUMENT",
+      "specialist_domain": "multi_domain",
+      "ground_truth_targets": [
+        {
+          "target_specialist": "cyber_financial_intel_specialist",
+          "source_document": "BNS_Penal_Code_2024.pdf",
+          "page_number": 55,
+          "allowed_page_window": [
+            54,
+            55,
+            56
+          ],
+          "point_id": "37c2b47a-d28b-e2ed-84f6-344c71bcec63"
+        },
+        {
+          "target_specialist": "bns_specialist",
+          "source_document": "BNSS_Procedural_Code_2023.pdf",
+          "page_number": 188,
+          "allowed_page_window": [
+            187,
+            188,
+            189
+          ],
+          "point_id": "3f1802d8-6cd9-fe3f-ad09-78eb7ab37439"
+        },
+        {
+          "target_specialist": "bsa_specialist",
+          "source_document": "BNS_Penal_Code_2024.pdf",
+          "page_number": 84,
+          "allowed_page_window": [
+            83,
+            84,
+            85
+          ],
+          "point_id": "3f3c37ff-77f2-2e3f-f5c1-d7d3974eb9a2"
+        },
+        {
+          "target_specialist": "conventional_field_specialist",
+          "source_document": "THE_GUJARAT_POLICE_MANUAL.pdf",
+          "page_number": 481,
+          "allowed_page_window": [
+            480,
+            481,
+            482
+          ],
+          "point_id": "3d4eac2d-dd75-f7b8-caeb-308e2206b371"
+        }
+      ],
+      "synthetic_complaint": {
+        "variant_type": "hinglish",
+        "raw_text": "मैं शिकायत दर्ज कराना चाहता हूँ कि मेरे पिता जी की मृत्यु के बाद, उनके नौकर ने उनके सामान और पैसे पर कब्जा कर लिया और सरकारी स्टाम्प वाले दस्तावेजों को भी नष्ट कर दिया। इसके अलावा, उन्होंने अवैध तरीके से एकत्र होकर मेरे घर में आग लगा दी और मेरे परिवार को धमकी दी। मैंने पुलिस को सूचित किया, लेकिन उन्होंने अभी तक कोई कार्रवाई नहीं की है। मैं चाहता हूँ कि इस मामले में जल्द से जल्द कार्रवाई की जाए और दोषियों को सजा मिले।",
+        "translated_text": "I want to file a complaint that after my father's death, his servant took possession of his belongings and money, and also destroyed documents bearing government stamps. Moreover, they unlawfully assembled and set fire to my house, threatening my family. I informed the police, but they have not taken any action yet. I want action to be taken in this matter as soon as possible and the culprits to be punished.",
+        "crime_category": "HYBRID",
+        "crime_sub_type": "THEFT, DESTRUCTION_OF_DOCUMENTS, ARSON, UNLAWFUL_ASSEMBLY"
+      },
+      "expected_entities": {
+        "persons": [
+          {
+            "name": "Pita Ji",
+            "role": "victim"
+          },
+          {
+            "name": "Naukar",
+            "role": "accused"
+          }
+        ],
+        "phone_numbers": [],
+        "bank_accounts": [],
+        "vpas_upis": []
+      }
+    },
+    {
+      "test_case_id": "BENCH-COMPOSITE-011",
+      "case_type": "COMPOSITE_MULTI_DOCUMENT",
+      "specialist_domain": "multi_domain",
+      "ground_truth_targets": [
+        {
+          "target_specialist": "cyber_financial_intel_specialist",
+          "source_document": "BNS_Penal_Code_2024.pdf",
+          "page_number": 44,
+          "allowed_page_window": [
+            43,
+            44,
+            45
+          ],
+          "point_id": "3d2539a1-afd6-0fb4-eaaf-11cd09cdd513"
+        },
+        {
+          "target_specialist": "bns_specialist",
+          "source_document": "BSA_Evidence_Act_2023.pdf",
+          "page_number": 54,
+          "allowed_page_window": [
+            53,
+            54,
+            55
+          ],
+          "point_id": "30241d5d-11ec-62e8-dfe3-925906e9e1f4"
+        },
+        {
+          "target_specialist": "bsa_specialist",
+          "source_document": "BNSS_Procedural_Code_2023.pdf",
+          "page_number": 80,
+          "allowed_page_window": [
+            79,
+            80,
+            81
+          ],
+          "point_id": "320197d8-7686-bbdd-e6fc-0f17cb0dd5ee"
+        },
+        {
+          "target_specialist": "conventional_field_specialist",
+          "source_document": "IT_Act_2000.pdf",
+          "page_number": 22,
+          "allowed_page_window": [
+            21,
+            22,
+            23
+          ],
+          "point_id": "3f45f387-d90b-bf9c-b8eb-0f5c07072449"
+        }
+      ],
+      "synthetic_complaint": {
+        "variant_type": "hinglish",
+        "raw_text": "मैं शिकायत दर्ज कराना चाहता हूँ कि मेरे साथ धोखाधड़ी हुई है और मुझे ऑनलाइन ठगा गया है। मैं एक सरकारी अधिकारी हूँ और मेरे पास एक बैंक अकाउंट है जिसका नंबर 1234567890 है और IFSC कोड है ABCD1234। मेरे पास एक व्यक्ति ने मुझसे संपर्क किया और मुझे बताया कि मेरा अकाउंट हैक हो गया है और मुझे अपना पासवर्ड बदलना होगा। मैंने उन्हें अपना पासवर्ड दे दिया और अब मेरे अकाउंट से पैसे निकाल लिए गए हैं। मैंने उन्हें फोन किया तो उन्होंने मुझे धमकी दी और कहा कि अगर मैंने पुलिस में शिकायत दर्ज की तो वे मुझे मार देंगे। मैंने पुलिस स्टेशन में जाकर शिकायत दर्ज कराई लेकिन उन्होंने मुझे बताया कि यह मामला साइबर क्राइम के तहत आता है और वे इस मामले को देखेंगे।",
+        "translated_text": "I want to file a complaint that I have been cheated and scammed online. I am a government official and I have a bank account with account number 1234567890 and IFSC code ABCD1234. A person contacted me and told me that my account has been hacked and I need to change my password. I gave them my password and now money has been withdrawn from my account. When I called them, they threatened me and said that if I file a complaint with the police, they will kill me. I went to the police station and filed a complaint, but they told me that this case falls under cyber crime and they will look into it.",
+        "crime_category": "HYBRID",
+        "crime_sub_type": "CYBER_CRIME_AND_PHYSICAL_THREAT"
+      },
+      "expected_entities": {
+        "persons": [
+          {
+            "name": "Government Official",
+            "role": "victim"
+          },
+          {
+            "name": "Scammer",
+            "role": "accused"
+          }
+        ],
+        "phone_numbers": [
+          "1234567890"
+        ],
+        "bank_accounts": [
+          {
+            "account_number": "1234567890",
+            "ifsc": "ABCD1234"
+          }
+        ],
+        "vpas_upis": []
+      }
+    },
+    {
+      "test_case_id": "BENCH-COMPOSITE-012",
+      "case_type": "COMPOSITE_MULTI_DOCUMENT",
+      "specialist_domain": "multi_domain",
+      "ground_truth_targets": [
+        {
+          "target_specialist": "cyber_financial_intel_specialist",
+          "source_document": "BNSS_Procedural_Code_2023.pdf",
+          "page_number": 107,
+          "allowed_page_window": [
+            106,
+            107,
+            108
+          ],
+          "point_id": "39a0a0de-deeb-fe6e-ad8c-14551bce3222"
+        },
+        {
+          "target_specialist": "bns_specialist",
+          "source_document": "BNS_Penal_Code_2024.pdf",
+          "page_number": 36,
+          "allowed_page_window": [
+            35,
+            36,
+            37
+          ],
+          "point_id": "3e04853e-8708-231d-0c24-d53155eb13a3"
+        },
+        {
+          "target_specialist": "bsa_specialist",
+          "source_document": "BNS_Penal_Code_2024.pdf",
+          "page_number": 90,
+          "allowed_page_window": [
+            89,
+            90,
+            91
+          ],
+          "point_id": "3e98eeac-fec8-f449-df18-ed0eb573cafd"
+        },
+        {
+          "target_specialist": "conventional_field_specialist",
+          "source_document": "SOP_Investigation_Prosecution_Rape_Women.pdf",
+          "page_number": 5,
+          "allowed_page_window": [
+            4,
+            5,
+            6
+          ],
+          "point_id": "37407ae1-d201-f3cd-d57d-e42dcd95534d"
+        }
+      ],
+      "synthetic_complaint": {
+        "variant_type": "hinglish",
+        "raw_text": "मैं शिकायत दर्ज कराना चाहता हूँ कि मेरी बहन के साथ एक संगठित अपराध सिंडिकेट के सदस्य ने बलात्कार किया है और हमारे घर में घुसकर हमारी संपत्ति को नुकसान पहुँचाया है। आरोपी ने हमारे घर को तोड़कर घुसपैठ की और हमारी बहन को जबरन अपने साथ ले गया। हमने पुलिस में रिपोर्ट दर्ज कराई है और आरोपी के खिलाफ कानूनी कार्रवाई चाहते हैं। आरोपी के पास हमारी बहन को धमकी देने के लिए कई मोबाइल नंबर और बैंक खाते हैं जिनका उपयोग वह हमारी बहन को धमकाने के लिए करता है।",
+        "translated_text": "I want to file a complaint that a member of an organized crime syndicate has committed rape with my sister and has trespassed into our house, causing damage to our property. The accused broke into our house and forcibly took my sister with him. We have filed a report with the police and want to take legal action against the accused. The accused has several mobile numbers and bank accounts that he uses to threaten my sister.",
+        "crime_category": "HYBRID",
+        "crime_sub_type": "RAPE_AND_CRIMINAL_TRESPASS"
+      },
+      "expected_entities": {
+        "persons": [
+          {
+            "name": "Rahul Kumar",
+            "role": "accused"
+          },
+          {
+            "name": "Priya Sharma",
+            "role": "victim"
+          }
+        ],
+        "phone_numbers": [
+          "9999999999",
+          "8888888888"
+        ],
+        "bank_accounts": [
+          {
+            "account_number": "1234567890",
+            "ifsc": "SBIN0001234"
+          }
+        ],
+        "vpas_upis": [
+          "rahul@okicici",
+          "priya@okhdfc"
+        ]
+      }
+    },
+    {
+      "test_case_id": "BENCH-COMPOSITE-013",
+      "case_type": "COMPOSITE_MULTI_DOCUMENT",
+      "specialist_domain": "multi_domain",
+      "ground_truth_targets": [
+        {
+          "target_specialist": "cyber_financial_intel_specialist",
+          "source_document": "BSA_Evidence_Act_2023.pdf",
+          "page_number": 12,
+          "allowed_page_window": [
+            11,
+            12,
+            13
+          ],
+          "point_id": "3deaf513-0dd7-481a-0ce0-2c991bef4ab7"
+        },
+        {
+          "target_specialist": "bns_specialist",
+          "source_document": "BSA_Evidence_Act_2023.pdf",
+          "page_number": 17,
+          "allowed_page_window": [
+            16,
+            17,
+            18
+          ],
+          "point_id": "3e29e355-12e5-3385-2d60-c5a6fd409c0c"
+        },
+        {
+          "target_specialist": "bsa_specialist",
+          "source_document": "BNSS_Procedural_Code_2023.pdf",
+          "page_number": 175,
+          "allowed_page_window": [
+            174,
+            175,
+            176
+          ],
+          "point_id": "3944a5a5-b8e7-af24-9cad-13a0595577f0"
+        },
+        {
+          "target_specialist": "conventional_field_specialist",
+          "source_document": "BNS_Penal_Code_2024.pdf",
+          "page_number": 58,
+          "allowed_page_window": [
+            57,
+            58,
+            59
+          ],
+          "point_id": "32521fb4-4f7a-e689-9145-a6df905720eb"
+        }
+      ],
+      "synthetic_complaint": {
+        "variant_type": "hinglish",
+        "raw_text": "Main Police Station, Delhi mein complaint darj karana chahta hoon. Mera bhai, Rohan, ko kal shaam ko ghar ke bahar ek adami ne maara tha. Usne kaha tha ki wo police officer hai aur usne apne aap ko Inspector Kumar bataya tha. Lekin jab humne uski verification ki to pata chala ki wo nakli police officer hai. Usne apne saath ek aur adami bhi tha jiske paas ek bag tha jismein kuchh suspicious cheezein thi. Rohan ne unhe roknay ki koshish ki to unhone use maara aur wo bhaag gaye. Rohan ab hospital mein admit hai aur uski haalat critical hai. Maine dekha tha ki unmein se ek adami ne apne phone par kisi se baat ki thi aur kaha tha ki 'sab kuchh theek hai, tum aaraam se raho'. Maine us adami ka number note kiya tha jo 9999923456 hai. Maine pata kiya hai ki unhone ek fake bank account bhi banaya tha jiske account number 1234567890123456 hai aur IFSC code hai HDFC0001234. Unhone ek vpa bhi banaya tha jo hai rohan@upi",
+        "translated_text": "I want to file a complaint at the Police Station, Delhi. My brother, Rohan, was beaten by a man outside our house last evening. The man claimed to be a police officer and introduced himself as Inspector Kumar. But when we verified his identity, we found out that he was an imposter. He had another man with him who had a bag with suspicious items. When Rohan tried to stop them, they beat him up and ran away. Rohan is now admitted to the hospital and his condition is critical. I saw one of the men talking to someone on the phone and saying 'everything is fine, you relax'. I noted down the phone number of that man, which is 9999923456. I found out that they had created a fake bank account with account number 1234567890123456 and IFSC code HDFC0001234. They had also created a UPI ID, rohan@upi",
+        "crime_category": "HYBRID",
+        "crime_sub_type": "Impersonation, Assault, and Fraud"
+      },
+      "expected_entities": {
+        "persons": [
+          {
+            "name": "Rohan",
+            "role": "victim"
+          },
+          {
+            "name": "Inspector Kumar",
+            "role": "accused"
+          }
+        ],
+        "phone_numbers": [
+          "9999923456"
+        ],
+        "bank_accounts": [
+          {
+            "account_number": "1234567890123456",
+            "ifsc": "HDFC0001234"
+          }
+        ],
+        "vpas_upis": [
+          "rohan@upi"
+        ]
+      }
+    },
+    {
+      "test_case_id": "BENCH-COMPOSITE-014",
+      "case_type": "COMPOSITE_MULTI_DOCUMENT",
+      "specialist_domain": "multi_domain",
+      "ground_truth_targets": [
+        {
+          "target_specialist": "cyber_financial_intel_specialist",
+          "source_document": "I4C_CFCFRMS_Financial_Fraud_SOP.pdf",
+          "page_number": 50,
+          "allowed_page_window": [
+            49,
+            50,
+            51
+          ],
+          "point_id": "3df163ce-15e9-6d03-caf1-9355d7fb64d8"
+        },
+        {
+          "target_specialist": "bns_specialist",
+          "source_document": "BNS_Penal_Code_2024.pdf",
+          "page_number": 90,
+          "allowed_page_window": [
+            89,
+            90,
+            91
+          ],
+          "point_id": "3e98eeac-fec8-f449-df18-ed0eb573cafd"
+        },
+        {
+          "target_specialist": "bsa_specialist",
+          "source_document": "IT_Act_2000.pdf",
+          "page_number": 4,
+          "allowed_page_window": [
+            3,
+            4,
+            5
+          ],
+          "point_id": "3d95820b-441c-304d-c6cd-70d1e4fdf615"
+        },
+        {
+          "target_specialist": "conventional_field_specialist",
+          "source_document": "BNSS_Procedural_Code_2023.pdf",
+          "page_number": 138,
+          "allowed_page_window": [
+            137,
+            138,
+            139
+          ],
+          "point_id": "33672d26-0ae5-7554-2e47-02232ac4cabb"
+        }
+      ],
+      "synthetic_complaint": {
+        "variant_type": "hinglish",
+        "raw_text": "मैं शिकायत दर्ज कराना चाहता हूँ कि मेरे बैंक खाते से 15.12.2024 को 50,000 रुपये की धोखाधड़ी हुई है। मैंने अपना अकाउंट स्टेटमेंट देखा और पाया कि एक अनजान व्यक्ति ने मेरे खाते से पैसे निकाले हैं। मुझे लगता है कि यह एक साइबर अपराध है और मेरे घर में भी घुसपैठ की गई है। मेरे घर के पीछे की दीवार में एक छेद है, जिससे वह व्यक्ति अंदर आया होगा। मैंने अपने घर की सुरक्षा के लिए एक वीपीए/यूपीआई का उपयोग किया था, लेकिन लगता है कि उसे हैक कर लिया गया है।",
+        "translated_text": "I want to file a complaint that my bank account was fraudulently debited of 50,000 rupees on 15.12.2024. I checked my account statement and found that an unknown person has withdrawn money from my account. I believe this is a cybercrime and my house has also been trespassed. There is a hole in the back wall of my house, through which the person must have entered. I had used a VPA/UPI for my home security, but it seems to have been hacked.",
+        "crime_category": "HYBRID",
+        "crime_sub_type": "Cybercrime and House Trespass with Financial Fraud"
+      },
+      "expected_entities": {
+        "persons": [
+          {
+            "name": "Unknown",
+            "role": "accused"
+          }
+        ],
+        "phone_numbers": [],
+        "bank_accounts": [
+          {
+            "account_number": "XXXX1234",
+            "ifsc": "ICIC0001234"
+          }
+        ],
+        "vpas_upis": [
+          "myhome@upi"
+        ]
+      }
+    },
+    {
+      "test_case_id": "BENCH-COMPOSITE-015",
+      "case_type": "COMPOSITE_MULTI_DOCUMENT",
+      "specialist_domain": "multi_domain",
+      "ground_truth_targets": [
+        {
+          "target_specialist": "cyber_financial_intel_specialist",
+          "source_document": "BNSS_Procedural_Code_2023.pdf",
+          "page_number": 150,
+          "allowed_page_window": [
+            149,
+            150,
+            151
+          ],
+          "point_id": "3ec2ca5b-695c-986a-05d0-a39fa26e9ad9"
+        },
+        {
+          "target_specialist": "bns_specialist",
+          "source_document": "BNSS_Procedural_Code_2023.pdf",
+          "page_number": 271,
+          "allowed_page_window": [
+            270,
+            271,
+            272
+          ],
+          "point_id": "3934bd46-2490-9bff-72d6-dcd697c493e7"
+        },
+        {
+          "target_specialist": "bsa_specialist",
+          "source_document": "BNS_Penal_Code_2024.pdf",
+          "page_number": 27,
+          "allowed_page_window": [
+            26,
+            27,
+            28
+          ],
+          "point_id": "317042e9-ac3a-d207-b714-5235649b3b70"
+        },
+        {
+          "target_specialist": "conventional_field_specialist",
+          "source_document": "THE_GUJARAT_POLICE_MANUAL.pdf",
+          "page_number": 212,
+          "allowed_page_window": [
+            211,
+            212,
+            213
+          ],
+          "point_id": "3dbc2e1a-2dd1-f540-c4c7-2ea123ab34c2"
+        }
+      ],
+      "synthetic_complaint": {
+        "variant_type": "hinglish",
+        "raw_text": "Mujhe apne pati ke khilaf police complaint darj karwani hai, jo ki mere saath marital rape aur criminal force ka use karte hain. Unhone mujhe dhoomrapan aur sharab ke nashe mein mere saath jabardasti ki hai. Maine court mein ek case darj kiya tha, lekin judge ne meri baat nahi suni aur mere pati ke khilaf koi action nahi liya. Maine Bharatiya Nagarik Suraksha Sanhita (BNSS) ke hisab se apne haq ke liye ladna chahti hoon. Mere pati ne mujhe financially blackmail kiya hai aur mere bank account se paise nikal liye hain. Maine Gujarat Police Manual ke mutabik police ko report ki hai, lekin ab tak koi action nahi hua hai.",
+        "translated_text": "I want to file a police complaint against my husband, who has been committing marital rape and using criminal force against me. He has been forcing me into sexual acts while under the influence of alcohol and tobacco. I had filed a case in court, but the judge did not listen to my plea and did not take any action against my husband. I want to fight for my rights under the Bharatiya Nagarik Suraksha Sanhita (BNSS). My husband has been financially blackmailing me and has withdrawn money from my bank account. I have reported this to the police as per the Gujarat Police Manual, but no action has been taken yet.",
+        "crime_category": "HYBRID",
+        "crime_sub_type": "MARITAL RAPE, CRIMINAL FORCE, FINANCIAL BLACKMAIL"
+      },
+      "expected_entities": {
+        "persons": [
+          {
+            "name": "Ramesh Kumar",
+            "role": "accused"
+          },
+          {
+            "name": "Sunita Devi",
+            "role": "victim"
+          }
+        ],
+        "phone_numbers": [
+          "9825678901"
+        ],
+        "bank_accounts": [
+          {
+            "account_number": "1234567890",
+            "ifsc": "SBIN0012345"
+          }
+        ],
+        "vpas_upis": [
+          "rameshkumar@upi"
+        ]
+      }
+    },
+    {
+      "test_case_id": "BENCH-COMPOSITE-016",
+      "case_type": "COMPOSITE_MULTI_DOCUMENT",
+      "specialist_domain": "multi_domain",
+      "ground_truth_targets": [
+        {
+          "target_specialist": "cyber_financial_intel_specialist",
+          "source_document": "BNSS_Procedural_Code_2023.pdf",
+          "page_number": 40,
+          "allowed_page_window": [
+            39,
+            40,
+            41
+          ],
+          "point_id": "3dd71e2d-9997-8d50-c96d-0303650c5586"
+        },
+        {
+          "target_specialist": "bns_specialist",
+          "source_document": "BNSS_Procedural_Code_2023.pdf",
+          "page_number": 168,
+          "allowed_page_window": [
+            167,
+            168,
+            169
+          ],
+          "point_id": "393cf271-72c8-cb49-a1a4-3b2ed32c80d9"
+        },
+        {
+          "target_specialist": "bsa_specialist",
+          "source_document": "BSA_Evidence_Act_2023.pdf",
+          "page_number": 14,
+          "allowed_page_window": [
+            13,
+            14,
+            15
+          ],
+          "point_id": "3b7d40fb-4ad0-a9e1-55cb-0e3d78cb6bfd"
+        },
+        {
+          "target_specialist": "conventional_field_specialist",
+          "source_document": "THE_GUJARAT_POLICE_MANUAL.pdf",
+          "page_number": 46,
+          "allowed_page_window": [
+            45,
+            46,
+            47
+          ],
+          "point_id": "2f006fa0-af49-aa5c-f157-318fa6deb7c9"
+        }
+      ],
+      "synthetic_complaint": {
+        "variant_type": "hinglish",
+        "raw_text": "मैं श्री रोहन शर्मा हूँ, मेरे पास एक शिकायत है कि मेरे घर से 5 लाख रुपये और कुछ महत्वपूर्ण दस्तावेज चोरी हो गए हैं। मैंने पुलिस स्टेशन में रिपोर्ट दर्ज कराई थी, लेकिन पुलिस ने अभी तक कोई कार्रवाई नहीं की है। मैंने सुना है कि आरोपी ने अपराध के बाद अपना घर छोड़ दिया था और अब वह शहर के बाहर एक अन्य जिले में छुपा हुआ है। मैं चाहता हूँ कि पुलिस आरोपी को गिरफ्तार करे और मेरी संपत्ति को वापस दिलाए। मेरे पास आरोपी का फोन नंबर है - 9999999999, और उसका बैंक खाता नंबर है - 1234567890, IFSC - ABCD1234।",
+        "translated_text": "I, Rohan Sharma, have a complaint that 5 lakh rupees and some important documents have been stolen from my house. I had filed a report at the police station, but the police have not taken any action yet. I heard that the accused had absconded from his house after committing the crime and is now hiding in another district outside the city. I want the police to arrest the accused and return my property. I have the accused's phone number - 9999999999, and his bank account number - 1234567890, IFSC - ABCD1234.",
+        "crime_category": "HYBRID",
+        "crime_sub_type": "THEFT_AND_ABSCONDMENT"
+      },
+      "expected_entities": {
+        "persons": [
+          {
+            "name": "Rohan Sharma",
+            "role": "victim"
+          },
+          {
+            "name": "Accused",
+            "role": "accused"
+          }
+        ],
+        "phone_numbers": [
+          "9999999999"
+        ],
+        "bank_accounts": [
+          {
+            "account_number": "1234567890",
+            "ifsc": "ABCD1234"
+          }
+        ],
+        "vpas_upis": []
+      }
+    }
+  ]
+}
