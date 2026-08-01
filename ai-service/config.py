@@ -15,6 +15,7 @@ load_dotenv()
 # Central Debugging & Fallback Control Flags
 ENABLE_DEMO_FALLBACKS = os.getenv("ENABLE_DEMO_FALLBACKS", "false").lower() == "true"
 DEBUG = os.getenv("DEBUG", "true").lower() == "true"
+USE_OLLAMA = os.getenv("USE_OLLAMA", "false").lower() == "true"
 
 # Persistent Model Cache Directory Configuration
 MODEL_CACHE_DIR = os.getenv("MODEL_CACHE_DIR", str(Path(__file__).resolve().parent / "models_cache"))
@@ -38,7 +39,7 @@ GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
 QDRANT_HOST = os.getenv("QDRANT_HOST", "localhost")
 QDRANT_PORT = int(os.getenv("QDRANT_PORT", 6333))
 DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://crimeos_user:crimeos_password@localhost:5432/crimeos_db")
-COLLECTION_NAME = os.getenv("COLLECTION_NAME", "police_sops")
+COLLECTION_NAME = os.getenv("COLLECTION_NAME", "police_sops_v2")
 
 print(f"[*] Configuration Loaded: DEBUG={DEBUG} | ENABLE_DEMO_FALLBACKS={ENABLE_DEMO_FALLBACKS} | MODEL_CACHE={MODEL_CACHE_DIR}")
 
@@ -48,7 +49,7 @@ def get_vision_llm():
     """
     if GEMINI_API_KEY:
         return ChatGoogleGenerativeAI(
-            model="gemini-1.5-flash",
+            model="gemini-2.0-flash",
             google_api_key=GEMINI_API_KEY,
             temperature=0.1
         )
@@ -62,20 +63,22 @@ def get_vision_llm():
 def get_agent_llm(provider: str = "auto", temperature: float = 0.2):
     """
     Polyglot LLM Factory getter.
-    Prioritizes Groq / Claude / OpenAI for strict JSON schema compliance & zero hallucinations.
-    Falls back gracefully if specific keys are absent.
+    Prioritizes explicit provider, LLM_PROVIDER env var, or auto-selection.
     """
-    if provider == "groq" and GROQ_API_KEY:
+    env_provider = os.getenv("LLM_PROVIDER", "auto").lower()
+    target_provider = provider.lower() if provider != "auto" else env_provider
+
+    if target_provider == "gemini" and GEMINI_API_KEY:
+        return ChatGoogleGenerativeAI(model="gemini-2.0-flash", google_api_key=GEMINI_API_KEY, temperature=temperature)
+
+    if target_provider == "groq" and GROQ_API_KEY:
         return ChatGroq(model_name="llama-3.3-70b-versatile", groq_api_key=GROQ_API_KEY, temperature=temperature)
 
-    if provider == "claude" and ANTHROPIC_API_KEY:
+    if target_provider == "claude" and ANTHROPIC_API_KEY:
         return ChatAnthropic(model="claude-3-5-sonnet-20240620", api_key=ANTHROPIC_API_KEY, temperature=temperature)
 
-    if provider == "openai" and OPENAI_API_KEY:
+    if target_provider == "openai" and OPENAI_API_KEY:
         return ChatOpenAI(model="gpt-4o", api_key=OPENAI_API_KEY, temperature=temperature)
-
-    if provider == "gemini" and GEMINI_API_KEY:
-        return ChatGoogleGenerativeAI(model="gemini-1.5-pro", google_api_key=GEMINI_API_KEY, temperature=temperature)
 
     # AUTO SELECTION
     if GROQ_API_KEY:
@@ -85,7 +88,7 @@ def get_agent_llm(provider: str = "auto", temperature: float = 0.2):
     elif OPENAI_API_KEY:
         return ChatOpenAI(model="gpt-4o-mini", api_key=OPENAI_API_KEY, temperature=temperature)
     elif GEMINI_API_KEY:
-        return ChatGoogleGenerativeAI(model="gemini-1.5-flash", google_api_key=GEMINI_API_KEY, temperature=temperature)
+        return ChatGoogleGenerativeAI(model="gemini-2.0-flash", google_api_key=GEMINI_API_KEY, temperature=temperature)
     else:
         if not ENABLE_DEMO_FALLBACKS:
             raise ValueError("No Agent LLM API Keys found in .env (GROQ_API_KEY, OPENAI_API_KEY, ANTHROPIC_API_KEY, or GEMINI_API_KEY required).")

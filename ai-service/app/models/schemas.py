@@ -11,11 +11,14 @@ class BankAccountSchema(BaseModel):
     ifsc: Optional[str] = Field(default=None)
     bank: Optional[str] = Field(default=None)
     account_name: Optional[str] = Field(default=None)
+    account_role: Optional[str] = Field(default="accused") # "victim" or "accused"
+    is_victim_account: Optional[bool] = Field(default=False)
 
 class EntitiesSchema(BaseModel):
     persons: List[PersonEntity] = Field(default_factory=list)
     phone_numbers: List[str] = Field(default_factory=list)
     email_addresses: List[str] = Field(default_factory=list)
+    online_handles: List[str] = Field(default_factory=list)
     bank_accounts: List[Union[BankAccountSchema, Dict[str, Any], str]] = Field(default_factory=list)
     vpas_upis: List[str] = Field(default_factory=list)
     monetary_loss: float = Field(default=0.0)

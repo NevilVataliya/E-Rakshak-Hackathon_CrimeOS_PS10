@@ -16,8 +16,9 @@ def bns_agent_node(state: AgentState) -> dict:
     feedback = state.get('evaluation_feedback') or []
     entities = state.get('entities') or {}
     
-    rag_query = f"{crime_sub_type} {complaint_text[:300]} penal section punishment statute BNS IT Act".strip()
-    qdrant_docs = search_legal_sops(rag_query, target_specialist="bns_specialist", top_k=6)
+    semantic_query = complaint_text[:500].strip()
+    keyword_query = f"{crime_sub_type} penal section punishment statute BNS IT Act".strip()
+    qdrant_docs = search_legal_sops(semantic_query=semantic_query, keyword_query=keyword_query, target_specialist="bns_specialist", top_k=6)
     
     formatted_chunks = []
     for d in qdrant_docs:

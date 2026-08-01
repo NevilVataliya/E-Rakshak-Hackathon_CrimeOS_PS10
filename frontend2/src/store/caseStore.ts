@@ -28,7 +28,7 @@ const initialMockCases: PoliceCase[] = [
     translated_text: 'Victim reported Rs. 2,00,000 lost via fraudulent UPI link scammer@paytm and transfer to SBI A/C 30910293101.',
     severity_score: 9.2,
     assigned_io: 'PSI V. K. Patel',
-    police_station: 'Ahmedabad Cyber Crime HQ',
+    police_station: 'Surat Cyber Crime HQ',
     status: 'AGENT_REASONING',
     entities: {
       persons: [{ name: 'Ramesh Patel', role: 'victim' }],
@@ -50,7 +50,7 @@ const initialMockCases: PoliceCase[] = [
     translated_text: 'Victim threatened via WhatsApp messages demanding Rs. 50,000.',
     severity_score: 7.8,
     assigned_io: 'PSI V. K. Patel',
-    police_station: 'Ahmedabad Cyber Crime HQ',
+    police_station: 'Surat Cyber Crime HQ',
     status: 'SUBPOENA_DISPATCHED',
     entities: {
       persons: [{ name: 'Suresh Kumar', role: 'victim' }],
@@ -126,7 +126,7 @@ export const useCaseStore = create<CaseState>()(
           translated_text: complaintData.translated_text || 'Translated English Narrative.',
           severity_score: complaintData.severity_score || 8.5,
           assigned_io: 'PSI V. K. Patel',
-          police_station: 'Ahmedabad Cyber Crime HQ',
+          police_station: 'Surat Cyber Crime HQ',
           status: 'INTAKE',
           entities: complaintData.entities || {
             persons: [],

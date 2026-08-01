@@ -1,8 +1,10 @@
 import os
 import threading
+import torch
 from typing import List, Dict, Any
 from config import MODEL_CACHE_DIR, HF_TOKEN, ENABLE_DEMO_FALLBACKS
 
+torch.set_num_threads(max(1, os.cpu_count() or 4))
 _reranker_model = None
 _reranker_lock = threading.Lock()
 
@@ -44,17 +46,32 @@ def rerank_chunks(query: str, candidates: List[Dict[str, Any]], top_k: int = 5) 
         return sorted(candidates, key=lambda x: x.get("score", 0.0), reverse=True)[:top_k]
 
     try:
-        # Prepare sentence pairs for CrossEncoder prediction: (query, source + text)
-        pairs = [[query, f"{c.get('source', '')} {c.get('text', '')}"] for c in candidates]
+        # Prepare sentence pairs for CrossEncoder prediction: (query[:500], source + document_title + text[:1200])
+        # 500 chars query (~100 tokens) + 1200 chars text (~300 tokens) = ~400 tokens (safely under 512 limit)
+        q_short = query[:500]
+        pairs = [[q_short, f"{c.get('source', '')} {c.get('document_title', '')} {c.get('text', '')[:1200]}"] for c in candidates]
         
-        # Fast cross-attention scoring
-        scores = model.predict(pairs)
+        # Fast cross-attention scoring with batching
+        scores = model.predict(pairs, batch_size=16)
+
+        # Min-Max Normalization for RRF score and CrossEncoder score
+        rrf_scores = [float(c.get("score", 0.0)) for c in candidates]
+        min_rrf, max_rrf = min(rrf_scores), max(rrf_scores)
+        rrf_range = (max_rrf - min_rrf) if (max_rrf - min_rrf) > 1e-6 else 1.0
+
+        ce_scores = [float(s) for s in scores]
+        min_ce, max_ce = min(ce_scores), max(ce_scores)
+        ce_range = (max_ce - min_ce) if (max_ce - min_ce) > 1e-6 else 1.0
 
         for idx, candidate in enumerate(candidates):
             candidate["rerank_score"] = float(scores[idx])
+            norm_rrf = (float(candidate.get("score", 0.0)) - min_rrf) / rrf_range
+            norm_ce = (float(scores[idx]) - min_ce) / ce_range
+            # Optimized hybrid fusion: 70% RRF score + 30% CrossEncoder score
+            candidate["combined_score"] = (0.70 * norm_rrf) + (0.30 * norm_ce)
 
-        # Sort by CrossEncoder score descending
-        sorted_candidates = sorted(candidates, key=lambda x: x["rerank_score"], reverse=True)
+        # Sort by Combined Score descending
+        sorted_candidates = sorted(candidates, key=lambda x: x["combined_score"], reverse=True)
         return sorted_candidates[:top_k]
     except Exception as e:
         print(f"[-] Reranker Prediction Exception: {e}")

@@ -1,0 +1,97 @@
+{
+  "evaluation_type": "full_system",
+  "layers_evaluated": [
+    1,
+    2,
+    3
+  ],
+  "active_provider": "gemini",
+  "timestamp": "2026-07-30T16:03:46",
+  "total_duration_sec": 629.99,
+  "results": {
+    "entity_extraction": {
+      "scorecard": {
+        "total_cases": 10,
+        "valid_cases": 10,
+        "language_accuracy": 100.0,
+        "category_accuracy": 90.0,
+        "sub_type_accuracy": 90.0,
+        "severity_in_range_pct": 90.0,
+        "person_extraction_f1": 90.6,
+        "person_role_f1": 82.8,
+        "phone_extraction_f1": 100.0,
+        "email_extraction_f1": 90.0,
+        "handle_extraction_f1": 100.0,
+        "bank_account_f1": 80.0,
+        "bank_role_accuracy_f1": 80.0,
+        "vpa_extraction_f1": 100.0,
+        "monetary_loss_accuracy": 80.0,
+        "monetary_loss_avg_rel_error": 0.0,
+        "avg_latency_sec": 10.38,
+        "fallback_rate": 0.0,
+        "overall_entity_f1": 93.4
+      }
+    },
+    "rag_retrieval": {
+      "scorecard": {
+        "atomic": {
+          "count": 19,
+          "hit_rate_k3": 63.2,
+          "hit_rate_k5": 68.4,
+          "hit_rate_k10": 73.7,
+          "hit_rate_k15": 73.7,
+          "mrr": 0.51,
+          "precision_k5": 25.3,
+          "ndcg_k5": 0.55,
+          "ndcg_k10": 0.565,
+          "avg_latency_ms": 1739.1
+        },
+        "composite": {
+          "count": 2,
+          "target_recall": 12.5,
+          "full_coverage_rate": 0.0,
+          "avg_latency_ms": 1007.7
+        },
+        "per_domain": {
+          "cyber_financial_intel_specialist": {
+            "count": 5,
+            "hit_rate_k5": 40.0,
+            "hit_rate_k15": 60.0,
+            "mrr": 0.32
+          },
+          "bns_specialist": {
+            "count": 6,
+            "hit_rate_k5": 100.0,
+            "hit_rate_k15": 100.0,
+            "mrr": 0.708
+          },
+          "bsa_specialist": {
+            "count": 2,
+            "hit_rate_k5": 0.0,
+            "hit_rate_k15": 0.0,
+            "mrr": 0.0
+          },
+          "conventional_field_specialist": {
+            "count": 6,
+            "hit_rate_k5": 83.3,
+            "hit_rate_k15": 83.3,
+            "mrr": 0.639
+          }
+        }
+      }
+    },
+    "investigation_path": {
+      "scorecard": {
+        "total_cases": 10,
+        "valid_cases": 7,
+        "legal_section_recall": 58.6,
+        "directive_completeness": 95.6,
+        "faithfulness": 100.0,
+        "safety": 54.8,
+        "actionability_avg": 3.86,
+        "legal_req_in_range_pct": 100.0,
+        "avg_latency_sec": 45.55
+      }
+    }
+  }
+}

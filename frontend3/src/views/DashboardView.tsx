@@ -30,7 +30,7 @@ export default function DashboardView() {
             </span>
           </h1>
           <p className="text-xs text-slate-400">
-            Real-time tactical case metrics, 6-step intelligence pipeline, and turnkey statutory subpoenas.
+            Manage cases, track investigations, and dispatch legal notices across your station.
           </p>
         </div>
 
@@ -39,7 +39,7 @@ export default function DashboardView() {
           className="flex items-center gap-1.5 rounded bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-blue-500 transition-colors shadow-sm"
         >
           <FileUp className="h-3.5 w-3.5" />
-          <span>Ingest New Complaint</span>
+          <span>Register New Complaint</span>
         </button>
       </div>
 
@@ -69,16 +69,16 @@ export default function DashboardView() {
             <AlertTriangle className="h-3.5 w-3.5 text-amber-400" />
           </div>
           <p className="text-xl font-extrabold text-white font-mono">11</p>
-          <p className="text-[10px] text-amber-400 font-mono">Qdrant VPA & Phone Overlap</p>
+          <p className="text-[10px] text-amber-400 font-mono">Cross-Case VPA & Phone Matches</p>
         </div>
 
         <div className="rounded border border-white/10 bg-[#0d1322] p-3 space-y-1">
           <div className="flex items-center justify-between text-slate-400 text-[10px] font-bold uppercase tracking-wider">
-            <span>Vector Index Status</span>
+            <span>AI Knowledge Base</span>
             <Cpu className="h-3.5 w-3.5 text-indigo-400" />
           </div>
-          <p className="text-xl font-extrabold text-white font-mono">7,337 Chunks</p>
-          <p className="text-[10px] text-indigo-400 font-mono">police_sops_v2</p>
+          <p className="text-xl font-extrabold text-white font-mono">Active</p>
+          <p className="text-[10px] text-indigo-400 font-mono">Legal Acts & SOPs Loaded</p>
         </div>
       </div>
 
@@ -92,7 +92,7 @@ export default function DashboardView() {
               Active Police Case Register
             </span>
             <button onClick={() => navigate('/investigation')} className="text-[10px] text-blue-400 hover:underline flex items-center gap-1">
-              <span>Agent Studio</span> <ArrowRight className="h-3 w-3" />
+              <span>Investigation Studio</span> <ArrowRight className="h-3 w-3" />
             </button>
           </div>
 
@@ -148,8 +148,8 @@ export default function DashboardView() {
               className="flex w-full items-center justify-between rounded border border-white/10 bg-[#050811] p-2.5 text-left hover:border-blue-500/40 transition-all group"
             >
               <div>
-                <span className="text-xs font-bold text-white group-hover:text-blue-400">Step 1: Multimodal Intake</span>
-                <p className="text-[10px] text-slate-400">Gujarati/Hindi Audio ASR & Vision OCR</p>
+                <span className="text-xs font-bold text-white group-hover:text-blue-400">Step 1: Complaint Intake</span>
+                <p className="text-[10px] text-slate-400">Gujarati/Hindi Voice & Document Processing</p>
               </div>
               <ArrowRight className="h-4 w-4 text-slate-500 group-hover:text-blue-400" />
             </button>
@@ -159,8 +159,8 @@ export default function DashboardView() {
               className="flex w-full items-center justify-between rounded border border-white/10 bg-[#050811] p-2.5 text-left hover:border-amber-500/40 transition-all group"
             >
               <div>
-                <span className="text-xs font-bold text-white group-hover:text-amber-400">Step 2: Qdrant Serial Linkage</span>
-                <p className="text-[10px] text-slate-400">Topology graph for mule VPAs & phones</p>
+                <span className="text-xs font-bold text-white group-hover:text-amber-400">Step 2: Serial Offender Linkage</span>
+                <p className="text-[10px] text-slate-400">Cross-case match graph for mule VPAs & phones</p>
               </div>
               <ArrowRight className="h-4 w-4 text-slate-500 group-hover:text-amber-400" />
             </button>
@@ -170,8 +170,8 @@ export default function DashboardView() {
               className="flex w-full items-center justify-between rounded border border-white/10 bg-[#050811] p-2.5 text-left hover:border-blue-500/40 transition-all group"
             >
               <div>
-                <span className="text-xs font-bold text-white group-hover:text-blue-400">Step 3: Multi-Agent Studio</span>
-                <p className="text-[10px] text-slate-400">LangGraph SOP grounding & exact citations</p>
+                <span className="text-xs font-bold text-white group-hover:text-blue-400">Step 3: Investigation Studio</span>
+                <p className="text-[10px] text-slate-400">AI-powered SOP analysis with legal citations</p>
               </div>
               <ArrowRight className="h-4 w-4 text-slate-500 group-hover:text-blue-400" />
             </button>
@@ -191,10 +191,10 @@ export default function DashboardView() {
           <div className="mt-auto rounded border border-emerald-500/30 bg-emerald-500/10 p-2.5 space-y-1">
             <span className="text-xs font-bold text-emerald-300 flex items-center gap-1">
               <ShieldCheck className="h-3.5 w-3.5 text-emerald-400" />
-              Statutory Zero-Hardcode Guard
+              Statutory Citation Guarantee
             </span>
             <p className="text-[10px] text-slate-300 leading-relaxed">
-              All legal steps cite exact Page & Section numbers from original acts in Qdrant.
+              All legal steps cite exact page & section numbers from original legal acts & manuals.
             </p>
           </div>
         </div>

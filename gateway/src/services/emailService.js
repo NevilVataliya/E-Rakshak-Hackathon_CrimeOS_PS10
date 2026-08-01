@@ -31,7 +31,7 @@ const sendLegalNoticeEmail = async ({ toEmail, providerName, caseNumber, request
   const htmlContent = `
     <div style="font-family: Arial, sans-serif; color: #111827; max-width: 600px; margin: 0 auto; border: 1px solid #E5E7EB; border-radius: 8px; overflow: hidden;">
       <div style="background-color: #0D47A1; color: #FFFFFF; padding: 20px; text-align: center;">
-        <h2 style="margin: 0;">AHMEDABAD CYBER CRIME CELL</h2>
+        <h2 style="margin: 0;">Surat CYBER CRIME CELL</h2>
         <p style="margin: 5px 0 0 0; font-size: 14px;">GUJARAT POLICE DEPARTMENT | GOVERNMENT OF GUJARAT</p>
       </div>
       
@@ -45,14 +45,14 @@ const sendLegalNoticeEmail = async ({ toEmail, providerName, caseNumber, request
 
         <div style="background-color: #F3F4F6; padding: 12px; border-left: 4px solid #0D47A1; margin: 20px 0;">
           <p style="margin: 0; font-size: 13px;"><strong>Attached Document:</strong> ${path.basename(pdfPath || 'Section_94_BNSS_Notice.pdf')}</p>
-          <p style="margin: 5px 0 0 0; font-size: 12px; color: #6B7280;">Signed & Approved by Investigating Officer PSI V. K. Patel, Ahmedabad Cyber Crime Station.</p>
+          <p style="margin: 5px 0 0 0; font-size: 12px; color: #6B7280;">Signed & Approved by Investigating Officer PSI V. K. Patel, Surat Cyber Crime Station.</p>
         </div>
 
         <p style="font-size: 12px; color: #6B7280; margin-bottom: 0;">Please acknowledge receipt of this email notice. Replies with attached data should quote Notice No: ${requestNumber}.</p>
       </div>
 
       <div style="background-color: #F9FAFB; padding: 12px; text-align: center; font-size: 11px; color: #9CA3AF; border-top: 1px solid #E5E7EB;">
-        Official Law Enforcement Communication — Police Headquarters, Ahmedabad, Gujarat, India
+        Official Law Enforcement Communication — Police Headquarters, Surat, Gujarat, India
       </div>
     </div>
   `;
@@ -77,7 +77,7 @@ const sendLegalNoticeEmail = async ({ toEmail, providerName, caseNumber, request
     }
 
     const info = await transporter.sendMail({
-      from: process.env.SMTP_FROM || '"Ahmedabad Cyber Police" <nodal.cyber@police.gujarat.gov.in>',
+      from: process.env.SMTP_FROM || '"Surat Cyber Police" <nodal.cyber@police.gujarat.gov.in>',
       to: toEmail,
       subject: `[LEGAL NOTICE] Section 94 BNSS Requisition Notice - Case ${caseNumber} (${requestNumber})`,
       html: htmlContent,

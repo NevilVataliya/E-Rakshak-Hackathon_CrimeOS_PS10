@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import { 
-  ShieldCheck, 
-  Download, 
-  Printer, 
-  CheckCircle, 
-  FileText, 
+import {
+  ShieldCheck,
+  Download,
+  Printer,
+  CheckCircle,
+  FileText,
   Award,
   Sparkles,
   Lock
@@ -27,7 +27,7 @@ export default function CaseDiaryPage() {
 
   return (
     <div className="space-y-5">
-      
+
       {/* Header */}
       <div className="border-b border-slate-800 pb-4">
         <div className="flex items-center gap-2">
@@ -53,7 +53,7 @@ export default function CaseDiaryPage() {
 
       {/* Main Grid: Court Bundle Preview & Certificate Details */}
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-12">
-        
+
         {/* Left Column: Official Case Diary Summary */}
         <div className="pro-card p-5 lg:col-span-7 space-y-4">
           <div className="flex items-center justify-between border-b border-slate-800 pb-3">
@@ -67,7 +67,7 @@ export default function CaseDiaryPage() {
           </div>
 
           <div className="space-y-3 text-xs">
-            
+
             <div className="rounded-lg border border-slate-800 bg-slate-900/60 p-3 space-y-1.5">
               <div className="flex items-center justify-between font-semibold text-white">
                 <span>FIR Register Number: {activeCase?.fir_number || 'FIR-042/2026'}</span>
@@ -88,7 +88,7 @@ export default function CaseDiaryPage() {
                 <li>Qdrant vector similarity search executed across 7,337 grounded SOP chunks.</li>
                 <li>Section 94 BNSS Legal Notice dispatched to Paytm Payments Bank Nodal Cell.</li>
                 <li>Section 1930 / CFCFRMS Emergency Debit Freeze issued for SBI A/C 30910293101.</li>
-                <li>Telecom CDR & IPDR log parsed (1,420 records) with primary cell tower anchor at CG Road, Ahmedabad.</li>
+                <li>Telecom CDR & IPDR log parsed (1,420 records) with primary cell tower anchor at CG Road, Surat.</li>
               </ul>
             </div>
 
@@ -116,13 +116,13 @@ export default function CaseDiaryPage() {
 
         {/* Right Column: Section 63 BSA Certificate */}
         <div className="space-y-5 lg:col-span-5">
-          
+
           <div className="pro-card p-5 space-y-3">
             <h2 className="text-sm font-bold text-white flex items-center gap-2 border-b border-slate-800 pb-3">
               <ShieldCheck className="h-4 w-4 text-emerald-400" />
               Section 63 BSA Electronic Certificate
             </h2>
-            
+
             <p className="text-xs text-slate-400 leading-relaxed">
               Mandatory certificate under Bharatiya Sakshya Adhiniyam (BSA), 2023 certifying the authenticity of electronic records and server logs.
             </p>

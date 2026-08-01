@@ -15,8 +15,9 @@ def bsa_agent_node(state: AgentState) -> dict:
     complaint_text = state.get('translated_text') or state.get('complaint_text') or ''
     feedback = state.get('evaluation_feedback') or []
     
-    rag_query = f"BSA evidence certificate electronic records section 63 BSA hash calculation panchnama physical evidence chain of custody"
-    qdrant_docs = search_legal_sops(rag_query, target_specialist="bsa_specialist", top_k=4)
+    semantic_query = complaint_text[:500].strip()
+    keyword_query = f"BSA evidence certificate electronic records section 63 BSA hash calculation panchnama physical evidence chain of custody".strip()
+    qdrant_docs = search_legal_sops(semantic_query=semantic_query, keyword_query=keyword_query, target_specialist="bsa_specialist", top_k=4)
     
     formatted_chunks = []
     for d in qdrant_docs:

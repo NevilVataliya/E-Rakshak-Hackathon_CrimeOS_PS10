@@ -14,13 +14,13 @@ const mockUsers: Record<string, User> = {
     username: 'io_patel',
     full_name: 'PSI Inspector V. K. Patel',
     role: 'IO',
-    police_station: 'Ahmedabad Cyber Crime HQ'
+    police_station: 'Surat Cyber Crime HQ'
   },
   sho_sharma: {
     username: 'sho_sharma',
     full_name: 'PI Senior Inspector R. S. Sharma',
     role: 'SHO',
-    police_station: 'Ahmedabad Cyber Crime HQ'
+    police_station: 'Surat Cyber Crime HQ'
   },
   legal_desai: {
     username: 'legal_desai',
@@ -47,7 +47,7 @@ export const useAuthStore = create<AuthState>()(
           username,
           full_name: 'PSI Inspector V. K. Patel',
           role: 'IO',
-          police_station: 'Ahmedabad Cyber Crime HQ'
+          police_station: 'Surat Cyber Crime HQ'
         };
         set({ user: found, isAuthenticated: true });
       },

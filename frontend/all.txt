@@ -87,7 +87,7 @@ export default function App() {
     username: 'io_patel',
     role: 'IO',
     full_name: 'PSI Inspector V. K. Patel',
-    police_station: 'Ahmedabad Cyber Crime Station'
+    police_station: 'Surat Cyber Crime Station'
   });
 
   const isLoginPage = location.pathname === '/login';
@@ -257,7 +257,7 @@ export default function Navbar({ user }) {
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
           <Chip 
             icon={<LocalPolice sx={{ color: '#10B981 !important' }} />} 
-            label="Ahmedabad Cyber Station" 
+            label="Surat Cyber Station" 
             variant="outlined" 
             sx={{ borderColor: 'rgba(16, 185, 129, 0.3)', color: '#10B981', fontWeight: 600 }}
           />
@@ -679,7 +679,7 @@ export default function AnalyticsPage() {
                 Primary Cell Tower Location
               </Typography>
               <Typography variant="caption" sx={{ color: '#9CA3AF' }}>
-                Ahmedabad CG Road Tower (AHM-CG-TW-42) - 82% anchor score.
+                Surat CG Road Tower (AHM-CG-TW-42) - 82% anchor score.
               </Typography>
             </Box>
           </Paper>

@@ -668,7 +668,7 @@ Respond ONLY with valid JSON in this exact structure:
                 "bank_accounts": [],
                 "vpas_upis": [],
                 "monetary_loss": 50000,
-                "crime_locations": ["Ahmedabad"],
+                "crime_locations": ["Surat"],
                 "date_time_of_incident": "Recent"
             },
             "key_facts": ["Financial fraud complaint received.", "Victim reported unauthorized transaction."],
@@ -741,9 +741,9 @@ def generate_section_94_bnss_pdf(output_path: str, case_data: dict, request_deta
     story = []
 
     # Header Emblem & Police Dept Title
-    story.append(Paragraph("<b>AHMEDABAD CYBER CRIME CELL</b>", header_style))
+    story.append(Paragraph("<b>Surat CYBER CRIME CELL</b>", header_style))
     story.append(Paragraph("GUJARAT POLICE DEPARTMENT | GOVERNMENT OF GUJARAT", sub_header_style))
-    story.append(Paragraph("Office of the Station House Officer, Cyber Crime Police Station, Ahmedabad", sub_header_style))
+    story.append(Paragraph("Office of the Station House Officer, Cyber Crime Police Station, Surat", sub_header_style))
     story.append(Spacer(1, 10))
     story.append(HRFlowable(width="100%", thickness=1.5, color=colors.HexColor('#0D47A1'), spaceAfter=15))
 
@@ -817,7 +817,7 @@ def generate_section_94_bnss_pdf(output_path: str, case_data: dict, request_deta
     # Signature Block
     sig_data = [
         [Paragraph("", body_style), Paragraph("<b>Signature & Seal</b>", ParagraphStyle('RightBold', parent=body_style, alignment=TA_RIGHT))],
-        [Paragraph("", body_style), Paragraph("<b>(V. K. PATEL)</b><br/>Police Inspector / IO<br/>Ahmedabad Cyber Crime Station", ParagraphStyle('Right', parent=body_style, alignment=TA_RIGHT))],
+        [Paragraph("", body_style), Paragraph("<b>(V. K. PATEL)</b><br/>Police Inspector / IO<br/>Surat Cyber Crime Station", ParagraphStyle('Right', parent=body_style, alignment=TA_RIGHT))],
     ]
     sig_table = Table(sig_data, colWidths=[260, 260])
     story.append(sig_table)
@@ -914,7 +914,7 @@ def get_vision_llm():
     """
     if GEMINI_API_KEY:
         return ChatGoogleGenerativeAI(
-            model="gemini-1.5-flash",
+            model="gemini-3.5-flash-lite",
             google_api_key=GEMINI_API_KEY,
             temperature=0.1
         )
@@ -950,7 +950,7 @@ def get_agent_llm(provider: str = "auto", temperature: float = 0.2):
     elif GROQ_API_KEY:
         return ChatGroq(model_name="llama3-8b-8192", groq_api_key=GROQ_API_KEY, temperature=temperature)
     elif GEMINI_API_KEY:
-        return ChatGoogleGenerativeAI(model="gemini-1.5-flash", google_api_key=GEMINI_API_KEY, temperature=temperature)
+        return ChatGoogleGenerativeAI(model="gemini-3.5-flash-lite", google_api_key=GEMINI_API_KEY, temperature=temperature)
     else:
         # Fallback to OpenAI mini default (or mock)
         return ChatOpenAI(model="gpt-4o-mini", api_key="mock", temperature=temperature)

@@ -12,14 +12,14 @@ import {
 } from 'lucide-react';
 
 const pipelineModules = [
-  { id: 'dash', title: 'Command Dashboard', icon: LayoutDashboard, path: '/' },
-  { id: 'mod1', title: 'Module 1: Multimodal Intake & ASR', icon: FileText, path: '/intake' },
-  { id: 'mod2', title: 'Module 2: Serial Linkage Topology Graph', icon: Network, path: '/linkage' },
-  { id: 'mod3', title: 'Module 3: Multi-Agent SOP Matrix', icon: Bot, path: '/investigation' },
-  { id: 'mod4', title: 'Module 4: Subpoenas & Notices', icon: Send, path: '/subpoenas' },
-  { id: 'mod5', title: 'Module 5: CDR & Bank Response Studio', icon: BarChart3, path: '/analytics' },
-  { id: 'mod6', title: 'Module 6: Master Court Case Diary', icon: FileCheck2, path: '/case-diary' },
-  { id: 'admin', title: 'Module 7: RBAC & Audit Trail', icon: ShieldCheck, path: '/admin' }
+  { id: 'dash', title: 'Dashboard', icon: LayoutDashboard, path: '/' },
+  { id: 'mod1', title: 'Complaint Intake', icon: FileText, path: '/intake' },
+  { id: 'mod2', title: 'Serial Offender Linkage', icon: Network, path: '/linkage' },
+  { id: 'mod3', title: 'Investigation Studio', icon: Bot, path: '/investigation' },
+  { id: 'mod4', title: 'Subpoenas & Notices', icon: Send, path: '/subpoenas' },
+  { id: 'mod5', title: 'CDR & Bank Response Analysis', icon: BarChart3, path: '/analytics' },
+  { id: 'mod6', title: 'Court Case Diary', icon: FileCheck2, path: '/case-diary' },
+  { id: 'admin', title: 'Administration & Audit', icon: ShieldCheck, path: '/admin' }
 ];
 
 export default function PipelineNavRail() {

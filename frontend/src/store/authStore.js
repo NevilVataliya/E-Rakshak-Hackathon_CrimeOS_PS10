@@ -6,7 +6,7 @@ export const useAuthStore = create((set) => ({
     username: 'io_patel',
     role: 'IO',
     full_name: 'PSI Inspector V. K. Patel',
-    police_station: 'Ahmedabad Cyber Crime Station'
+    police_station: 'Surat Cyber Crime Station'
   },
   token: localStorage.getItem('crimeos_token') || null,
   isAuthenticated: !!localStorage.getItem('crimeos_token'),
@@ -18,7 +18,7 @@ export const useAuthStore = create((set) => ({
     try {
       const response = await api.post('/api/auth/login', { username, password });
       const { token, user } = response.data;
-      
+
       localStorage.setItem('crimeos_token', token);
       localStorage.setItem('crimeos_user', JSON.stringify(user));
 
@@ -31,7 +31,7 @@ export const useAuthStore = create((set) => ({
         username: username || 'io_patel',
         role: username === 'sho_sharma' ? 'SHO' : username === 'legal_desai' ? 'LEGAL_ADVISOR' : 'IO',
         full_name: username === 'sho_sharma' ? 'PI Senior Inspector R. S. Sharma' : 'PSI Inspector V. K. Patel',
-        police_station: 'Ahmedabad Cyber Crime Station'
+        police_station: 'Surat Cyber Crime Station'
       };
       const mockToken = 'mock_jwt_token_' + Date.now();
       localStorage.setItem('crimeos_token', mockToken);

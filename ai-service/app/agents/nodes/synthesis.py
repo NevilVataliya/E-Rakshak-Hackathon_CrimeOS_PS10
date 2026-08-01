@@ -95,15 +95,48 @@ def synthesis_node(state: AgentState) -> dict:
     pdf_dir = os.path.join(os.getcwd(), "generated_pdfs")
     os.makedirs(pdf_dir, exist_ok=True)
 
-    # A. Targeted Bank Debit Freeze Requisitions (Distinct PDF per Bank)
+    # A. Targeted Bank Requisitions (Debit Freeze for Accused Accounts, Statement for Victim Accounts)
     for bank_info in bank_accounts:
         if isinstance(bank_info, dict):
             acc_num = bank_info.get('account_number') or 'Suspect Account'
-            bank_name = bank_info.get('bank') or 'Beneficiary Bank'
+            bank_name = bank_info.get('bank') or 'Bank Nodal Cell'
             ifsc = bank_info.get('ifsc') or ''
-            acc_name = bank_info.get('account_name') or 'Beneficiary Entity'
-            provider_title = f"{bank_name} (Nodal Legal Cell)"
-            desc = f"Debit Freeze on A/c {acc_num} ({acc_name}, IFSC: {ifsc})"
+            acc_name = bank_info.get('account_name') or 'Account Holder'
+            role = str(bank_info.get('account_role') or bank_info.get('role') or '').lower()
+            is_victim = bank_info.get('is_victim_account') is True or role == 'victim'
+
+            if is_victim:
+                provider_title = f"{bank_name} (Nodal Legal Cell)"
+                desc = f"Outward Remittance Statement Requisition on Complainant A/c {acc_num}"
+                bank_pdf_file = f"Notice_Account_Statement_{acc_num}_{case_number}.pdf"
+                bank_pdf_path = os.path.join(pdf_dir, bank_pdf_file)
+                try:
+                    generate_section_94_bnss_pdf(
+                        output_path=bank_pdf_path,
+                        case_data=master_fir,
+                        request_details={
+                            "target_provider": provider_title,
+                            "items": [
+                                f"Complainant Source Account Statement: {acc_num}",
+                                "Outward Remittance & UTR Settlement Audit Log",
+                                "Certified Account Statement under BSA Section 63"
+                            ]
+                        }
+                    )
+                except Exception as e:
+                    print(f"[-] Statement PDF Gen Error: {e}")
+
+                legal_requests.append({
+                    "request_type": "SECTION_94_BNSS",
+                    "target_provider": provider_title,
+                    "status": "APPROVED",
+                    "pdf_url": f"/api/requests/download/{bank_pdf_file}",
+                    "description": desc
+                })
+                continue
+            else:
+                provider_title = f"{bank_name} (Nodal Legal Cell)"
+                desc = f"Debit Freeze on Accused A/c {acc_num} ({acc_name}, IFSC: {ifsc})"
         else:
             acc_num = str(bank_info)
             provider_title = "Beneficiary Bank Nodal Legal Cell"

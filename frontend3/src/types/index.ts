@@ -15,6 +15,7 @@ export interface BankAccountEntity {
 export interface ExtractedEntities {
   persons: PersonEntity[];
   phone_numbers: string[];
+  online_handles?: string[];
   vpas_upis: string[];
   bank_accounts: BankAccountEntity[];
   imei_numbers?: string[];
@@ -104,9 +105,39 @@ export interface CDRAnalysisResult {
   recommended_next_action: string;
 }
 
+export interface LinkageMatch {
+  entity_type: 'phone' | 'vpa' | 'bank_account' | 'manual';
+  entity_value: string;
+  match_type: string;
+  matched_case: string;
+  matched_fir: string;
+  police_station: string;
+  confidence: number;
+  description: string;
+  recommended_action: string;
+}
+
+export interface LinkageStats {
+  total_entities_searched: number;
+  total_matches: number;
+  high_confidence: number;
+  medium_confidence: number;
+  low_confidence: number;
+  unique_linked_cases: number;
+  unique_police_stations: number;
+}
+
+export interface LinkageSearchResult {
+  status: string;
+  case_number: string;
+  matches: LinkageMatch[];
+  stats: LinkageStats;
+}
+
 export interface User {
   username: string;
   full_name: string;
   role: 'IO' | 'SHO' | 'LEGAL_ADVISOR' | 'ADMIN';
   police_station: string;
 }
+

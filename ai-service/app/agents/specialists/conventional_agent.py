@@ -17,8 +17,9 @@ def conventional_agent_node(state: AgentState) -> dict:
     feedback = state.get('evaluation_feedback') or []
     entities = state.get('entities') or {}
     
-    rag_query = f"{crime_sub} conventional investigation procedure BNSS spot panchnama witness CCTV seizure SOP"
-    qdrant_docs = search_legal_sops(rag_query, target_specialist="conventional_field_specialist", top_k=4)
+    semantic_query = complaint_text[:500].strip()
+    keyword_query = f"{crime_sub} conventional investigation procedure BNSS spot panchnama witness CCTV seizure SOP".strip()
+    qdrant_docs = search_legal_sops(semantic_query=semantic_query, keyword_query=keyword_query, target_specialist="conventional_field_specialist", top_k=4)
     
     formatted_chunks = []
     for d in qdrant_docs:
@@ -55,7 +56,7 @@ Respond ONLY in valid JSON matching this exact structure:
   "field_steps": [
     {{
       "title": "<FIELD_ACTION_TITLE>",
-      "description": "<DETAILED_FIELD_INVESTIGATION_DIRECTIVE_REFERENCING_ACTUAL_LOCATIONS_AND_EVIDENCE>",
+      "description": "ACTION: [Imperative Verb, e.g. Preserve / Inspect Spot / Record Statement u/s 180 BNSS / Prepare Panchnama u/s 105 BNSS] <DETAILED_FIELD_INVESTIGATION_DIRECTIVE_REFERENCING_ACTUAL_LOCATIONS_AND_EVIDENCE>",
       "category": "FIELD",
       "sop_reference": "<CITED_PROCEDURAL_AUTHORITY_OR_DOCUMENT_NAME>"
     }}

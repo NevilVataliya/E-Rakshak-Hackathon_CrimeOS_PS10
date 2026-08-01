@@ -1,0 +1,835 @@
+{
+  "layer": "entity_extraction",
+  "timestamp": "2026-07-31T19:31:47",
+  "scorecard": {
+    "total_cases": 15,
+    "valid_cases": 15,
+    "language_accuracy": 100.0,
+    "category_accuracy": 93.3,
+    "sub_type_accuracy": 100.0,
+    "severity_in_range_pct": 100.0,
+    "person_extraction_f1": 90.2,
+    "person_role_f1": 85.3,
+    "phone_extraction_f1": 100.0,
+    "email_extraction_f1": 100.0,
+    "handle_extraction_f1": 90.0,
+    "bank_account_f1": 97.8,
+    "bank_role_accuracy_f1": 97.8,
+    "vpa_extraction_f1": 100.0,
+    "monetary_loss_accuracy": 73.3,
+    "monetary_loss_avg_rel_error": 0.0716,
+    "avg_latency_sec": 2.84,
+    "fallback_rate": 0.0,
+    "overall_entity_f1": 96.3
+  },
+  "per_case_results": [
+    {
+      "test_case_id": "EE-001",
+      "latency_sec": 3.34,
+      "language_match": true,
+      "category_match": true,
+      "sub_type_match": true,
+      "severity_in_range": true,
+      "persons": {
+        "precision": 0.6667,
+        "recall": 1.0,
+        "f1": 0.8
+      },
+      "persons_with_role": {
+        "precision": 0.6667,
+        "recall": 1.0,
+        "f1": 0.8
+      },
+      "phone_numbers": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "email_addresses": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "online_handles": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "bank_accounts": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "bank_account_roles": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "vpas_upis": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "monetary_loss": {
+        "exact_match": true,
+        "relative_error": 0.0,
+        "within_tolerance": true
+      },
+      "fallback_used": false
+    },
+    {
+      "test_case_id": "EE-002",
+      "latency_sec": 2.54,
+      "language_match": true,
+      "category_match": true,
+      "sub_type_match": true,
+      "severity_in_range": true,
+      "persons": {
+        "precision": 0.5,
+        "recall": 1.0,
+        "f1": 0.6667
+      },
+      "persons_with_role": {
+        "precision": 0.5,
+        "recall": 1.0,
+        "f1": 0.6667
+      },
+      "phone_numbers": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "email_addresses": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "online_handles": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "bank_accounts": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "bank_account_roles": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "vpas_upis": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "monetary_loss": {
+        "exact_match": true,
+        "relative_error": 0.0,
+        "within_tolerance": true
+      },
+      "fallback_used": false
+    },
+    {
+      "test_case_id": "EE-003",
+      "latency_sec": 2.38,
+      "language_match": true,
+      "category_match": true,
+      "sub_type_match": true,
+      "severity_in_range": true,
+      "persons": {
+        "precision": 0.6667,
+        "recall": 1.0,
+        "f1": 0.8
+      },
+      "persons_with_role": {
+        "precision": 0.6667,
+        "recall": 1.0,
+        "f1": 0.8
+      },
+      "phone_numbers": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "email_addresses": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "online_handles": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "bank_accounts": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "bank_account_roles": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "vpas_upis": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "monetary_loss": {
+        "exact_match": true,
+        "relative_error": 0.0,
+        "within_tolerance": true
+      },
+      "fallback_used": false
+    },
+    {
+      "test_case_id": "EE-004",
+      "latency_sec": 2.98,
+      "language_match": true,
+      "category_match": true,
+      "sub_type_match": true,
+      "severity_in_range": true,
+      "persons": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "persons_with_role": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "phone_numbers": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "email_addresses": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "online_handles": {
+        "precision": 0.3333,
+        "recall": 1.0,
+        "f1": 0.5
+      },
+      "bank_accounts": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "bank_account_roles": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "vpas_upis": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "monetary_loss": {
+        "exact_match": false,
+        "relative_error": 0.25,
+        "within_tolerance": false
+      },
+      "fallback_used": false
+    },
+    {
+      "test_case_id": "EE-005",
+      "latency_sec": 3.4,
+      "language_match": true,
+      "category_match": true,
+      "sub_type_match": true,
+      "severity_in_range": true,
+      "persons": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "persons_with_role": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "phone_numbers": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "email_addresses": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "online_handles": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "bank_accounts": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "bank_account_roles": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "vpas_upis": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "monetary_loss": {
+        "exact_match": true,
+        "relative_error": 0.0,
+        "within_tolerance": true
+      },
+      "fallback_used": false
+    },
+    {
+      "test_case_id": "EE-006",
+      "latency_sec": 2.66,
+      "language_match": true,
+      "category_match": true,
+      "sub_type_match": true,
+      "severity_in_range": true,
+      "persons": {
+        "precision": 0.4,
+        "recall": 1.0,
+        "f1": 0.5714
+      },
+      "persons_with_role": {
+        "precision": 0.2,
+        "recall": 0.5,
+        "f1": 0.2857
+      },
+      "phone_numbers": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "email_addresses": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "online_handles": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "bank_accounts": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "bank_account_roles": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "vpas_upis": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "monetary_loss": {
+        "exact_match": true,
+        "relative_error": 0.0,
+        "within_tolerance": true
+      },
+      "fallback_used": false
+    },
+    {
+      "test_case_id": "EE-007",
+      "latency_sec": 2.5,
+      "language_match": true,
+      "category_match": true,
+      "sub_type_match": true,
+      "severity_in_range": true,
+      "persons": {
+        "precision": 0.8,
+        "recall": 1.0,
+        "f1": 0.8889
+      },
+      "persons_with_role": {
+        "precision": 0.4,
+        "recall": 0.5,
+        "f1": 0.4444
+      },
+      "phone_numbers": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "email_addresses": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "online_handles": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "bank_accounts": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "bank_account_roles": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "vpas_upis": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "monetary_loss": {
+        "exact_match": true,
+        "relative_error": 0.0
+      },
+      "fallback_used": false
+    },
+    {
+      "test_case_id": "EE-008",
+      "latency_sec": 2.73,
+      "language_match": true,
+      "category_match": true,
+      "sub_type_match": true,
+      "severity_in_range": true,
+      "persons": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "persons_with_role": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "phone_numbers": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "email_addresses": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "online_handles": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "bank_accounts": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "bank_account_roles": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "vpas_upis": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "monetary_loss": {
+        "exact_match": true,
+        "relative_error": 0.0
+      },
+      "fallback_used": false
+    },
+    {
+      "test_case_id": "EE-009",
+      "latency_sec": 3.14,
+      "language_match": true,
+      "category_match": false,
+      "sub_type_match": true,
+      "severity_in_range": true,
+      "persons": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "persons_with_role": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "phone_numbers": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "email_addresses": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "online_handles": {
+        "precision": 0.0,
+        "recall": 1.0,
+        "f1": 0.0
+      },
+      "bank_accounts": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "bank_account_roles": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "vpas_upis": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "monetary_loss": {
+        "exact_match": true,
+        "relative_error": 0.0,
+        "within_tolerance": true
+      },
+      "fallback_used": false
+    },
+    {
+      "test_case_id": "EE-010",
+      "latency_sec": 2.47,
+      "language_match": true,
+      "category_match": true,
+      "sub_type_match": true,
+      "severity_in_range": true,
+      "persons": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "persons_with_role": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "phone_numbers": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "email_addresses": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "online_handles": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "bank_accounts": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "bank_account_roles": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "vpas_upis": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "monetary_loss": {
+        "exact_match": true,
+        "relative_error": 0.0,
+        "within_tolerance": true
+      },
+      "fallback_used": false
+    },
+    {
+      "test_case_id": "EE-011",
+      "latency_sec": 3.09,
+      "language_match": true,
+      "category_match": true,
+      "sub_type_match": true,
+      "severity_in_range": true,
+      "persons": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "persons_with_role": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "phone_numbers": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "email_addresses": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "online_handles": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "bank_accounts": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "bank_account_roles": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "vpas_upis": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "monetary_loss": {
+        "exact_match": true,
+        "relative_error": 0.0,
+        "within_tolerance": true
+      },
+      "fallback_used": false
+    },
+    {
+      "test_case_id": "EE-012",
+      "latency_sec": 2.67,
+      "language_match": true,
+      "category_match": true,
+      "sub_type_match": true,
+      "severity_in_range": true,
+      "persons": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "persons_with_role": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "phone_numbers": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "email_addresses": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "online_handles": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "bank_accounts": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "bank_account_roles": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "vpas_upis": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "monetary_loss": {
+        "exact_match": false,
+        "relative_error": 0.8235,
+        "within_tolerance": false
+      },
+      "fallback_used": false
+    },
+    {
+      "test_case_id": "EE-013",
+      "latency_sec": 3.08,
+      "language_match": true,
+      "category_match": true,
+      "sub_type_match": true,
+      "severity_in_range": true,
+      "persons": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "persons_with_role": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "phone_numbers": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "email_addresses": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "online_handles": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "bank_accounts": {
+        "precision": 0.5,
+        "recall": 1.0,
+        "f1": 0.6667
+      },
+      "bank_account_roles": {
+        "precision": 0.5,
+        "recall": 1.0,
+        "f1": 0.6667
+      },
+      "vpas_upis": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "monetary_loss": {
+        "exact_match": true,
+        "relative_error": 0.0,
+        "within_tolerance": true
+      },
+      "fallback_used": false
+    },
+    {
+      "test_case_id": "EE-014",
+      "latency_sec": 2.69,
+      "language_match": true,
+      "category_match": true,
+      "sub_type_match": true,
+      "severity_in_range": true,
+      "persons": {
+        "precision": 0.6667,
+        "recall": 1.0,
+        "f1": 0.8
+      },
+      "persons_with_role": {
+        "precision": 0.6667,
+        "recall": 1.0,
+        "f1": 0.8
+      },
+      "phone_numbers": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "email_addresses": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "online_handles": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "bank_accounts": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "bank_account_roles": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "vpas_upis": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "monetary_loss": {
+        "exact_match": true,
+        "relative_error": 0.0,
+        "within_tolerance": true
+      },
+      "fallback_used": false
+    },
+    {
+      "test_case_id": "EE-015",
+      "latency_sec": 2.88,
+      "language_match": true,
+      "category_match": true,
+      "sub_type_match": true,
+      "severity_in_range": true,
+      "persons": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "persons_with_role": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "phone_numbers": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "email_addresses": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "online_handles": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "bank_accounts": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "bank_account_roles": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "vpas_upis": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "monetary_loss": {
+        "exact_match": true,
+        "relative_error": 0.0,
+        "within_tolerance": true
+      },
+      "fallback_used": false
+    }
+  ]
+}

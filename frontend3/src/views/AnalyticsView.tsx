@@ -1,15 +1,15 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { 
-  BarChart3, 
-  FileUp, 
-  CheckCircle, 
-  FileText, 
-  PhoneCall, 
-  MapPin, 
-  Smartphone, 
-  Sparkles, 
-  Loader2, 
+import {
+  BarChart3,
+  FileUp,
+  CheckCircle,
+  FileText,
+  PhoneCall,
+  MapPin,
+  Smartphone,
+  Sparkles,
+  Loader2,
   ArrowRight,
   TrendingUp
 } from 'lucide-react';
@@ -46,11 +46,11 @@ export default function AnalyticsView() {
         ],
         night_calls_count: 38,
         top_tower_locations: [
-          { tower_id: 'AHM-CG-TW-42', location_name: 'CG Road, Ahmedabad', frequency: 912 },
-          { tower_id: 'AHM-SAT-TW-09', location_name: 'Satellite, Ahmedabad', frequency: 310 }
+          { tower_id: 'AHM-CG-TW-42', location_name: 'CG Road, Surat', frequency: 912 },
+          { tower_id: 'AHM-SAT-TW-09', location_name: 'Satellite, Surat', frequency: 310 }
         ],
         imei_history: ['864910049201923', '864910049201999'],
-        executive_summary: "Provider response ingested successfully (1,420 CDR records). Target number exhibited high-frequency night activity (38 calls between 00:00-05:00 AM). Primary anchor location identified at CG Road, Ahmedabad (912 calls). SIM swap detected across 2 distinct device IMEIs.",
+        executive_summary: "Provider response ingested successfully (1,420 CDR records). Target number exhibited high-frequency night activity (38 calls between 00:00-05:00 AM). Primary anchor location identified at CG Road, Surat (912 calls). SIM swap detected across 2 distinct device IMEIs.",
         recommended_next_action: "Issue Section 94 BNSS Notice for IMEI 864910049201999 handset CAF details."
       };
       setParsedData(mockData);
@@ -71,7 +71,7 @@ export default function AnalyticsView() {
 
   return (
     <div className="flex-1 flex flex-col p-4 overflow-hidden gap-3 select-none">
-      
+
       {/* Header */}
       <div className="flex items-center justify-between border-b border-white/10 pb-3 shrink-0">
         <div>
@@ -106,14 +106,14 @@ export default function AnalyticsView() {
       {/* Main Analytics Workspace Grid (2x2) */}
       {parsedData ? (
         <div className="flex-1 grid grid-cols-2 gap-3 overflow-hidden">
-          
+
           {/* Grid 1: Hourly Call Pattern Bar Chart */}
           <div className="rounded border border-white/10 bg-[#0d1322] p-3 flex flex-col justify-between overflow-hidden">
             <span className="text-xs font-bold text-white uppercase tracking-wider border-b border-white/10 pb-1.5 flex items-center gap-1.5 shrink-0">
               <TrendingUp className="h-3.5 w-3.5 text-blue-400" />
               Hourly Call Pattern & Night Anomaly Index
             </span>
-            
+
             <div className="flex-1 w-full pt-2">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={chartData}>

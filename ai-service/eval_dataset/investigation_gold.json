@@ -1,0 +1,348 @@
+{
+    "benchmark_metadata": {
+        "version": "1.0",
+        "created_at": "2026-08-01",
+        "description": "100% Grounded Gold standard dataset for evaluating CrimeOS Investigation Path Quality",
+        "total_test_cases": 15
+    },
+    "test_cases": [
+        {
+            "query": "Respected Sir, I am running a telecommunications distribution and internet service business here in Surat, Gujarat. Recently, there has been a major security breach and unauthorized intrusion into our telecom network services, threatening public safety and network security. Furthermore, some entities are flouting the notified standards for telecommunication equipment and encryption processing. We need urgent action and investigation under the relevant provisions of the Telecommunications Act, 2023 regarding standards, public safety, and network protection.",
+            "expected_specialists": [
+                "Cyber Crime Specialist",
+                "Legal Agent",
+                "Telecommunications Regulatory Expert"
+            ],
+            "expected_legal_sections": [
+                "Section 19 Telecommunications Act 2023",
+                "Section 20 Telecommunications Act 2023"
+            ],
+            "expected_sop_procedures": [
+                "notify standards",
+                "conformity assessment measures",
+                "take temporary possession",
+                "reasons to be recorded in writing"
+            ],
+            "expected_evidence_requirements": [
+                "telecommunication equipment",
+                "telecommunication identifiers",
+                "telecommunication network",
+                "telecommunication services"
+            ],
+            "id": "INV-GRND-001",
+            "grounded_source": "Telecommunications_Act_2023.pdf",
+            "grounded_page": "11, 12",
+            "grounded_text": "# DOCUMENT: Telecommunications Act, 2023 (Filename: Telecommunications_Act_2023.pdf | Page 11, 12)\n## SECTION PATH: STANDARDS, PUBLIC SAFETY, NATIONAL SECURITY AND PROTECTION OF TELECOMMUNICATION NETW..."
+        },
+        {
+            "query": "Namaste Saheb, I am a social worker from a shelter home in Surat. Last night, a destitute woman who has no place of abode came to us after facing a grave crime. We need immediate police assistance, compliance with sending the FIR copy to the Magistrate, and we request that a senior woman officer be assigned to promptly investigate the matter and record her statement at our shelter home in plain clothes, ensuring she is not called to the police station.",
+            "expected_specialists": [
+                "Legal Agent",
+                "Investigation Specialist"
+            ],
+            "expected_legal_sections": [
+                "Section 157 Cr.P.C.",
+                "Section 161 Cr.P.C."
+            ],
+            "expected_sop_procedures": [
+                "shelter home",
+                "Compliance of Section 157",
+                "Within 24 hours",
+                "woman officer",
+                "Promptly",
+                "Recording of statement of victim"
+            ],
+            "expected_evidence_requirements": [],
+            "id": "INV-GRND-002",
+            "grounded_source": "SOP_Investigation_Prosecution_Rape_Women.pdf",
+            "grounded_page": "6",
+            "grounded_text": "# DOCUMENT: SOP for Investigation and Prosecution of Rape Against Women (Filename: SOP_Investigation_Prosecution_Rape_Women.pdf | Page 6)\n## SECTION PATH: Range of cases to be covered under the SOP\n##..."
+        },
+        {
+            "query": "Namaste Saheb, I am a resident of Katargam in Surat. My brother is an Indian citizen, but he recently committed a murder while travelling outside India. Now he has returned to Gujarat and is currently staying at our relative's place here in Surat where he has been found by police. Can he be tried and convicted for that murder here in India?",
+            "expected_specialists": [
+                "Legal Agent"
+            ],
+            "expected_legal_sections": [],
+            "expected_sop_procedures": [],
+            "expected_evidence_requirements": [],
+            "id": "INV-GRND-003",
+            "grounded_source": "BNS_Penal_Code_2024.pdf",
+            "grounded_page": "2",
+            "grounded_text": "# DOCUMENT: Bharatiya Nyaya Sanhita (BNS), 2023 (Filename: BNS_Penal_Code_2024.pdf | Page 2)\n## SECTION PATH: Illustration.\n### TYPE: STATUTE\n\nA, who is a citizen of India, commits a murder in any pla..."
+        },
+        {
+            "query": "Namaste Saheb, I am Ramesh Patel from Varachha, Surat. Yesterday evening, a large group of people gathered aggressively near my shop with a common objective to create trouble. They started using force and violence, and some of them were carrying deadly weapons like iron rods and sharp sticks, which could have caused death. One person named Suresh had intentionally provoked them with illegal acts just to incite this riot. Because of their violence, my shop got damaged. Please register my complaint against all members of this unlawful assembly for rioting.",
+            "expected_specialists": [
+                "Legal Agent"
+            ],
+            "expected_legal_sections": [
+                "Section 190 BNS",
+                "Section 191 BNS",
+                "Section 192 BNS"
+            ],
+            "expected_sop_procedures": [],
+            "expected_evidence_requirements": [
+                "deadly weapon",
+                "weapon of offence"
+            ],
+            "id": "INV-GRND-004",
+            "grounded_source": "BNS_Penal_Code_2024.pdf",
+            "grounded_page": "55, 56",
+            "grounded_text": "# DOCUMENT: Bharatiya Nyaya Sanhita (BNS), 2023 (Filename: BNS_Penal_Code_2024.pdf | Page 55, 56)\n## SECTION PATH: CHAPTERXI\n### TYPE: STATUTE\n\n190. If an offence is committed by any member of an unla..."
+        },
+        {
+            "query": "Namaste Saheb, I am a public servant working in the municipal department here in Surat. Today afternoon, while I was officially executing my duty regarding anti-encroachment near Ring Road, a local resident suddenly attacked and used criminal force against me just to prevent me from discharging my lawful duty as a public servant. Please take strict legal action against him.",
+            "expected_specialists": [
+                "Legal Agent",
+                "Investigation Officer"
+            ],
+            "expected_legal_sections": [
+                "Section 132 BNS",
+                "Section 133 BNS",
+                "Section 134 BNS",
+                "Section 135 BNS",
+                "Section 136 BNS",
+                "Section 137 BNS"
+            ],
+            "expected_sop_procedures": [],
+            "expected_evidence_requirements": [],
+            "id": "INV-GRND-005",
+            "grounded_source": "BNS_Penal_Code_2024.pdf",
+            "grounded_page": "44, 45",
+            "grounded_text": "# DOCUMENT: Bharatiya Nyaya Sanhita (BNS), 2023 (Filename: BNS_Penal_Code_2024.pdf | Page 44, 45)\n## SECTION PATH: Illustrations.\n### TYPE: STATUTE\n\n132. Whoever assaults or uses criminal force to any..."
+        },
+        {
+            "query": "Saheb, I am living in Varachha area of Surat. I want to report an offence under the Dowry Prohibition Act regarding the failure to surrender possession of evacuee property, wrongful paying or receiving of rents, and concealing and causing damage to evacuee property, along with a false declaration. Please take my complaint and initiate action as per the law.",
+            "expected_specialists": [
+                "Legal Agent",
+                "Investigation Officer"
+            ],
+            "expected_legal_sections": [
+                "Section 37 of the Act",
+                "Section 38 of the Act"
+            ],
+            "expected_sop_procedures": [
+                "previous sanction of State Government"
+            ],
+            "expected_evidence_requirements": [],
+            "id": "INV-GRND-006",
+            "grounded_source": "THE_GUJARAT_POLICE_MANUAL.pdf",
+            "grounded_page": "245",
+            "grounded_text": "# DOCUMENT: The Gujarat Police Manual (Volume I-III) (Filename: THE_GUJARAT_POLICE_MANUAL.pdf | Page 245)\n## SECTION PATH: The Dowry Prohibition Act, 1961\n### TYPE: SOP\n\n295. Duties and Powers. -AII o..."
+        },
+        {
+            "query": "Namaste officer, I live near Athwa Lines in Surat, and I want to report multiple fraudulent transactions that happened from my bank account involving a disputed amount of Rs. 50,000 on 15.12.2024, followed by other complaints of Rs. 85,326, Rs. 50,000, and Rs. 30,000 made between 16.12.2024 and 17.12.2024. The total amounts put on hold and the shares to be released on a pro-rata basis need to be calculated according to the account statement and available balances.",
+            "expected_specialists": [
+                "Cyber Crime Specialist",
+                "Financial Fraud Investigation Unit"
+            ],
+            "expected_legal_sections": [],
+            "expected_sop_procedures": [
+                "Account Statement",
+                "Amount put on hold",
+                "Share to be released on the basis of pro-rata"
+            ],
+            "expected_evidence_requirements": [
+                "Date of complaint",
+                "Date of transaction",
+                "Disputed amount",
+                "Bal avail",
+                "Amount put on hold",
+                "Share to be released on the basis of pro-rata"
+            ],
+            "id": "INV-GRND-007",
+            "grounded_source": "I4C_CFCFRMS_Financial_Fraud_SOP.pdf",
+            "grounded_page": "50",
+            "grounded_text": "# DOCUMENT: I4C CFCFRMS Financial Fraud SOP (Filename: I4C_CFCFRMS_Financial_Fraud_SOP.pdf | Page 50)\n## SECTION PATH: Account Statement:\n### TYPE: SOP\n\n\n1., Action Summary:.Comp = X. 1., Action Summa..."
+        },
+        {
+            "query": "Namaste officer, I have come to the police station in Surat to report that my uncle has gone missing, and while filling out the missing person report details, I need to accurately record his specific hair description. He has curly black and grey hair with some side burns, and I want to make sure the police portal entry is completely accurate.",
+            "expected_specialists": [
+                "Investigating Officer",
+                "Data Entry Operator"
+            ],
+            "expected_legal_sections": [],
+            "expected_sop_procedures": [
+                "TrackChild data entry",
+                "Physical description recording"
+            ],
+            "expected_evidence_requirements": [
+                "Hair description",
+                "Physical features"
+            ],
+            "id": "INV-GRND-008",
+            "grounded_source": "MISSING_CHILD_SOP.pdf",
+            "grounded_page": "19",
+            "grounded_text": "# DOCUMENT: Standard Operating Procedure for Missing Children (TrackChild) (Filename: MISSING_CHILD_SOP.pdf | Page 19)\n## SECTION PATH: Annexure - V\n### TYPE: SOP\n\n- [ ] Bald full\n- [ ] Bald partial\n-..."
+        },
+        {
+            "query": "Saheb, I am a police sub-inspector reporting from Surat. We recently made a seizure of a small quantity of imported drugs in a routine local case. While it's a routine case of local interest without wider trafficking implications, I want to confirm what details need to be recorded for the annual return to the Secretary, All India Narcotics Board, Simla, and whether this specific routine seizure needs any special reporting.",
+            "expected_specialists": [
+                "Legal Agent"
+            ],
+            "expected_legal_sections": [],
+            "expected_sop_procedures": [
+                "include in return",
+                "report as full as possible"
+            ],
+            "expected_evidence_requirements": [
+                "quantities seized",
+                "description of packages",
+                "marks on packages",
+                "names and addresses of consignor and consignee",
+                "names and addresses of agents",
+                "place from which goods were dispatched",
+                "date of dispatch",
+                "name of ship",
+                "port from which ship started voyage and ports of call",
+                "three specimens of labels or containers",
+                "unopened and intact containers of Japanese origin"
+            ],
+            "id": "INV-GRND-009",
+            "grounded_source": "THE_GUJARAT_POLICE_MANUAL.pdf",
+            "grounded_page": "241, 242",
+            "grounded_text": "# DOCUMENT: The Gujarat Police Manual (Volume I-III) (Filename: THE_GUJARAT_POLICE_MANUAL.pdf | Page 241, 242)\n## SECTION PATH: Chapter VIII\n### TYPE: SOP\n\n- (c) Routine cases, .i.e., cases of ordinar..."
+        },
+        {
+            "query": "Respected Sir, I have come to the Umra Police Station in Surat to inquire about the official evaluation guidelines and distribution of marks for Forensic Science Laboratories under the ranking system, specifically regarding parameters like Case Solving Efficiency which carries 20 marks and Quality of Services which carries 15 marks.",
+            "expected_specialists": [
+                "Administrative Agent",
+                "Legal Agent"
+            ],
+            "expected_legal_sections": [],
+            "expected_sop_procedures": [
+                "Quality of Services",
+                "Research & Development",
+                "Training & Capacity Building",
+                "Infrastructure and Facilities",
+                "Accreditation and Certification",
+                "Collaboration and Partnerships",
+                "Case Solving Efficiency",
+                "Court Evidence and Crime Scene Visits",
+                "Community, Outreach and Awareness",
+                "Environmental Sustainability"
+            ],
+            "expected_evidence_requirements": [],
+            "id": "INV-GRND-010",
+            "grounded_source": "SOP_Ranking_Police_Training_Institutes.pdf",
+            "grounded_page": "22",
+            "grounded_text": "# DOCUMENT: SOP for Ranking Police Training Institutes (Filename: SOP_Ranking_Police_Training_Institutes.pdf | Page 22)\n## SECTION PATH: Distribution of Marks:\n### TYPE: SOP\n\nThe  Forensic  Science  L..."
+        },
+        {
+            "query": "Namaste Saheb, I am Suresh Patel from Athwa Lines, Surat. Yesterday a serious crime occurred in our area, and the Circle Inspector has prepared a map/sketch of the scene of the offence. As per the police manual procedures, we want to ensure that particulars derived from various witnesses are properly noted on a separate sheet attached to the map using alphabets like A, B, C for exact spots, and that the map was ideally drawn in the presence of witnesses so they can explain the incidents conveniently. Also, we want to know if superior Police Officers who visit the scene will verify these plans by rechecking important measurements, landscapes, and points on the map as required.",
+            "expected_specialists": [
+                "Investigation Agent",
+                "Legal Agent"
+            ],
+            "expected_legal_sections": [],
+            "expected_sop_procedures": [
+                "preparation of sketches",
+                "map with witnesses",
+                "map drawn in presence",
+                "verify the plans"
+            ],
+            "expected_evidence_requirements": [
+                "map of scene of offence",
+                "separate sheet of paper",
+                "particulars derived from witnesses"
+            ],
+            "id": "INV-GRND-011",
+            "grounded_source": "THE_GUJARAT_POLICE_MANUAL.pdf",
+            "grounded_page": "496",
+            "grounded_text": "# DOCUMENT: The Gujarat Police Manual (Volume I-III) (Filename: THE_GUJARAT_POLICE_MANUAL.pdf | Page 496)\n## SECTION PATH: Appendix VIII\n### TYPE: SOP\n\n- (d) The expenditure on account of travelling a..."
+        },
+        {
+            "query": "Namaste Saheb, I am calling from an international banking institution's compliance desk here in Surat. We have received an official letter of request from a foreign court outside India regarding an ongoing investigation into financial fraud. The foreign authority requires the examination of a person residing within our jurisdiction and the production of specific bank documents and books of account related to unlawfully acquired property. How should we proceed to forward this request through the Central Government to the appropriate Magistrate or police officer so that statements can be recorded and necessary steps like survey, inquiry, and attachment of property can be initiated under the law?",
+            "expected_specialists": [
+                "Legal Agent",
+                "International Cooperation Specialist"
+            ],
+            "expected_legal_sections": [
+                "Clause 114",
+                "Clause 115",
+                "Clause 116"
+            ],
+            "expected_sop_procedures": [
+                "forward letter of request",
+                "record his statement",
+                "execute warrant in duplicate",
+                "order of attachment or forfeiture",
+                "tracing and identifying property"
+            ],
+            "expected_evidence_requirements": [
+                "document or thing",
+                "warrant for arrest",
+                "documents",
+                "books of account in any bank"
+            ],
+            "id": "INV-GRND-012",
+            "grounded_source": "BNSS_Procedural_Code_2023.pdf",
+            "grounded_page": "270, 271",
+            "grounded_text": "# DOCUMENT: Bharatiya Nagarik Suraksha Sanhita (BNSS), 2023 (Filename: BNSS_Procedural_Code_2023.pdf | Page 270, 271)\n## SECTION PATH: NOTES ON CLAUSES\n### TYPE: STATUTE\n\nThis Clause seeks to provide,..."
+        },
+        {
+            "query": "Namaste inspector, I am reporting an incident at my residence near Ring Road in Surat. Someone unlawfully entered my house where I live with my family with the intent to intimidate and annoy us, and even concealed their entry to avoid being caught by me.",
+            "expected_specialists": [
+                "Legal Agent"
+            ],
+            "expected_legal_sections": [
+                "Section 329 BNS",
+                "Section 330 BNS"
+            ],
+            "expected_sop_procedures": [],
+            "expected_evidence_requirements": [],
+            "id": "INV-GRND-013",
+            "grounded_source": "BNS_Penal_Code_2024.pdf",
+            "grounded_page": "90",
+            "grounded_text": "# DOCUMENT: Bharatiya Nyaya Sanhita (BNS), 2023 (Filename: BNS_Penal_Code_2024.pdf | Page 90)\n## SECTION PATH: Of criminal trespass\n### TYPE: STATUTE\n\n329. ( 1 ) Whoever enters into or upon property i..."
+        },
+        {
+            "query": "Namaste Inspector, I am calling from a corporate office in Surat. We have seized a suspected computer running Windows, Linux, and MAC operating systems during a corporate fraud investigation. As per our technical team's procedures, we need to know the proper SOP for image acquisition, using a FTK imager, setting up a Linux testing environment with VMware Player, and executing the 'DD/DCEL' command while handling encrypted drives like BitLocker. Please guide us on how to legally and technically acquire this digital evidence.",
+            "expected_specialists": [
+                "Cyber Crime Specialist",
+                "Digital Forensics Expert"
+            ],
+            "expected_legal_sections": [],
+            "expected_sop_procedures": [
+                "image acquisition phase",
+                "FTK imager",
+                "Linux testing environment",
+                "VMware Player",
+                "forensic imaging",
+                "DD/DCEL command"
+            ],
+            "expected_evidence_requirements": [
+                "computer systems",
+                "Windows, Linux and MAC systems",
+                "BitLocker"
+            ],
+            "id": "INV-GRND-014",
+            "grounded_source": "BPRD_First_Responder_Handbook_Computer_System_Acquisition.pdf",
+            "grounded_page": "54",
+            "grounded_text": "# DOCUMENT: BPRD First Responder Computer System Acquisition Handbook (Filename: BPRD_First_Responder_Handbook_Computer_System_Acquisition.pdf | Page 54)\n## SECTION PATH: Summary-\n### TYPE: SOP\n\n6JG F..."
+        },
+        {
+            "query": "Respected Sir, I am calling from the Katargam area in Surat. A dispute has broken out in our locality regarding a community procession with music on a public road. Some people from another community are objecting to our procession route and music, claiming it violates their rights. We have been traditionally taking out this procession following the same practice prevailing over the past several years, but now tension is rising, and we request police intervention to uphold our lawful rights and maintain law and order.",
+            "expected_specialists": [
+                "Legal Agent",
+                "Law and Order Specialist"
+            ],
+            "expected_legal_sections": [],
+            "expected_sop_procedures": [
+                "respect and enforce court judgments",
+                "uphold prevailing practice",
+                "enforce orders passed over seven years"
+            ],
+            "expected_evidence_requirements": [
+                "judgment of a competent Court",
+                "award of a recorded compromise",
+                "orders regularly passed by authorities"
+            ],
+            "id": "INV-GRND-015",
+            "grounded_source": "THE_GUJARAT_POLICE_MANUAL.pdf",
+            "grounded_page": "26",
+            "grounded_text": "# DOCUMENT: The Gujarat Police Manual (Volume I-III) (Filename: THE_GUJARAT_POLICE_MANUAL.pdf | Page 26)\n## SECTION PATH: (G. C. L, H. D. NO.SD.1053. dated 20th November 1957 and G. C., H. D. No.SBI/R..."
+        }
+    ]
+}

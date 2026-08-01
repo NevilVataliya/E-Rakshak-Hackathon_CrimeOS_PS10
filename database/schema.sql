@@ -28,7 +28,7 @@ CREATE TABLE IF NOT EXISTS users (
     full_name VARCHAR(100) NOT NULL,
     role user_role NOT NULL DEFAULT 'IO',
     badge_number VARCHAR(50),
-    police_station VARCHAR(100) NOT NULL DEFAULT 'Ahmedabad Cyber Crime Cell',
+    police_station VARCHAR(100) NOT NULL DEFAULT 'Surat Cyber Crime Cell',
     is_active BOOLEAN DEFAULT true,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
@@ -119,8 +119,8 @@ CREATE TABLE IF NOT EXISTS audit_logs (
 -- bcrypt hash for 'police123' = '$2a$10$wE4ZlYwJzL.HjKqGf.k.EOuHq.vS0uU.y.2uV5K1V2s1.W.x2.u'
 INSERT INTO users (id, username, email, password_hash, full_name, role, badge_number, police_station)
 VALUES 
-  ('a0000000-0000-0000-0000-000000000001', 'io_patel', 'io.patel@police.gujarat.gov.in', '$2a$10$1P98XJ7h4z9m0L.N3v9V4e0m4R7k2N1P8Q5S2T4U6V8W0X2Y4Z6a', 'PSI Inspector V. K. Patel', 'IO', 'PSI-9921', 'Ahmedabad Cyber Crime Station'),
-  ('a0000000-0000-0000-0000-000000000002', 'sho_sharma', 'sho.sharma@police.gujarat.gov.in', '$2a$10$1P98XJ7h4z9m0L.N3v9V4e0m4R7k2N1P8Q5S2T4U6V8W0X2Y4Z6a', 'PI Senior Inspector R. S. Sharma', 'SHO', 'PI-4012', 'Ahmedabad Cyber Crime Station'),
+  ('a0000000-0000-0000-0000-000000000001', 'io_patel', 'io.patel@police.gujarat.gov.in', '$2a$10$1P98XJ7h4z9m0L.N3v9V4e0m4R7k2N1P8Q5S2T4U6V8W0X2Y4Z6a', 'PSI Inspector V. K. Patel', 'IO', 'PSI-9921', 'Surat Cyber Crime Station'),
+  ('a0000000-0000-0000-0000-000000000002', 'sho_sharma', 'sho.sharma@police.gujarat.gov.in', '$2a$10$1P98XJ7h4z9m0L.N3v9V4e0m4R7k2N1P8Q5S2T4U6V8W0X2Y4Z6a', 'PI Senior Inspector R. S. Sharma', 'SHO', 'PI-4012', 'Surat Cyber Crime Station'),
   ('a0000000-0000-0000-0000-000000000003', 'legal_desai', 'legal.desai@police.gujarat.gov.in', '$2a$10$1P98XJ7h4z9m0L.N3v9V4e0m4R7k2N1P8Q5S2T4U6V8W0X2Y4Z6a', 'Adv. A. M. Desai', 'LEGAL_ADVISOR', 'LEG-1092', 'State CID Legal Cell'),
   ('a0000000-0000-0000-0000-000000000004', 'admin_crimeos', 'admin@crimeos.gov.in', '$2a$10$1P98XJ7h4z9m0L.N3v9V4e0m4R7k2N1P8Q5S2T4U6V8W0X2Y4Z6a', 'System Administrator', 'ADMIN', 'ADM-0001', 'Crime OS Headquarters')
 ON CONFLICT (username) DO NOTHING;

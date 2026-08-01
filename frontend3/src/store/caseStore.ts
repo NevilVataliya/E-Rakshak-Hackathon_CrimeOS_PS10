@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { PoliceCase, InvestigationData, SubpoenaNotice } from '../types';
+import { PoliceCase, InvestigationData, SubpoenaNotice, LinkageMatch, LinkageStats } from '../types';
 import api from '../services/api';
 
 interface CaseState {
@@ -12,13 +12,23 @@ interface CaseState {
   error: string | null;
   selectedInspectorItem: any | null;
 
+  // Linkage Module 2 State
+  linkageMatches: LinkageMatch[];
+  linkageStats: LinkageStats | null;
+  linkageLoading: boolean;
+  linkageError: string | null;
+
   fetchCases: () => Promise<void>;
-  setActiveCase: (policeCase: PoliceCase) => void;
+  setActiveCase: (policeCase: PoliceCase | null) => void;
   addCaseFromComplaint: (complaintData: any) => PoliceCase;
   runInvestigationStudio: (caseNumber: string, complaintText: string, category: string, subType: string, entities: any) => Promise<void>;
   dispatchLegalNotice: (id: string, payload: any) => Promise<void>;
   setSelectedInspectorItem: (item: any | null) => void;
   clearError: () => void;
+
+  // Linkage Module 2 Actions
+  runLinkageSearch: (caseNumber: string, entities: any, searchQuery?: string, searchType?: string) => Promise<void>;
+  clearLinkage: () => void;
 }
 
 const initialMockCases: PoliceCase[] = [
@@ -32,7 +42,7 @@ const initialMockCases: PoliceCase[] = [
     translated_text: 'Victim reported Rs. 2,00,000 lost via fraudulent UPI link scammer@paytm and transfer to SBI A/C 30910293101.',
     severity_score: 9.2,
     assigned_io: 'PSI V. K. Patel',
-    police_station: 'Ahmedabad Cyber Crime HQ',
+    police_station: 'Surat Cyber Crime HQ',
     status: 'AGENT_REASONING',
     entities: {
       persons: [{ name: 'Ramesh Patel', role: 'victim' }],
@@ -54,7 +64,7 @@ const initialMockCases: PoliceCase[] = [
     translated_text: 'Victim threatened via WhatsApp messages demanding Rs. 50,000.',
     severity_score: 7.8,
     assigned_io: 'PSI V. K. Patel',
-    police_station: 'Ahmedabad Cyber Crime HQ',
+    police_station: 'Surat Cyber Crime HQ',
     status: 'SUBPOENA_DISPATCHED',
     entities: {
       persons: [{ name: 'Suresh Kumar', role: 'victim' }],
@@ -95,12 +105,18 @@ export const useCaseStore = create<CaseState>()(
   persist(
     (set, get) => ({
       cases: initialMockCases,
-      activeCase: initialMockCases[0],
+      activeCase: null,
       investigationData: null,
       legalRequests: initialSubpoenas,
       loading: false,
       error: null,
       selectedInspectorItem: null,
+
+      // Linkage Module 2 initial state
+      linkageMatches: [],
+      linkageStats: null,
+      linkageLoading: false,
+      linkageError: null,
 
       clearError: () => set({ error: null }),
 
@@ -115,12 +131,14 @@ export const useCaseStore = create<CaseState>()(
             set({ cases: res.data });
           }
         } catch (err) {
-          console.warn('Backend cases endpoint fallback');
+          console.warn('[⚠️ Fetch Cases Fallback Activated]', {
+            reason: 'Backend GET /api/cases endpoint unavailable. Using local initial case state.'
+          });
         }
       },
 
-      setActiveCase: (policeCase: PoliceCase) => {
-        set({ activeCase: policeCase });
+      setActiveCase: (policeCase: PoliceCase | null) => {
+        set({ activeCase: policeCase, investigationData: null });
       },
 
       addCaseFromComplaint: (complaintData: any) => {
@@ -138,7 +156,7 @@ export const useCaseStore = create<CaseState>()(
           translated_text: complaintData.translated_text || 'Translated English Narrative.',
           severity_score: complaintData.severity_score || 8.5,
           assigned_io: 'PSI V. K. Patel',
-          police_station: 'Ahmedabad Cyber Crime HQ',
+          police_station: 'Surat Cyber Crime HQ',
           status: 'INTAKE',
           entities: complaintData.entities || {
             persons: [],
@@ -152,7 +170,7 @@ export const useCaseStore = create<CaseState>()(
         };
 
         const updatedCases = [newCase, ...get().cases];
-        set({ cases: updatedCases, activeCase: newCase });
+        set({ cases: updatedCases, activeCase: newCase, investigationData: null });
         return newCase;
       },
 
@@ -179,6 +197,18 @@ export const useCaseStore = create<CaseState>()(
           }
 
           if (enableFallbacks) {
+            console.warn('[⚠️ Investigation Studio Fallback Activated]', {
+              reason: errorMsg,
+              cause: 'Backend endpoint /api/cases/:id/investigate failed or returned error',
+              activeCase: caseNumber
+            });
+            const phone = entities?.phone_numbers?.[0] || '+91 98765 43210';
+            const victimAcctObj = entities?.bank_accounts?.find((b: any) => typeof b === 'object' && (b.is_victim_account || b.account_role === 'victim'));
+            const victimAcct = victimAcctObj ? victimAcctObj.account_number : null;
+
+            const accusedAcctObj = entities?.bank_accounts?.find((b: any) => typeof b === 'object' && (!b.is_victim_account || b.account_role === 'accused'));
+            const accusedAcct = accusedAcctObj ? accusedAcctObj.account_number : (entities?.bank_accounts?.[0]?.account_number || entities?.bank_accounts?.[0] || '257735040901');
+
             set({
               error: null,
               investigationData: {
@@ -187,8 +217,8 @@ export const useCaseStore = create<CaseState>()(
                 sections: ['BNS Section 318(4)', 'IT Act Section 66D', 'BSA Section 63'],
                 cross_case_matches: [
                   {
-                    match_type: 'VPA_RECURRENCE',
-                    matched_value: entities?.vpas_upis?.[0] || 'scammer@paytm',
+                    match_type: 'PHONE_RECURRENCE',
+                    matched_value: phone,
                     previous_case_no: 'CR-2026-0812',
                     police_station: 'Surat Cyber Cell',
                     confidence: 0.94
@@ -197,18 +227,28 @@ export const useCaseStore = create<CaseState>()(
                 investigation_steps: [
                   {
                     step_number: 1,
-                    title: 'Issue 1930 / CFCFRMS Bank Account Debit Freeze Request',
-                    description: 'Immediately dispatch Section 94 BNSS Legal Notice to SBI Nodal Officer to freeze suspect account 30910293101.',
+                    title: 'Issue 1930 / CFCFRMS Bank Account Debit Freeze Notice',
+                    description: `Dispatch Section 94 BNSS Legal Notice to Bank Nodal Officer to freeze accused beneficiary account ${accusedAcct}.`,
                     sop_reference: 'I4C CFCFRMS SOP p.11',
                     document_name: 'I4C_CFCFRMS_Financial_Fraud_SOP.pdf',
                     page_number: '11',
                     section_path: 'Chapter 2 > Emergency Financial Freeze',
                     raw_citation_text: 'Nodal Officer shall freeze beneficiary bank account within 2 hours of complaint registration.'
                   },
-                  {
+                  ...(victimAcct ? [{
                     step_number: 2,
+                    title: 'Requisition Certified Outward RTGS Statement for Victim Account',
+                    description: `Issue Section 94 BNSS Notice to Union Bank Nodal Officer for certified remittance statement of victim account ${victimAcct}. DO NOT DEBIT FREEZE VICTIM ACCOUNT.`,
+                    sop_reference: 'RBI Master Direction KYC p.37',
+                    document_name: 'RBI_Master_Direction_KYC.pdf',
+                    page_number: '37',
+                    section_path: 'Section 12 > Outward Wire Remittance Verification',
+                    raw_citation_text: 'Certified bank account statement shall be issued to law enforcement investigating officer.'
+                  }] : []),
+                  {
+                    step_number: 3,
                     title: 'Extract WhatsApp Telecom IPDR & Subscriber Details',
-                    description: 'Requisition B-party CDR logs and IPDR session history for phone +91 98765 43210 from Telecom Service Provider.',
+                    description: `Requisition B-party CDR logs and IPDR session history for suspect line ${phone} from Telecom Service Provider.`,
                     sop_reference: 'BPRD First Responder Handbook p.16',
                     document_name: 'BPRD_First_Responder_Handbook.pdf',
                     page_number: '16',
@@ -216,7 +256,7 @@ export const useCaseStore = create<CaseState>()(
                     raw_citation_text: 'Preserve tower CDR and IPDR logs under Section 94 BNSS notice.'
                   },
                   {
-                    step_number: 3,
+                    step_number: 4,
                     title: 'Compile Section 63 BSA Electronic Evidence Certificate',
                     description: 'Generate mandatory electronic evidence admissibility certificate for digital transaction receipts.',
                     sop_reference: 'BSA Evidence Act 2023 Section 63',
@@ -252,6 +292,73 @@ export const useCaseStore = create<CaseState>()(
           );
           set({ legalRequests: updated });
         }
+      },
+
+      // --- Module 2: Linkage Search Actions ---
+      runLinkageSearch: async (caseNumber, entities, searchQuery, searchType) => {
+        set({ linkageLoading: true, linkageError: null });
+        try {
+          const res = await api.post('/api/linkage/search', {
+            case_number: caseNumber,
+            entities,
+            search_query: searchQuery || null,
+            search_type: searchType || 'auto'
+          });
+          set({
+            linkageMatches: res.data.matches || [],
+            linkageStats: res.data.stats || null,
+            linkageError: null
+          });
+        } catch (err: any) {
+          const errorMsg = err.response?.data?.detail || err.response?.data?.error || err.message || 'Linkage search failed';
+          console.error('[-] Linkage Search Error:', errorMsg);
+
+          let enableFallbacks = false;
+          try {
+            const configRes = await api.get('/api/config');
+            enableFallbacks = Boolean(configRes.data?.enable_demo_fallbacks);
+          } catch (cfgErr) {
+            enableFallbacks = false;
+          }
+
+          if (enableFallbacks) {
+            console.warn('[⚠️ Linkage Search Fallback Activated]', {
+              reason: errorMsg,
+              cause: 'Backend endpoint /api/linkage/search failed or returned error',
+              caseNumber,
+              searchedEntities: entities
+            });
+            const phones = entities?.phone_numbers || [];
+            const vpas = entities?.vpas_upis || [];
+            const accounts = entities?.bank_accounts || [];
+
+            set({
+              linkageMatches: [],
+              linkageStats: {
+                total_entities_searched: phones.length + vpas.length + accounts.length,
+                total_matches: 0,
+                high_confidence: 0,
+                medium_confidence: 0,
+                low_confidence: 0,
+                unique_linked_cases: 0,
+                unique_police_stations: 0
+              },
+              linkageError: null
+            });
+          } else {
+            set({
+              linkageMatches: [],
+              linkageStats: null,
+              linkageError: `[Linkage Error]: ${errorMsg}`
+            });
+          }
+        } finally {
+          set({ linkageLoading: false });
+        }
+      },
+
+      clearLinkage: () => {
+        set({ linkageMatches: [], linkageStats: null, linkageError: null });
       }
     }),
     {

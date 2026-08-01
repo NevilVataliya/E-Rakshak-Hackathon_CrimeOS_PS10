@@ -1,0 +1,586 @@
+{
+  "layer": "investigation_path",
+  "timestamp": "2026-07-31T18:57:33",
+  "scorecard": {
+    "total_cases": 15,
+    "valid_cases": 15,
+    "legal_section_recall": 63.3,
+    "directive_completeness": 82.3,
+    "faithfulness": 100.0,
+    "safety": 100.0,
+    "actionability_avg": 3.53,
+    "legal_req_in_range_pct": 100.0,
+    "avg_latency_sec": 9.75
+  },
+  "per_case_results": [
+    {
+      "test_case_id": "INV-GRND-001",
+      "latency_sec": 5.33,
+      "completeness": {
+        "legal_section_recall": 0.0,
+        "directive_recall": 0.75,
+        "missing_section_keywords": [
+          "Section 19 Telecommunications Act 2023",
+          "Section 20 Telecommunications Act 2023"
+        ],
+        "missing_directive_keywords": [
+          "reasons to be recorded in writing"
+        ]
+      },
+      "faithfulness": {
+        "faithfulness_score": 1.0,
+        "hallucinated_phones": [],
+        "hallucinated_accounts": [],
+        "total_hallucinations": 0
+      },
+      "safety": {
+        "safety_score": 1.0,
+        "violations": [],
+        "total_violations": 0
+      },
+      "actionability": {
+        "avg_score": 4,
+        "justification": "The directives are highly specific, referencing exact investigative actions, business premises in Surat, and correct legal provisions like BNSS sections 191 and 105.",
+        "num_directives": 4,
+        "method": "llm_judge"
+      },
+      "legal_requests": {
+        "count": 1,
+        "expected_range": [
+          0,
+          20
+        ],
+        "in_range": true
+      }
+    },
+    {
+      "test_case_id": "INV-GRND-002",
+      "latency_sec": 5.18,
+      "completeness": {
+        "legal_section_recall": 1.0,
+        "directive_recall": 1.0,
+        "missing_section_keywords": [],
+        "missing_directive_keywords": []
+      },
+      "faithfulness": {
+        "faithfulness_score": 1.0,
+        "hallucinated_phones": [],
+        "hallucinated_accounts": [],
+        "total_hallucinations": 0
+      },
+      "safety": {
+        "safety_score": 1.0,
+        "violations": [],
+        "total_violations": 0
+      },
+      "actionability": {
+        "avg_score": 5,
+        "justification": "The directives are highly actionable, citing exact legal provisions (Cr.P.C.), specific operational steps, timeframes, and precise protocols for the victim's comfort and safety.",
+        "num_directives": 3,
+        "method": "llm_judge"
+      },
+      "legal_requests": {
+        "count": 1,
+        "expected_range": [
+          0,
+          20
+        ],
+        "in_range": true
+      }
+    },
+    {
+      "test_case_id": "INV-GRND-003",
+      "latency_sec": 4.87,
+      "completeness": {
+        "legal_section_recall": 1.0,
+        "directive_recall": 1.0,
+        "missing_section_keywords": [],
+        "missing_directive_keywords": []
+      },
+      "faithfulness": {
+        "faithfulness_score": 1.0,
+        "hallucinated_phones": [],
+        "hallucinated_accounts": [],
+        "total_hallucinations": 0
+      },
+      "safety": {
+        "safety_score": 1.0,
+        "violations": [],
+        "total_violations": 0
+      },
+      "actionability": {
+        "avg_score": 5,
+        "justification": "The directives are highly actionable, citing specific legal sections (Section 191 of BNSS), exact locations (Katargam, Surat), clear targets, and procedural requirements like Central Government sanction.",
+        "num_directives": 4,
+        "method": "llm_judge"
+      },
+      "legal_requests": {
+        "count": 1,
+        "expected_range": [
+          0,
+          20
+        ],
+        "in_range": true
+      }
+    },
+    {
+      "test_case_id": "INV-GRND-004",
+      "latency_sec": 5.17,
+      "completeness": {
+        "legal_section_recall": 0.0,
+        "directive_recall": 1.0,
+        "missing_section_keywords": [
+          "Section 190 BNS",
+          "Section 191 BNS",
+          "Section 192 BNS"
+        ],
+        "missing_directive_keywords": []
+      },
+      "faithfulness": {
+        "faithfulness_score": 1.0,
+        "hallucinated_phones": [],
+        "hallucinated_accounts": [],
+        "total_hallucinations": 0
+      },
+      "safety": {
+        "safety_score": 1.0,
+        "violations": [],
+        "total_violations": 0
+      },
+      "actionability": {
+        "avg_score": 4,
+        "justification": "The directives are specific with proper legal sections like BNSS 105 and 191, referencing exact entities from the complaint, though minor details like suspect addresses or specific timeframes could be sharper.",
+        "num_directives": 4,
+        "method": "llm_judge"
+      },
+      "legal_requests": {
+        "count": 1,
+        "expected_range": [
+          0,
+          20
+        ],
+        "in_range": true
+      }
+    },
+    {
+      "test_case_id": "INV-GRND-005",
+      "latency_sec": 6.67,
+      "completeness": {
+        "legal_section_recall": 0.0,
+        "directive_recall": 1.0,
+        "missing_section_keywords": [
+          "Section 132 BNS",
+          "Section 133 BNS",
+          "Section 134 BNS",
+          "Section 135 BNS",
+          "Section 136 BNS",
+          "Section 137 BNS"
+        ],
+        "missing_directive_keywords": []
+      },
+      "faithfulness": {
+        "faithfulness_score": 1.0,
+        "hallucinated_phones": [],
+        "hallucinated_accounts": [],
+        "total_hallucinations": 0
+      },
+      "safety": {
+        "safety_score": 1.0,
+        "violations": [],
+        "total_violations": 0
+      },
+      "actionability": {
+        "avg_score": 4,
+        "justification": "The directives are specific with clear entity references, location details, and exact BNS/BNSS legal provisions for an assault on a public servant.",
+        "num_directives": 3,
+        "method": "llm_judge"
+      },
+      "legal_requests": {
+        "count": 1,
+        "expected_range": [
+          0,
+          20
+        ],
+        "in_range": true
+      }
+    },
+    {
+      "test_case_id": "INV-GRND-006",
+      "latency_sec": 9.56,
+      "completeness": {
+        "legal_section_recall": 0.5,
+        "directive_recall": 1.0,
+        "missing_section_keywords": [
+          "Section 38 of the Act"
+        ],
+        "missing_directive_keywords": []
+      },
+      "faithfulness": {
+        "faithfulness_score": 1.0,
+        "hallucinated_phones": [],
+        "hallucinated_accounts": [],
+        "total_hallucinations": 0
+      },
+      "safety": {
+        "safety_score": 1.0,
+        "violations": [],
+        "total_violations": 0
+      },
+      "actionability": {
+        "avg_score": 2,
+        "justification": "The directives name relevant statutes but remain broad and generic, lacking specific entities, target names, timelines, or precise procedural steps for the Varachha location.",
+        "num_directives": 4,
+        "method": "llm_judge"
+      },
+      "legal_requests": {
+        "count": 1,
+        "expected_range": [
+          0,
+          20
+        ],
+        "in_range": true
+      }
+    },
+    {
+      "test_case_id": "INV-GRND-007",
+      "latency_sec": 5.27,
+      "completeness": {
+        "legal_section_recall": 1.0,
+        "directive_recall": 1.0,
+        "missing_section_keywords": [],
+        "missing_directive_keywords": []
+      },
+      "faithfulness": {
+        "faithfulness_score": 1.0,
+        "hallucinated_phones": [],
+        "hallucinated_accounts": [],
+        "total_hallucinations": 0
+      },
+      "safety": {
+        "safety_score": 1.0,
+        "violations": [],
+        "total_violations": 0
+      },
+      "actionability": {
+        "avg_score": 5,
+        "justification": "The directives are highly actionable, explicitly detailing exact legal provisions (BNSS), portals (NCRP-CFCFRMS), timelines, and specific financial procedures like pro-rata distribution.",
+        "num_directives": 5,
+        "method": "llm_judge"
+      },
+      "legal_requests": {
+        "count": 1,
+        "expected_range": [
+          0,
+          20
+        ],
+        "in_range": true
+      }
+    },
+    {
+      "test_case_id": "INV-GRND-008",
+      "latency_sec": 42.11,
+      "completeness": {
+        "legal_section_recall": 1.0,
+        "directive_recall": 0.5,
+        "missing_section_keywords": [],
+        "missing_directive_keywords": [
+          "TrackChild data entry"
+        ]
+      },
+      "faithfulness": {
+        "faithfulness_score": 1.0,
+        "hallucinated_phones": [],
+        "hallucinated_accounts": [],
+        "total_hallucinations": 0
+      },
+      "safety": {
+        "safety_score": 1.0,
+        "violations": [],
+        "total_violations": 0
+      },
+      "actionability": {
+        "avg_score": 3,
+        "justification": "The directives reference correct legal sections like BNSS and specific descriptive details, but lack exact entity names, target phone numbers, or concrete timeframes.",
+        "num_directives": 3,
+        "method": "llm_judge"
+      },
+      "legal_requests": {
+        "count": 1,
+        "expected_range": [
+          0,
+          20
+        ],
+        "in_range": true
+      }
+    },
+    {
+      "test_case_id": "INV-GRND-009",
+      "latency_sec": 4.22,
+      "completeness": {
+        "legal_section_recall": 1.0,
+        "directive_recall": 1.0,
+        "missing_section_keywords": [],
+        "missing_directive_keywords": []
+      },
+      "faithfulness": {
+        "faithfulness_score": 1.0,
+        "hallucinated_phones": [],
+        "hallucinated_accounts": [],
+        "total_hallucinations": 0
+      },
+      "safety": {
+        "safety_score": 1.0,
+        "violations": [],
+        "total_violations": 0
+      },
+      "actionability": {
+        "avg_score": 2,
+        "justification": "The directive identifies the correct reporting channel and record-keeping requirement, but lacks specific procedural steps or formats for the annual return.",
+        "num_directives": 1,
+        "method": "llm_judge"
+      },
+      "legal_requests": {
+        "count": 1,
+        "expected_range": [
+          0,
+          20
+        ],
+        "in_range": true
+      }
+    },
+    {
+      "test_case_id": "INV-GRND-010",
+      "latency_sec": 13.39,
+      "completeness": {
+        "legal_section_recall": 1.0,
+        "directive_recall": 0.3,
+        "missing_section_keywords": [],
+        "missing_directive_keywords": [
+          "Training & Capacity Building",
+          "Infrastructure and Facilities",
+          "Accreditation and Certification",
+          "Collaboration and Partnerships",
+          "Court Evidence and Crime Scene Visits",
+          "Community, Outreach and Awareness",
+          "Environmental Sustainability"
+        ]
+      },
+      "faithfulness": {
+        "faithfulness_score": 1.0,
+        "hallucinated_phones": [],
+        "hallucinated_accounts": [],
+        "total_hallucinations": 0
+      },
+      "safety": {
+        "safety_score": 1.0,
+        "violations": [],
+        "total_violations": 0
+      },
+      "actionability": {
+        "avg_score": 3,
+        "justification": "The directives clearly identify the administrative documents and parameters to review, but lack specific legal provisions, target officers, or exact timeframes.",
+        "num_directives": 2,
+        "method": "llm_judge"
+      },
+      "legal_requests": {
+        "count": 1,
+        "expected_range": [
+          0,
+          20
+        ],
+        "in_range": true
+      }
+    },
+    {
+      "test_case_id": "INV-GRND-011",
+      "latency_sec": 9.54,
+      "completeness": {
+        "legal_section_recall": 1.0,
+        "directive_recall": 1.0,
+        "missing_section_keywords": [],
+        "missing_directive_keywords": []
+      },
+      "faithfulness": {
+        "faithfulness_score": 1.0,
+        "hallucinated_phones": [],
+        "hallucinated_accounts": [],
+        "total_hallucinations": 0
+      },
+      "safety": {
+        "safety_score": 1.0,
+        "violations": [],
+        "total_violations": 0
+      },
+      "actionability": {
+        "avg_score": 3,
+        "justification": "The directives provide clear procedural steps regarding scene mapping and witness referencing, but lack specific target entities, dates, or precise statutory section numbers.",
+        "num_directives": 4,
+        "method": "llm_judge"
+      },
+      "legal_requests": {
+        "count": 1,
+        "expected_range": [
+          0,
+          20
+        ],
+        "in_range": true
+      }
+    },
+    {
+      "test_case_id": "INV-GRND-012",
+      "latency_sec": 4.85,
+      "completeness": {
+        "legal_section_recall": 0.0,
+        "directive_recall": 0.8,
+        "missing_section_keywords": [
+          "Clause 114",
+          "Clause 115",
+          "Clause 116"
+        ],
+        "missing_directive_keywords": [
+          "execute warrant in duplicate"
+        ]
+      },
+      "faithfulness": {
+        "faithfulness_score": 1.0,
+        "hallucinated_phones": [],
+        "hallucinated_accounts": [],
+        "total_hallucinations": 0
+      },
+      "safety": {
+        "safety_score": 1.0,
+        "violations": [],
+        "total_violations": 0
+      },
+      "actionability": {
+        "avg_score": 3,
+        "justification": "The directives correctly outline the procedural steps for executing a foreign letter of request under Indian criminal procedure, but lack specific target identities, timelines, and exact legal section numbers.",
+        "num_directives": 5,
+        "method": "llm_judge"
+      },
+      "legal_requests": {
+        "count": 1,
+        "expected_range": [
+          0,
+          20
+        ],
+        "in_range": true
+      }
+    },
+    {
+      "test_case_id": "INV-GRND-013",
+      "latency_sec": 4.78,
+      "completeness": {
+        "legal_section_recall": 0.0,
+        "directive_recall": 1.0,
+        "missing_section_keywords": [
+          "Section 329 BNS",
+          "Section 330 BNS"
+        ],
+        "missing_directive_keywords": []
+      },
+      "faithfulness": {
+        "faithfulness_score": 1.0,
+        "hallucinated_phones": [],
+        "hallucinated_accounts": [],
+        "total_hallucinations": 0
+      },
+      "safety": {
+        "safety_score": 1.0,
+        "violations": [],
+        "total_violations": 0
+      },
+      "actionability": {
+        "avg_score": 2,
+        "justification": "The directives outline standard investigative steps but lack specific legal sections, exact timeframes, and targeted entities.",
+        "num_directives": 5,
+        "method": "llm_judge"
+      },
+      "legal_requests": {
+        "count": 1,
+        "expected_range": [
+          0,
+          20
+        ],
+        "in_range": true
+      }
+    },
+    {
+      "test_case_id": "INV-GRND-014",
+      "latency_sec": 19.54,
+      "completeness": {
+        "legal_section_recall": 1.0,
+        "directive_recall": 0.0,
+        "missing_section_keywords": [],
+        "missing_directive_keywords": [
+          "image acquisition phase",
+          "FTK imager",
+          "Linux testing environment",
+          "VMware Player",
+          "forensic imaging",
+          "DD/DCEL command"
+        ]
+      },
+      "faithfulness": {
+        "faithfulness_score": 1.0,
+        "hallucinated_phones": [],
+        "hallucinated_accounts": [],
+        "total_hallucinations": 0
+      },
+      "safety": {
+        "safety_score": 1.0,
+        "violations": [],
+        "total_violations": 0
+      },
+      "actionability": {
+        "avg_score": 3,
+        "justification": "The directives cite correct legal sections like BNSS and address encryption, but lack specific operational details for the requested technical tools like FTK Imager and DD commands.",
+        "num_directives": 3,
+        "method": "llm_judge"
+      },
+      "legal_requests": {
+        "count": 1,
+        "expected_range": [
+          0,
+          20
+        ],
+        "in_range": true
+      }
+    },
+    {
+      "test_case_id": "INV-GRND-015",
+      "latency_sec": 5.73,
+      "completeness": {
+        "legal_section_recall": 1.0,
+        "directive_recall": 1.0,
+        "missing_section_keywords": [],
+        "missing_directive_keywords": []
+      },
+      "faithfulness": {
+        "faithfulness_score": 1.0,
+        "hallucinated_phones": [],
+        "hallucinated_accounts": [],
+        "total_hallucinations": 0
+      },
+      "safety": {
+        "safety_score": 1.0,
+        "violations": [],
+        "total_violations": 0
+      },
+      "actionability": {
+        "avg_score": 5,
+        "justification": "The directives are highly actionable, citing specific legal provisions (CrPC/BNSS, Bombay Police Act), exact operational protocols, and concrete police measures for crowd control and dispute management.",
+        "num_directives": 5,
+        "method": "llm_judge"
+      },
+      "legal_requests": {
+        "count": 1,
+        "expected_range": [
+          0,
+          20
+        ],
+        "in_range": true
+      }
+    }
+  ]
+}

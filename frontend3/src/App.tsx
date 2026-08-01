@@ -1,8 +1,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import CommandHeader from './components/layout/CommandHeader';
-import PipelineNavRail from './components/layout/PipelineNavRail';
-import InspectorDrawer from './components/layout/InspectorDrawer';
+import TacticalStepperHeader from './components/layout/TacticalStepperHeader';
 import DashboardView from './views/DashboardView';
 import IntakeView from './views/IntakeView';
 import LinkageView from './views/LinkageView';
@@ -29,8 +28,8 @@ function ProtectedLayout() {
   return (
     <div className="h-screen w-screen bg-[#050811] text-slate-100 flex flex-col font-sans overflow-hidden select-none">
       <CommandHeader />
+      <TacticalStepperHeader />
       <div className="flex flex-1 overflow-hidden">
-        <PipelineNavRail />
         <main className="flex-1 flex flex-col bg-[#050811] overflow-hidden">
           <Routes>
             <Route path="/" element={<DashboardView />} />
@@ -44,7 +43,6 @@ function ProtectedLayout() {
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </main>
-        <InspectorDrawer />
       </div>
     </div>
   );

@@ -123,9 +123,9 @@ def get_mock_cdr_analysis():
         ],
         night_calls_count=38,
         top_tower_locations=[
-            {"tower_id": "AHM-CG-TW-42", "location_name": "CG Road, Ahmedabad", "frequency": 912}
+            {"tower_id": "AHM-CG-TW-42", "location_name": "CG Road, Surat", "frequency": 912}
         ],
         imei_history=["864910049201923", "864910049201999"],
-        executive_summary="Provider response ingested successfully (1,420 CDR records). Target number exhibited high-frequency night activity (38 calls between 00:00-05:00 AM). Primary anchor location identified at CG Road, Ahmedabad.",
+        executive_summary="Provider response ingested successfully (1,420 CDR records). Target number exhibited high-frequency night activity (38 calls between 00:00-05:00 AM). Primary anchor location identified at CG Road, Surat.",
         recommended_next_action="Issue Section 94 BNSS Notice for IMEI 864910049201999 handset CAF details."
     ).model_dump()

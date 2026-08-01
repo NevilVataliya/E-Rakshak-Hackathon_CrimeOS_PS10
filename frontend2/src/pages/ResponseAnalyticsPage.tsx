@@ -1,15 +1,15 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { 
-  BarChart3, 
-  FileUp, 
-  CheckCircle, 
-  FileText, 
-  PhoneCall, 
-  MapPin, 
-  Smartphone, 
-  Sparkles, 
-  Loader2, 
+import {
+  BarChart3,
+  FileUp,
+  CheckCircle,
+  FileText,
+  PhoneCall,
+  MapPin,
+  Smartphone,
+  Sparkles,
+  Loader2,
   ArrowRight,
   TrendingUp
 } from 'lucide-react';
@@ -45,11 +45,11 @@ export default function ResponseAnalyticsPage() {
         ],
         night_calls_count: 38,
         top_tower_locations: [
-          { tower_id: 'AHM-CG-TW-42', location_name: 'CG Road, Ahmedabad', frequency: 912 },
-          { tower_id: 'AHM-SAT-TW-09', location_name: 'Satellite, Ahmedabad', frequency: 310 }
+          { tower_id: 'AHM-CG-TW-42', location_name: 'CG Road, Surat', frequency: 912 },
+          { tower_id: 'AHM-SAT-TW-09', location_name: 'Satellite, Surat', frequency: 310 }
         ],
         imei_history: ['864910049201923', '864910049201999'],
-        executive_summary: "Provider response ingested successfully (1,420 CDR records). Target number exhibited high-frequency night activity (38 calls between 00:00-05:00 AM). Primary anchor location identified at CG Road, Ahmedabad (912 calls). SIM swap detected across 2 distinct device IMEIs.",
+        executive_summary: "Provider response ingested successfully (1,420 CDR records). Target number exhibited high-frequency night activity (38 calls between 00:00-05:00 AM). Primary anchor location identified at CG Road, Surat (912 calls). SIM swap detected across 2 distinct device IMEIs.",
         recommended_next_action: "Issue Section 94 BNSS Notice for IMEI 864910049201999 handset CAF details."
       });
     } finally {
@@ -68,7 +68,7 @@ export default function ResponseAnalyticsPage() {
 
   return (
     <div className="space-y-5">
-      
+
       {/* Header */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-b border-slate-800 pb-4">
         <div>
@@ -95,7 +95,7 @@ export default function ResponseAnalyticsPage() {
       </div>
 
       <div className="pro-card p-5">
-        
+
         {/* Studio Action Header */}
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-b border-slate-800 pb-3">
           <div>
@@ -129,7 +129,7 @@ export default function ResponseAnalyticsPage() {
 
         {parsedData ? (
           <div className="mt-4 space-y-5">
-            
+
             {/* Executive Intelligence Summary Card */}
             <div className="rounded-lg border border-slate-800 bg-slate-900/80 p-4 space-y-1.5">
               <div className="flex items-center justify-between">
@@ -151,7 +151,7 @@ export default function ResponseAnalyticsPage() {
 
             {/* Grid Layout: Top Contacts & Frequency Graph */}
             <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
-              
+
               {/* Call Frequency Chart */}
               <div className="rounded-lg border border-slate-800 bg-slate-900/60 p-4">
                 <h3 className="text-xs font-semibold text-white mb-3 flex items-center gap-1.5">
@@ -204,7 +204,7 @@ export default function ResponseAnalyticsPage() {
 
             {/* Tower Location Anchors & Device IMEI History */}
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              
+
               <div className="rounded-lg border border-slate-800 bg-slate-900/60 p-3.5">
                 <h4 className="text-xs font-semibold text-white flex items-center gap-1.5 mb-2">
                   <MapPin className="h-3.5 w-3.5 text-rose-400" />
@@ -248,11 +248,10 @@ export default function ResponseAnalyticsPage() {
             <div className="pt-1 flex items-center justify-between">
               <button
                 onClick={() => setApproved(!approved)}
-                className={`inline-flex items-center gap-2 rounded-lg px-4 py-2.5 text-xs font-semibold transition-colors ${
-                  approved
+                className={`inline-flex items-center gap-2 rounded-lg px-4 py-2.5 text-xs font-semibold transition-colors ${approved
                     ? 'border border-emerald-500/30 bg-emerald-500/20 text-emerald-300'
                     : 'bg-blue-600 text-white hover:bg-blue-500'
-                }`}
+                  }`}
               >
                 <CheckCircle className="h-4 w-4" />
                 <span>{approved ? 'HITL Verified & Approved by Officer' : 'Approve Response Analytics & Update Case File'}</span>

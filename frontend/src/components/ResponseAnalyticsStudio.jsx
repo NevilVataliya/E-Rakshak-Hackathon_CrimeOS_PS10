@@ -1,14 +1,14 @@
 import React, { useState } from 'react';
-import { 
-  BarChart3, 
-  FileUp, 
-  CheckCircle, 
-  FileText, 
-  PhoneCall, 
-  MapPin, 
-  Smartphone, 
-  Sparkles, 
-  Loader2, 
+import {
+  BarChart3,
+  FileUp,
+  CheckCircle,
+  FileText,
+  PhoneCall,
+  MapPin,
+  Smartphone,
+  Sparkles,
+  Loader2,
   ArrowRight,
   TrendingUp
 } from 'lucide-react';
@@ -41,11 +41,11 @@ export default function ResponseAnalyticsStudio({ caseNumber = 'CR-2026-9910' })
         ],
         night_calls_count: 38,
         top_tower_locations: [
-          { tower_id: 'AHM-CG-TW-42', location_name: 'CG Road, Ahmedabad', frequency: 912 },
-          { tower_id: 'AHM-SAT-TW-09', location_name: 'Satellite, Ahmedabad', frequency: 310 }
+          { tower_id: 'AHM-CG-TW-42', location_name: 'CG Road, Surat', frequency: 912 },
+          { tower_id: 'AHM-SAT-TW-09', location_name: 'Satellite, Surat', frequency: 310 }
         ],
         imei_history: ['864910049201923', '864910049201999'],
-        executive_summary: "Provider response ingested successfully (1,420 CDR records). Target number exhibited high-frequency night activity (38 calls between 00:00-05:00 AM). Primary anchor location identified at CG Road, Ahmedabad (912 calls). SIM swap detected across 2 distinct device IMEIs.",
+        executive_summary: "Provider response ingested successfully (1,420 CDR records). Target number exhibited high-frequency night activity (38 calls between 00:00-05:00 AM). Primary anchor location identified at CG Road, Surat (912 calls). SIM swap detected across 2 distinct device IMEIs.",
         recommended_next_action: "Issue Section 94 BNSS Notice for IMEI 864910049201999 handset CAF details."
       });
     } finally {
@@ -64,7 +64,7 @@ export default function ResponseAnalyticsStudio({ caseNumber = 'CR-2026-9910' })
 
   return (
     <div className="glass-panel rounded-2xl p-6 mb-6">
-      
+
       {/* Studio Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-slate-800 pb-4">
         <div>
@@ -98,7 +98,7 @@ export default function ResponseAnalyticsStudio({ caseNumber = 'CR-2026-9910' })
 
       {parsedData ? (
         <div className="mt-5 space-y-6">
-          
+
           {/* Executive Intelligence Summary Card */}
           <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-4 space-y-2">
             <div className="flex items-center justify-between">
@@ -120,7 +120,7 @@ export default function ResponseAnalyticsStudio({ caseNumber = 'CR-2026-9910' })
 
           {/* Grid Layout: Top Contacts & Frequency Graph */}
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-            
+
             {/* Call Frequency Chart */}
             <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-4">
               <h3 className="text-xs font-bold text-white mb-3 flex items-center gap-2">
@@ -173,7 +173,7 @@ export default function ResponseAnalyticsStudio({ caseNumber = 'CR-2026-9910' })
 
           {/* Tower Location Anchors & Device IMEI History */}
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            
+
             <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-4">
               <h4 className="text-xs font-bold text-white flex items-center gap-2 mb-2">
                 <MapPin className="h-4 w-4 text-rose-400" />
@@ -217,11 +217,10 @@ export default function ResponseAnalyticsStudio({ caseNumber = 'CR-2026-9910' })
           <div className="pt-2 flex items-center justify-between">
             <button
               onClick={() => setApproved(!approved)}
-              className={`inline-flex items-center gap-2 rounded-xl px-5 py-3 text-xs font-bold transition-all ${
-                approved
+              className={`inline-flex items-center gap-2 rounded-xl px-5 py-3 text-xs font-bold transition-all ${approved
                   ? 'border border-emerald-500/40 bg-emerald-500/20 text-emerald-300 shadow-glow-emerald'
                   : 'bg-gradient-to-r from-cyan-500 to-indigo-600 text-white shadow-glow-cyan'
-              }`}
+                }`}
             >
               <CheckCircle className="h-4 w-4" />
               <span>{approved ? 'HITL Verified & Approved by Officer' : 'Approve Response Analytics & Update FIR File'}</span>

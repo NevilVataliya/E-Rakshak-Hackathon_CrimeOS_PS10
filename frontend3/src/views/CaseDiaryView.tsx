@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import { 
-  ShieldCheck, 
-  Download, 
-  Printer, 
-  CheckCircle, 
-  FileText, 
+import {
+  ShieldCheck,
+  Download,
+  Printer,
+  CheckCircle,
+  FileText,
   Award,
   Sparkles,
   Lock
@@ -27,7 +27,7 @@ export default function CaseDiaryView() {
 
   return (
     <div className="flex-1 flex flex-col p-4 overflow-hidden gap-3 select-none">
-      
+
       {/* Header */}
       <div className="flex items-center justify-between border-b border-white/10 pb-3 shrink-0">
         <div>
@@ -54,7 +54,7 @@ export default function CaseDiaryView() {
 
       {/* Main Grid: Form 50 & BSA Certificate */}
       <div className="flex-1 grid grid-cols-12 gap-3 overflow-hidden">
-        
+
         {/* Left Column: Form 50 Summary (7 Cols) */}
         <div className="col-span-7 rounded border border-white/10 bg-[#0d1322] p-3 flex flex-col justify-between overflow-y-auto space-y-3">
           <div className="space-y-3">
@@ -81,7 +81,7 @@ export default function CaseDiaryView() {
                   <li>Qdrant vector similarity search executed across 7,337 grounded SOP chunks.</li>
                   <li>Section 94 BNSS Legal Notice dispatched to Paytm Payments Bank Nodal Cell.</li>
                   <li>Section 1930 / CFCFRMS Emergency Debit Freeze issued for SBI A/C 30910293101.</li>
-                  <li>Telecom CDR & IPDR log parsed (1,420 records) with primary cell tower anchor at CG Road, Ahmedabad.</li>
+                  <li>Telecom CDR & IPDR log parsed (1,420 records) with primary cell tower anchor at CG Road, Surat.</li>
                 </ul>
               </div>
             </div>

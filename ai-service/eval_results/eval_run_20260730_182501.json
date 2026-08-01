@@ -1,0 +1,24 @@
+{
+  "evaluation_type": "full_system",
+  "layers_evaluated": [
+    3
+  ],
+  "active_provider": "gemini",
+  "timestamp": "2026-07-30T18:25:01",
+  "total_duration_sec": 280.62,
+  "results": {
+    "investigation_path": {
+      "scorecard": {
+        "total_cases": 10,
+        "valid_cases": 10,
+        "legal_section_recall": 62.5,
+        "directive_completeness": 98.3,
+        "faithfulness": 90.0,
+        "safety": 55.0,
+        "actionability_avg": 3.8,
+        "legal_req_in_range_pct": 100.0,
+        "avg_latency_sec": 15.47
+      }
+    }
+  }
+}

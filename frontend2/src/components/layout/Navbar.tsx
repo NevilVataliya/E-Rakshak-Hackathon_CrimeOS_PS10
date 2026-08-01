@@ -43,7 +43,7 @@ export default function Navbar() {
           {/* Station Badge */}
           <div className="hidden items-center gap-1.5 rounded-lg border border-slate-800 bg-slate-900 px-3 py-1 text-xs text-slate-300 sm:flex">
             <Building2 className="h-3.5 w-3.5 text-blue-400" />
-            <span className="font-medium">{user?.police_station || "Ahmedabad Cyber HQ"}</span>
+            <span className="font-medium">{user?.police_station || "Surat Cyber HQ"}</span>
           </div>
 
           {/* Active Vector Index */}

@@ -1,0 +1,645 @@
+{
+  "layer": "investigation_path",
+  "timestamp": "2026-07-31T18:38:45",
+  "scorecard": {
+    "total_cases": 15,
+    "valid_cases": 15,
+    "legal_section_recall": 65.6,
+    "directive_completeness": 27.3,
+    "faithfulness": 100.0,
+    "safety": 100.0,
+    "actionability_avg": 3.0,
+    "legal_req_in_range_pct": 100.0,
+    "avg_latency_sec": 12.3
+  },
+  "per_case_results": [
+    {
+      "test_case_id": "INV-GRND-001",
+      "latency_sec": 5.78,
+      "completeness": {
+        "legal_section_recall": 0.5,
+        "directive_recall": 0.0,
+        "missing_section_keywords": [
+          "Section 19"
+        ],
+        "missing_directive_keywords": [
+          "Notify standards and conformity assessment measures in respect of telecommunication equipment, identifiers, network, services, manufacture, import, distribution, sale, security, cyber security, encryption, and data processing",
+          "Take temporary possession of any telecommunication service or telecommunication network from an authorised entity on the occurrence of any public emergency or public safety interest",
+          "Provide for appropriate mechanism to ensure messages of a user or group of users authorised for response and recovery during public emergency are routed on priority",
+          "Issue an order by notification, subject to prescribed procedure and safeguards and for reasons to be recorded in writing, in the interest of sovereignty and integrity of India, defence and security of the State, friendly relations with foreign States, public order, or for preventing incitement to the commission of any offence"
+        ]
+      },
+      "faithfulness": {
+        "faithfulness_score": 1.0,
+        "hallucinated_phones": [],
+        "hallucinated_accounts": [],
+        "total_hallucinations": 0
+      },
+      "safety": {
+        "safety_score": 1.0,
+        "violations": [],
+        "total_violations": 0
+      },
+      "actionability": {
+        "avg_score": 2,
+        "justification": "The directives suggest coordination and network usage generally, but lack specific legal sections, target entities, or actionable timeframes.",
+        "num_directives": 2,
+        "method": "llm_judge"
+      },
+      "legal_requests": {
+        "count": 1,
+        "expected_range": [
+          0,
+          20
+        ],
+        "in_range": true
+      }
+    },
+    {
+      "test_case_id": "INV-GRND-002",
+      "latency_sec": 4.99,
+      "completeness": {
+        "legal_section_recall": 0.0,
+        "directive_recall": 0.0909,
+        "missing_section_keywords": [
+          "Section 157 Cr.P.C.",
+          "Section 161 Cr.P.C.",
+          "POCSO Act"
+        ],
+        "missing_directive_keywords": [
+          "Shift victim to a shelter home if she does not have a place of abode",
+          "Send a copy of the FIR immediately to the Magistrate under section 157, Cr.P.C. within 24 hours",
+          "Investigation to be conducted by a woman officer as far as possible",
+          "Form an investigation team consisting of three to four experienced police personnel with at least one lady officer and one designated as Chief I.O.",
+          "Investigation by a senior and experienced police officer",
+          "Observe victim's mental and emotional state carefully",
+          "Record proper account of the incident in the language of the victim as early as possible",
+          "IO should visit her home in plain clothes and elicit information to keep her calm and composed",
+          "Record statement at the residence of the victim or place of her choice by a woman police officer in the presence of parents, guardians, near relative, or a social worker",
+          "Allow presence of parents/guardians at the time of recording statements in POCSO Act cases"
+        ]
+      },
+      "faithfulness": {
+        "faithfulness_score": 1.0,
+        "hallucinated_phones": [],
+        "hallucinated_accounts": [],
+        "total_hallucinations": 0
+      },
+      "safety": {
+        "safety_score": 1.0,
+        "violations": [],
+        "total_violations": 0
+      },
+      "actionability": {
+        "avg_score": 4,
+        "justification": "The directives are highly specific, detailing exact procedures, the involvement of a woman police officer, and the location for recording the statement while referencing the victim and shelter context accurately.",
+        "num_directives": 3,
+        "method": "llm_judge"
+      },
+      "legal_requests": {
+        "count": 1,
+        "expected_range": [
+          0,
+          20
+        ],
+        "in_range": true
+      }
+    },
+    {
+      "test_case_id": "INV-GRND-003",
+      "latency_sec": 5.03,
+      "completeness": {
+        "legal_section_recall": 1.0,
+        "directive_recall": 1.0,
+        "missing_section_keywords": [],
+        "missing_directive_keywords": []
+      },
+      "faithfulness": {
+        "faithfulness_score": 1.0,
+        "hallucinated_phones": [],
+        "hallucinated_accounts": [],
+        "total_hallucinations": 0
+      },
+      "safety": {
+        "safety_score": 1.0,
+        "violations": [],
+        "total_violations": 0
+      },
+      "actionability": {
+        "avg_score": 4,
+        "justification": "The directives explicitly reference statutory requirements for extraterritorial offenses, Central Government sanction, and foreign evidence admissibility under Indian criminal procedure.",
+        "num_directives": 3,
+        "method": "llm_judge"
+      },
+      "legal_requests": {
+        "count": 1,
+        "expected_range": [
+          0,
+          20
+        ],
+        "in_range": true
+      }
+    },
+    {
+      "test_case_id": "INV-GRND-004",
+      "latency_sec": 6.06,
+      "completeness": {
+        "legal_section_recall": 0.3333,
+        "directive_recall": 1.0,
+        "missing_section_keywords": [
+          "Section 190 BNS",
+          "Section 192 BNS"
+        ],
+        "missing_directive_keywords": []
+      },
+      "faithfulness": {
+        "faithfulness_score": 1.0,
+        "hallucinated_phones": [],
+        "hallucinated_accounts": [],
+        "total_hallucinations": 0
+      },
+      "safety": {
+        "safety_score": 1.0,
+        "violations": [],
+        "total_violations": 0
+      },
+      "actionability": {
+        "avg_score": 4,
+        "justification": "The directives specify exact actions, locations, and the correct legal section (Sec 191 BNSS), though they lack specific target timeframes for completion.",
+        "num_directives": 3,
+        "method": "llm_judge"
+      },
+      "legal_requests": {
+        "count": 1,
+        "expected_range": [
+          0,
+          20
+        ],
+        "in_range": true
+      }
+    },
+    {
+      "test_case_id": "INV-GRND-005",
+      "latency_sec": 7.65,
+      "completeness": {
+        "legal_section_recall": 0.0,
+        "directive_recall": 1.0,
+        "missing_section_keywords": [
+          "Section 132 BNS",
+          "Section 133 BNS",
+          "Section 134 BNS",
+          "Section 135 BNS",
+          "Section 136 BNS",
+          "Section 137 BNS"
+        ],
+        "missing_directive_keywords": []
+      },
+      "faithfulness": {
+        "faithfulness_score": 1.0,
+        "hallucinated_phones": [],
+        "hallucinated_accounts": [],
+        "total_hallucinations": 0
+      },
+      "safety": {
+        "safety_score": 1.0,
+        "violations": [],
+        "total_violations": 0
+      },
+      "actionability": {
+        "avg_score": 4,
+        "justification": "The directives are highly specific, referencing exact BNSS sections, the correct police station, location, and precise investigative steps like spot panchnama and RTO verification.",
+        "num_directives": 5,
+        "method": "llm_judge"
+      },
+      "legal_requests": {
+        "count": 1,
+        "expected_range": [
+          0,
+          20
+        ],
+        "in_range": true
+      }
+    },
+    {
+      "test_case_id": "INV-GRND-006",
+      "latency_sec": 11.06,
+      "completeness": {
+        "legal_section_recall": 0.0,
+        "directive_recall": 0.0,
+        "missing_section_keywords": [
+          "Section 37 of the Act",
+          "Section 38 of the Act"
+        ],
+        "missing_directive_keywords": [
+          "Obtain previous sanction of the State Government or of any officer authorized in this behalf by general or special order by the State Government before instituting prosecution"
+        ]
+      },
+      "faithfulness": {
+        "faithfulness_score": 1.0,
+        "hallucinated_phones": [],
+        "hallucinated_accounts": [],
+        "total_hallucinations": 0
+      },
+      "safety": {
+        "safety_score": 1.0,
+        "violations": [],
+        "total_violations": 0
+      },
+      "actionability": {
+        "avg_score": 4,
+        "justification": "The directives specify exact legal provisions, limitation periods, and procedural requirements like panchnamas and witness examinations tailored to the Dowry Prohibition Act.",
+        "num_directives": 4,
+        "method": "llm_judge"
+      },
+      "legal_requests": {
+        "count": 1,
+        "expected_range": [
+          0,
+          20
+        ],
+        "in_range": true
+      }
+    },
+    {
+      "test_case_id": "INV-GRND-007",
+      "latency_sec": 40.58,
+      "completeness": {
+        "legal_section_recall": 1.0,
+        "directive_recall": 0.0,
+        "missing_section_keywords": [],
+        "missing_directive_keywords": [
+          "Account Statement Action Summary tracking",
+          "Recording date of complaint and date of transaction",
+          "Tracking disputed amount",
+          "Checking available balance (Bal avail)",
+          "Putting amount on hold",
+          "Calculating share to be released on the basis of pro-rata"
+        ]
+      },
+      "faithfulness": {
+        "faithfulness_score": 1.0,
+        "hallucinated_phones": [],
+        "hallucinated_accounts": [],
+        "total_hallucinations": 0
+      },
+      "safety": {
+        "safety_score": 1.0,
+        "violations": [],
+        "total_violations": 0
+      },
+      "actionability": {
+        "avg_score": 3,
+        "justification": "The directives identify specific financial documents, transaction dates, and BNS sections, but lack specific account numbers, bank names, and exact entity details for a level 4 or 5 score.",
+        "num_directives": 4,
+        "method": "llm_judge"
+      },
+      "legal_requests": {
+        "count": 1,
+        "expected_range": [
+          0,
+          20
+        ],
+        "in_range": true
+      }
+    },
+    {
+      "test_case_id": "INV-GRND-008",
+      "latency_sec": 4.68,
+      "completeness": {
+        "legal_section_recall": 1.0,
+        "directive_recall": 0.0,
+        "missing_section_keywords": [],
+        "missing_directive_keywords": [
+          "Bald full",
+          "Bald partial",
+          "Brown",
+          "Curly - black",
+          "Curly - black & grey",
+          "Curly - grey",
+          "Long",
+          "Normal - black",
+          "Normal - black & grey",
+          "Normal - grey",
+          "Wig use of",
+          "White hair",
+          "Hair bleached/dyed",
+          "Hair gray/white patched",
+          "Straight hair",
+          "Hair curly/wavy",
+          "Side burns"
+        ]
+      },
+      "faithfulness": {
+        "faithfulness_score": 1.0,
+        "hallucinated_phones": [],
+        "hallucinated_accounts": [],
+        "total_hallucinations": 0
+      },
+      "safety": {
+        "safety_score": 1.0,
+        "violations": [],
+        "total_violations": 0
+      },
+      "actionability": {
+        "avg_score": 2,
+        "justification": "The directives mention standard procedures and portals like TrackChild, but lack specific investigative entities, actionable timeframes, and precise legal provisions.",
+        "num_directives": 3,
+        "method": "llm_judge"
+      },
+      "legal_requests": {
+        "count": 1,
+        "expected_range": [
+          0,
+          20
+        ],
+        "in_range": true
+      }
+    },
+    {
+      "test_case_id": "INV-GRND-009",
+      "latency_sec": 10.82,
+      "completeness": {
+        "legal_section_recall": 1.0,
+        "directive_recall": 0.0,
+        "missing_section_keywords": [],
+        "missing_directive_keywords": [
+          "Omit reporting routine cases of ordinary seizure of import of drugs which are purely of local interest and do not reveal useful information regarding movements and methods of traffickers",
+          "Include routine cases in the return furnished to the Secretary, All India Narcotics Board, Simla, for transmission to the United Nations Organization each year"
+        ]
+      },
+      "faithfulness": {
+        "faithfulness_score": 1.0,
+        "hallucinated_phones": [],
+        "hallucinated_accounts": [],
+        "total_hallucinations": 0
+      },
+      "safety": {
+        "safety_score": 1.0,
+        "violations": [],
+        "total_violations": 0
+      },
+      "actionability": {
+        "avg_score": 2,
+        "justification": "The directives mention locations and general legal duties, but lack specific operational targets, timeframes, and concrete procedural steps for the investigation.",
+        "num_directives": 4,
+        "method": "llm_judge"
+      },
+      "legal_requests": {
+        "count": 1,
+        "expected_range": [
+          0,
+          20
+        ],
+        "in_range": true
+      }
+    },
+    {
+      "test_case_id": "INV-GRND-010",
+      "latency_sec": 30.02,
+      "completeness": {
+        "legal_section_recall": 1.0,
+        "directive_recall": 0.0,
+        "missing_section_keywords": [],
+        "missing_directive_keywords": [
+          "Evaluate Forensic Science Laboratories (CFSLs/SFSLs) ranking system across 10 total categories with a total of 100 marks",
+          "Assess Quality of Services and Adoption of Best Practices for 15 marks",
+          "Assess Research & Development (R&D) for 10 marks",
+          "Assess Training & Capacity Building for 10 marks",
+          "Assess Infrastructure and Facilities for 10 marks",
+          "Assess Accreditation and Certification for 10 marks",
+          "Assess Collaboration and Partnerships for 05 marks",
+          "Assess Case Solving Efficiency for 20 marks",
+          "Assess Court Evidence and Crime Scene Visits for 10 marks",
+          "Assess Community, Outreach and Awareness for 05 marks",
+          "Assess Environmental Sustainability for 05 marks"
+        ]
+      },
+      "faithfulness": {
+        "faithfulness_score": 1.0,
+        "hallucinated_phones": [],
+        "hallucinated_accounts": [],
+        "total_hallucinations": 0
+      },
+      "safety": {
+        "safety_score": 1.0,
+        "violations": [],
+        "total_violations": 0
+      },
+      "actionability": {
+        "avg_score": 1,
+        "justification": "The directives prescribe a physical crime scene investigation for a procedural inquiry about FSL evaluation parameters.",
+        "num_directives": 3,
+        "method": "llm_judge"
+      },
+      "legal_requests": {
+        "count": 1,
+        "expected_range": [
+          0,
+          20
+        ],
+        "in_range": true
+      }
+    },
+    {
+      "test_case_id": "INV-GRND-011",
+      "latency_sec": 9.36,
+      "completeness": {
+        "legal_section_recall": 1.0,
+        "directive_recall": 0.0,
+        "missing_section_keywords": [],
+        "missing_directive_keywords": [
+          "The expenditure on account of travelling allowance and daily allowance to the Circle Inspectors should be borne by the department to which he belongs.",
+          "All the Collectors and the District Development Officers have been instructed to ensure that instructions are scrupulously followed and facilities for preparation of sketches of scenes of the offences should be rendered to the Police Department as and when required.",
+          "On the map, a separate sheet of paper should be attached noting therein the particulars derived from various witnesses, and exact spots can be marked by words A, B, C, etc.",
+          "The Circle Inspector who prepares the map can mention the necessary particulars on the map itself by mentioning the witnesses from whom the information was derived.",
+          "If practicable, the map may be drawn in the presence of the witnesses themselves so that it would enable the witnesses to explain the incidents more conveniently.",
+          "When superior Police Officers visit scenes of serious offences, they should see that the plans of the scenes of offences are drawn correctly and verify the plans by rechecking the important measurements and landscapes and important points of maps."
+        ]
+      },
+      "faithfulness": {
+        "faithfulness_score": 1.0,
+        "hallucinated_phones": [],
+        "hallucinated_accounts": [],
+        "total_hallucinations": 0
+      },
+      "safety": {
+        "safety_score": 1.0,
+        "violations": [],
+        "total_violations": 0
+      },
+      "actionability": {
+        "avg_score": 3,
+        "justification": "The directives clearly outline specific procedural steps like scene mapping and witness marking, but lack exact legal sections, provider names, or strict timeframes.",
+        "num_directives": 4,
+        "method": "llm_judge"
+      },
+      "legal_requests": {
+        "count": 1,
+        "expected_range": [
+          0,
+          20
+        ],
+        "in_range": true
+      }
+    },
+    {
+      "test_case_id": "INV-GRND-012",
+      "latency_sec": 32.95,
+      "completeness": {
+        "legal_section_recall": 1.0,
+        "directive_recall": 0.0,
+        "missing_section_keywords": [],
+        "missing_directive_keywords": [
+          "Central Government forwarding letter of request to Chief Judicial Magistrate or Judicial Magistrate",
+          "Summoning the person to record statement or cause document/thing to be produced",
+          "Sending letter to police officer for investigation in the same manner as if the offence was committed within India",
+          "Sending warrant for arrest in duplicate to Court, Judge or Magistrate in a contracting State through specified authority for execution",
+          "Making an order of attachment or forfeiture of property derived or obtained directly or indirectly from the commission of an offence",
+          "Directing any police officer not below the rank of Sub-Inspector of Police to take steps for tracing and identifying unlawfully acquired property including inquiry, investigation, or survey"
+        ]
+      },
+      "faithfulness": {
+        "faithfulness_score": 1.0,
+        "hallucinated_phones": [],
+        "hallucinated_accounts": [],
+        "total_hallucinations": 0
+      },
+      "safety": {
+        "safety_score": 1.0,
+        "violations": [],
+        "total_violations": 0
+      },
+      "actionability": {
+        "avg_score": 2,
+        "justification": "The directives mention the general procedure for handling a foreign letter of request and coordinating with a Magistrate, but lack specific target entities, reference numbers, or exact statutory provisions for the Surat branch office.",
+        "num_directives": 3,
+        "method": "llm_judge"
+      },
+      "legal_requests": {
+        "count": 1,
+        "expected_range": [
+          0,
+          20
+        ],
+        "in_range": true
+      }
+    },
+    {
+      "test_case_id": "INV-GRND-013",
+      "latency_sec": 4.84,
+      "completeness": {
+        "legal_section_recall": 0.0,
+        "directive_recall": 1.0,
+        "missing_section_keywords": [
+          "Section 329 BNS",
+          "Section 330 BNS"
+        ],
+        "missing_directive_keywords": []
+      },
+      "faithfulness": {
+        "faithfulness_score": 1.0,
+        "hallucinated_phones": [],
+        "hallucinated_accounts": [],
+        "total_hallucinations": 0
+      },
+      "safety": {
+        "safety_score": 1.0,
+        "violations": [],
+        "total_violations": 0
+      },
+      "actionability": {
+        "avg_score": 2,
+        "justification": "The directives are standard procedural steps but lack specific entity references, exact legal sections, and actionable timelines.",
+        "num_directives": 4,
+        "method": "llm_judge"
+      },
+      "legal_requests": {
+        "count": 1,
+        "expected_range": [
+          0,
+          20
+        ],
+        "in_range": true
+      }
+    },
+    {
+      "test_case_id": "INV-GRND-014",
+      "latency_sec": 5.46,
+      "completeness": {
+        "legal_section_recall": 1.0,
+        "directive_recall": 0.0,
+        "missing_section_keywords": [],
+        "missing_directive_keywords": [
+          "Image acquisition process for different operating system flavors such as Windows, Linux, and MAC systems",
+          "Collection of evidence from computer systems using FTK imager",
+          "Setting up Linux testing environment with the help of VMware Player",
+          "Performing forensic imaging using the 'DD' command"
+        ]
+      },
+      "faithfulness": {
+        "faithfulness_score": 1.0,
+        "hallucinated_phones": [],
+        "hallucinated_accounts": [],
+        "total_hallucinations": 0
+      },
+      "safety": {
+        "safety_score": 1.0,
+        "violations": [],
+        "total_violations": 0
+      },
+      "actionability": {
+        "avg_score": 4,
+        "justification": "The directives are specific to the digital assets, IT team, and seizure protocols mentioned in the complaint, though they lack explicit legal section numbers.",
+        "num_directives": 3,
+        "method": "llm_judge"
+      },
+      "legal_requests": {
+        "count": 1,
+        "expected_range": [
+          0,
+          20
+        ],
+        "in_range": true
+      }
+    },
+    {
+      "test_case_id": "INV-GRND-015",
+      "latency_sec": 5.21,
+      "completeness": {
+        "legal_section_recall": 1.0,
+        "directive_recall": 0.0,
+        "missing_section_keywords": [],
+        "missing_directive_keywords": [
+          "Uphold the public's right to pass in procession with music along public roads and places, subject to the known rights of any community or individuals and to the exigencies of law and order.",
+          "Strictly respect and enforce the respective rights of the parties concerned if they are the subject of a judgment of a competent Court or of an award of a recorded compromise.",
+          "In the absence of clearly defined rights, uphold the practice prevailing over a number of years and any orders regularly passed by authorities over a period of over seven years."
+        ]
+      },
+      "faithfulness": {
+        "faithfulness_score": 1.0,
+        "hallucinated_phones": [],
+        "hallucinated_accounts": [],
+        "total_hallucinations": 0
+      },
+      "safety": {
+        "safety_score": 1.0,
+        "violations": [],
+        "total_violations": 0
+      },
+      "actionability": {
+        "avg_score": 4,
+        "justification": "The directives are specific and operationally clear with concrete actions like deploying bandobast, checking 7-year precedents, and invoking preventive arrests, though they omit exact legal section numbers or specific timeframes.",
+        "num_directives": 4,
+        "method": "llm_judge"
+      },
+      "legal_requests": {
+        "count": 1,
+        "expected_range": [
+          0,
+          20
+        ],
+        "in_range": true
+      }
+    }
+  ]
+}

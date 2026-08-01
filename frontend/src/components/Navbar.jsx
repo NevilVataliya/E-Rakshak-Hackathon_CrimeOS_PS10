@@ -24,9 +24,9 @@ export default function Navbar() {
   return (
     <header className="sticky top-0 z-50 w-full border-b border-slate-800/80 bg-slate-950/80 backdrop-blur-xl transition-all">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-        
+
         {/* Brand Logo & System Title */}
-        <div 
+        <div
           onClick={() => navigate('/')}
           className="group flex cursor-pointer items-center gap-3 transition-transform hover:scale-[1.01]"
         >
@@ -55,11 +55,11 @@ export default function Navbar() {
 
         {/* Status Indicators & User Profile */}
         <div className="flex items-center gap-3 sm:gap-4">
-          
+
           {/* Station Badge */}
           <div className="hidden items-center gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-1.5 text-xs font-semibold text-emerald-400 sm:flex">
             <Building2 className="h-4 w-4 text-emerald-400" />
-            <span>{user?.police_station || "Ahmedabad Cyber Crime HQ"}</span>
+            <span>{user?.police_station || "Surat Cyber Crime HQ"}</span>
           </div>
 
           {/* Active Qdrant Universal RAG Indicator */}

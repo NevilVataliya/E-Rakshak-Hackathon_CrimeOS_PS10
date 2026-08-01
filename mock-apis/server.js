@@ -13,7 +13,7 @@ app.get('/api/cctns/fir/:firNumber', (req, res) => {
     status: 'FOUND',
     fir_number: req.params.firNumber,
     state: 'Gujarat',
-    district: 'Ahmedabad City',
+    district: 'Surat City',
     police_station: 'Cyber Crime Police Station',
     registration_date: '2026-07-20',
     complainant: 'Ramesh Patel',
@@ -27,8 +27,8 @@ app.get('/api/egujcop/citizen-complaint/:complaintNo', (req, res) => {
     portal: 'eGujcop Portal',
     complaint_no: req.params.complaintNo,
     status: 'TRANSFERRED_TO_STATION',
-    assigned_station: 'Ahmedabad Cyber Crime Station',
-    complainant_district: 'Ahmedabad'
+    assigned_station: 'Surat Cyber Crime Station',
+    complainant_district: 'Surat'
   });
 });
 
