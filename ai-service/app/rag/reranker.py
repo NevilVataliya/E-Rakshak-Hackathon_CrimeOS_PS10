@@ -67,8 +67,8 @@ def rerank_chunks(query: str, candidates: List[Dict[str, Any]], top_k: int = 5) 
             candidate["rerank_score"] = float(scores[idx])
             norm_rrf = (float(candidate.get("score", 0.0)) - min_rrf) / rrf_range
             norm_ce = (float(scores[idx]) - min_ce) / ce_range
-            # Optimized hybrid fusion: 70% RRF score + 30% CrossEncoder score
-            candidate["combined_score"] = (0.70 * norm_rrf) + (0.30 * norm_ce)
+            # Test hybrid fusion: 60% RRF score + 40% CrossEncoder score
+            candidate["combined_score"] = (0.60 * norm_rrf) + (0.40 * norm_ce)
 
         # Sort by Combined Score descending
         sorted_candidates = sorted(candidates, key=lambda x: x["combined_score"], reverse=True)

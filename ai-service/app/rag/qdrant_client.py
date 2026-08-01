@@ -65,6 +65,12 @@ def tokenize_text(text: str) -> List[str]:
     words = re.findall(r'\w+', text.lower())
     return [w for w in words if len(w) >= 2 and w not in STOPWORDS]
 
+HIGH_IMPACT_STATUTORY_TOKENS = {
+    "bns", "bsa", "bnss", "it", "act", "sop", "1930", "cfcfrms", "pocso", "posh",
+    "section", "sec", "panchnama", "certificate", "hash", "mule", "freeze", "debit",
+    "seizure", "custody", "diary", "fir", "zerofir"
+}
+
 def compute_bm25_score(query_tokens: List[str], text_tokens: List[str], avg_len: float = 200.0) -> float:
     if not query_tokens or not text_tokens:
         return 0.0
@@ -81,7 +87,10 @@ def compute_bm25_score(query_tokens: List[str], text_tokens: List[str], avg_len:
         if qt in text_token_counts:
             tf = text_token_counts[qt]
             denom = tf + k1 * (1.0 - b + b * (doc_len / avg_len))
-            score += (tf * (k1 + 1.0)) / denom
+            # High-impact weight boost (3.0x) for section numbers, statutory acronyms & key legal markers
+            is_statutory = qt.isdigit() or (len(qt) <= 5 and any(c.isdigit() for c in qt)) or (qt in HIGH_IMPACT_STATUTORY_TOKENS)
+            term_weight = 3.0 if is_statutory else 1.0
+            score += term_weight * ((tf * (k1 + 1.0)) / denom)
     return score
 
 SPECIALIST_ALIAS_MAP = {
@@ -122,14 +131,35 @@ def search_legal_sops(
                 raise RuntimeError(err_msg)
             return []
 
-        # 1. Candidate Pool Retrieval via Dense Vector Similarity (350 candidates)
+        # 1. Candidate Pool Retrieval via Multi-Stage Dense Search (Domain Prefilter + Global fallback)
+        candidate_map: Dict[str, Any] = {}
+        
+        if target_specialist:
+            try:
+                from qdrant_client.http import models as qmodels
+                domain_filter = qmodels.Filter(
+                    should=[
+                        qmodels.FieldCondition(key="target_specialist", match=qmodels.MatchValue(value=target_specialist)),
+                        qmodels.FieldCondition(key="target_specialist", match=qmodels.MatchValue(value="conventional_field_specialist"))
+                    ]
+                )
+                domain_results = client.search(
+                    collection_name=COLLECTION_NAME,
+                    query_vector=query_vector,
+                    query_filter=domain_filter,
+                    limit=250
+                )
+                for pt in domain_results:
+                    candidate_map[str(pt.id)] = pt
+            except Exception as fe:
+                print(f"[!] Payload filter warning: {fe}")
+
+        global_limit = 150 if candidate_map else 350
         global_results = client.search(
             collection_name=COLLECTION_NAME,
             query_vector=query_vector,
-            limit=350
+            limit=global_limit
         )
-
-        candidate_map: Dict[str, Any] = {}
         for pt in global_results:
             pid = str(pt.id)
             if pid not in candidate_map:
