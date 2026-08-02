@@ -1,0 +1,508 @@
+{
+  "layer": "rag_retrieval",
+  "timestamp": "2026-08-02T10:42:08",
+  "scorecard": {
+    "atomic": {
+      "count": 24,
+      "hit_rate_k3": 62.5,
+      "hit_rate_k5": 66.7,
+      "hit_rate_k10": 75.0,
+      "hit_rate_k15": 75.0,
+      "mrr": 0.501,
+      "precision_k5": 26.7,
+      "ndcg_k5": 0.534,
+      "ndcg_k10": 0.562,
+      "avg_latency_ms": 4565.9
+    },
+    "composite": {
+      "count": 16,
+      "target_recall": 15.6,
+      "full_coverage_rate": 0.0,
+      "avg_latency_ms": 6958.4
+    },
+    "per_domain": {
+      "cyber_financial_intel_specialist": {
+        "count": 6,
+        "hit_rate_k5": 50.0,
+        "hit_rate_k15": 66.7,
+        "mrr": 0.403
+      },
+      "bns_specialist": {
+        "count": 6,
+        "hit_rate_k5": 66.7,
+        "hit_rate_k15": 66.7,
+        "mrr": 0.361
+      },
+      "bsa_specialist": {
+        "count": 6,
+        "hit_rate_k5": 50.0,
+        "hit_rate_k15": 66.7,
+        "mrr": 0.407
+      },
+      "conventional_field_specialist": {
+        "count": 6,
+        "hit_rate_k5": 100.0,
+        "hit_rate_k15": 100.0,
+        "mrr": 0.833
+      }
+    }
+  },
+  "per_case_results": [
+    {
+      "test_case_id": "BENCH-ATOMIC-001",
+      "case_type": "ATOMIC_SINGLE_CHUNK",
+      "domain": "cyber_financial_intel_specialist",
+      "rank": 4,
+      "hit_k5": true,
+      "hit_k15": true,
+      "mrr": 0.25,
+      "precision_k5": 0.2,
+      "ndcg_5": 0.4307,
+      "ndcg_10": 0.4307,
+      "latency_ms": 31954.0
+    },
+    {
+      "test_case_id": "BENCH-ATOMIC-002",
+      "case_type": "ATOMIC_SINGLE_CHUNK",
+      "domain": "cyber_financial_intel_specialist",
+      "rank": null,
+      "hit_k5": false,
+      "hit_k15": false,
+      "mrr": 0.0,
+      "precision_k5": 0.0,
+      "ndcg_5": 0.0,
+      "ndcg_10": 0.0,
+      "latency_ms": 2856.4
+    },
+    {
+      "test_case_id": "BENCH-ATOMIC-003",
+      "case_type": "ATOMIC_SINGLE_CHUNK",
+      "domain": "cyber_financial_intel_specialist",
+      "rank": 1,
+      "hit_k5": true,
+      "hit_k15": true,
+      "mrr": 1.0,
+      "precision_k5": 0.6,
+      "ndcg_5": 1.0,
+      "ndcg_10": 1.0,
+      "latency_ms": 2512.3
+    },
+    {
+      "test_case_id": "BENCH-ATOMIC-004",
+      "case_type": "ATOMIC_SINGLE_CHUNK",
+      "domain": "cyber_financial_intel_specialist",
+      "rank": 6,
+      "hit_k5": false,
+      "hit_k15": true,
+      "mrr": 0.1667,
+      "precision_k5": 0.0,
+      "ndcg_5": 0.0,
+      "ndcg_10": 0.3562,
+      "latency_ms": 1828.7
+    },
+    {
+      "test_case_id": "BENCH-ATOMIC-005",
+      "case_type": "ATOMIC_SINGLE_CHUNK",
+      "domain": "cyber_financial_intel_specialist",
+      "rank": null,
+      "hit_k5": false,
+      "hit_k15": false,
+      "mrr": 0.0,
+      "precision_k5": 0.0,
+      "ndcg_5": 0.0,
+      "ndcg_10": 0.0,
+      "latency_ms": 2063.7
+    },
+    {
+      "test_case_id": "BENCH-ATOMIC-006",
+      "case_type": "ATOMIC_SINGLE_CHUNK",
+      "domain": "cyber_financial_intel_specialist",
+      "rank": 1,
+      "hit_k5": true,
+      "hit_k15": true,
+      "mrr": 1.0,
+      "precision_k5": 0.2,
+      "ndcg_5": 1.0,
+      "ndcg_10": 1.0,
+      "latency_ms": 2151.4
+    },
+    {
+      "test_case_id": "BENCH-ATOMIC-007",
+      "case_type": "ATOMIC_SINGLE_CHUNK",
+      "domain": "bns_specialist",
+      "rank": 2,
+      "hit_k5": true,
+      "hit_k15": true,
+      "mrr": 0.5,
+      "precision_k5": 0.2,
+      "ndcg_5": 0.6309,
+      "ndcg_10": 0.6309,
+      "latency_ms": 1969.8
+    },
+    {
+      "test_case_id": "BENCH-ATOMIC-008",
+      "case_type": "ATOMIC_SINGLE_CHUNK",
+      "domain": "bns_specialist",
+      "rank": null,
+      "hit_k5": false,
+      "hit_k15": false,
+      "mrr": 0.0,
+      "precision_k5": 0.0,
+      "ndcg_5": 0.0,
+      "ndcg_10": 0.0,
+      "latency_ms": 3808.2
+    },
+    {
+      "test_case_id": "BENCH-ATOMIC-009",
+      "case_type": "ATOMIC_SINGLE_CHUNK",
+      "domain": "bns_specialist",
+      "rank": 1,
+      "hit_k5": true,
+      "hit_k15": true,
+      "mrr": 1.0,
+      "precision_k5": 0.4,
+      "ndcg_5": 1.0,
+      "ndcg_10": 1.0,
+      "latency_ms": 1984.5
+    },
+    {
+      "test_case_id": "BENCH-ATOMIC-010",
+      "case_type": "ATOMIC_SINGLE_CHUNK",
+      "domain": "bns_specialist",
+      "rank": null,
+      "hit_k5": false,
+      "hit_k15": false,
+      "mrr": 0.0,
+      "precision_k5": 0.0,
+      "ndcg_5": 0.0,
+      "ndcg_10": 0.0,
+      "latency_ms": 3026.2
+    },
+    {
+      "test_case_id": "BENCH-ATOMIC-011",
+      "case_type": "ATOMIC_SINGLE_CHUNK",
+      "domain": "bns_specialist",
+      "rank": 3,
+      "hit_k5": true,
+      "hit_k15": true,
+      "mrr": 0.3333,
+      "precision_k5": 0.2,
+      "ndcg_5": 0.5,
+      "ndcg_10": 0.5,
+      "latency_ms": 2685.6
+    },
+    {
+      "test_case_id": "BENCH-ATOMIC-012",
+      "case_type": "ATOMIC_SINGLE_CHUNK",
+      "domain": "bns_specialist",
+      "rank": 3,
+      "hit_k5": true,
+      "hit_k15": true,
+      "mrr": 0.3333,
+      "precision_k5": 0.2,
+      "ndcg_5": 0.5,
+      "ndcg_10": 0.5,
+      "latency_ms": 6733.9
+    },
+    {
+      "test_case_id": "BENCH-ATOMIC-013",
+      "case_type": "ATOMIC_SINGLE_CHUNK",
+      "domain": "bsa_specialist",
+      "rank": 1,
+      "hit_k5": true,
+      "hit_k15": true,
+      "mrr": 1.0,
+      "precision_k5": 0.2,
+      "ndcg_5": 1.0,
+      "ndcg_10": 1.0,
+      "latency_ms": 7356.7
+    },
+    {
+      "test_case_id": "BENCH-ATOMIC-014",
+      "case_type": "ATOMIC_SINGLE_CHUNK",
+      "domain": "bsa_specialist",
+      "rank": 1,
+      "hit_k5": true,
+      "hit_k15": true,
+      "mrr": 1.0,
+      "precision_k5": 0.8,
+      "ndcg_5": 1.0,
+      "ndcg_10": 1.0,
+      "latency_ms": 8005.8
+    },
+    {
+      "test_case_id": "BENCH-ATOMIC-015",
+      "case_type": "ATOMIC_SINGLE_CHUNK",
+      "domain": "bsa_specialist",
+      "rank": 9,
+      "hit_k5": false,
+      "hit_k15": true,
+      "mrr": 0.1111,
+      "precision_k5": 0.0,
+      "ndcg_5": 0.0,
+      "ndcg_10": 0.301,
+      "latency_ms": 2582.9
+    },
+    {
+      "test_case_id": "BENCH-ATOMIC-016",
+      "case_type": "ATOMIC_SINGLE_CHUNK",
+      "domain": "bsa_specialist",
+      "rank": null,
+      "hit_k5": false,
+      "hit_k15": false,
+      "mrr": 0.0,
+      "precision_k5": 0.0,
+      "ndcg_5": 0.0,
+      "ndcg_10": 0.0,
+      "latency_ms": 2621.9
+    },
+    {
+      "test_case_id": "BENCH-ATOMIC-017",
+      "case_type": "ATOMIC_SINGLE_CHUNK",
+      "domain": "bsa_specialist",
+      "rank": null,
+      "hit_k5": false,
+      "hit_k15": false,
+      "mrr": 0.0,
+      "precision_k5": 0.0,
+      "ndcg_5": 0.0,
+      "ndcg_10": 0.0,
+      "latency_ms": 2768.7
+    },
+    {
+      "test_case_id": "BENCH-ATOMIC-018",
+      "case_type": "ATOMIC_SINGLE_CHUNK",
+      "domain": "bsa_specialist",
+      "rank": 3,
+      "hit_k5": true,
+      "hit_k15": true,
+      "mrr": 0.3333,
+      "precision_k5": 0.4,
+      "ndcg_5": 0.5,
+      "ndcg_10": 0.5,
+      "latency_ms": 3315.7
+    },
+    {
+      "test_case_id": "BENCH-ATOMIC-019",
+      "case_type": "ATOMIC_SINGLE_CHUNK",
+      "domain": "conventional_field_specialist",
+      "rank": 2,
+      "hit_k5": true,
+      "hit_k15": true,
+      "mrr": 0.5,
+      "precision_k5": 0.6,
+      "ndcg_5": 0.6309,
+      "ndcg_10": 0.6309,
+      "latency_ms": 2779.0
+    },
+    {
+      "test_case_id": "BENCH-ATOMIC-020",
+      "case_type": "ATOMIC_SINGLE_CHUNK",
+      "domain": "conventional_field_specialist",
+      "rank": 2,
+      "hit_k5": true,
+      "hit_k15": true,
+      "mrr": 0.5,
+      "precision_k5": 0.2,
+      "ndcg_5": 0.6309,
+      "ndcg_10": 0.6309,
+      "latency_ms": 5096.9
+    },
+    {
+      "test_case_id": "BENCH-ATOMIC-021",
+      "case_type": "ATOMIC_SINGLE_CHUNK",
+      "domain": "conventional_field_specialist",
+      "rank": 1,
+      "hit_k5": true,
+      "hit_k15": true,
+      "mrr": 1.0,
+      "precision_k5": 0.6,
+      "ndcg_5": 1.0,
+      "ndcg_10": 1.0,
+      "latency_ms": 3020.5
+    },
+    {
+      "test_case_id": "BENCH-ATOMIC-022",
+      "case_type": "ATOMIC_SINGLE_CHUNK",
+      "domain": "conventional_field_specialist",
+      "rank": 1,
+      "hit_k5": true,
+      "hit_k15": true,
+      "mrr": 1.0,
+      "precision_k5": 0.4,
+      "ndcg_5": 1.0,
+      "ndcg_10": 1.0,
+      "latency_ms": 2819.9
+    },
+    {
+      "test_case_id": "BENCH-ATOMIC-023",
+      "case_type": "ATOMIC_SINGLE_CHUNK",
+      "domain": "conventional_field_specialist",
+      "rank": 1,
+      "hit_k5": true,
+      "hit_k15": true,
+      "mrr": 1.0,
+      "precision_k5": 0.4,
+      "ndcg_5": 1.0,
+      "ndcg_10": 1.0,
+      "latency_ms": 2266.5
+    },
+    {
+      "test_case_id": "BENCH-ATOMIC-024",
+      "case_type": "ATOMIC_SINGLE_CHUNK",
+      "domain": "conventional_field_specialist",
+      "rank": 1,
+      "hit_k5": true,
+      "hit_k15": true,
+      "mrr": 1.0,
+      "precision_k5": 0.8,
+      "ndcg_5": 1.0,
+      "ndcg_10": 1.0,
+      "latency_ms": 3373.1
+    },
+    {
+      "test_case_id": "BENCH-COMPOSITE-001",
+      "case_type": "COMPOSITE_MULTI_DOCUMENT",
+      "targets_hit": 0,
+      "total_targets": 4,
+      "target_recall": 0.0,
+      "full_coverage": false,
+      "latency_ms": 6141.7
+    },
+    {
+      "test_case_id": "BENCH-COMPOSITE-002",
+      "case_type": "COMPOSITE_MULTI_DOCUMENT",
+      "targets_hit": 1,
+      "total_targets": 4,
+      "target_recall": 0.25,
+      "full_coverage": false,
+      "latency_ms": 6400.6
+    },
+    {
+      "test_case_id": "BENCH-COMPOSITE-003",
+      "case_type": "COMPOSITE_MULTI_DOCUMENT",
+      "targets_hit": 0,
+      "total_targets": 4,
+      "target_recall": 0.0,
+      "full_coverage": false,
+      "latency_ms": 6210.0
+    },
+    {
+      "test_case_id": "BENCH-COMPOSITE-004",
+      "case_type": "COMPOSITE_MULTI_DOCUMENT",
+      "targets_hit": 1,
+      "total_targets": 4,
+      "target_recall": 0.25,
+      "full_coverage": false,
+      "latency_ms": 12879.5
+    },
+    {
+      "test_case_id": "BENCH-COMPOSITE-005",
+      "case_type": "COMPOSITE_MULTI_DOCUMENT",
+      "targets_hit": 0,
+      "total_targets": 4,
+      "target_recall": 0.0,
+      "full_coverage": false,
+      "latency_ms": 6953.1
+    },
+    {
+      "test_case_id": "BENCH-COMPOSITE-006",
+      "case_type": "COMPOSITE_MULTI_DOCUMENT",
+      "targets_hit": 1,
+      "total_targets": 4,
+      "target_recall": 0.25,
+      "full_coverage": false,
+      "latency_ms": 5785.0
+    },
+    {
+      "test_case_id": "BENCH-COMPOSITE-007",
+      "case_type": "COMPOSITE_MULTI_DOCUMENT",
+      "targets_hit": 0,
+      "total_targets": 4,
+      "target_recall": 0.0,
+      "full_coverage": false,
+      "latency_ms": 7983.0
+    },
+    {
+      "test_case_id": "BENCH-COMPOSITE-008",
+      "case_type": "COMPOSITE_MULTI_DOCUMENT",
+      "targets_hit": 1,
+      "total_targets": 4,
+      "target_recall": 0.25,
+      "full_coverage": false,
+      "latency_ms": 6014.6
+    },
+    {
+      "test_case_id": "BENCH-COMPOSITE-009",
+      "case_type": "COMPOSITE_MULTI_DOCUMENT",
+      "targets_hit": 0,
+      "total_targets": 4,
+      "target_recall": 0.0,
+      "full_coverage": false,
+      "latency_ms": 6031.5
+    },
+    {
+      "test_case_id": "BENCH-COMPOSITE-010",
+      "case_type": "COMPOSITE_MULTI_DOCUMENT",
+      "targets_hit": 1,
+      "total_targets": 4,
+      "target_recall": 0.25,
+      "full_coverage": false,
+      "latency_ms": 6558.3
+    },
+    {
+      "test_case_id": "BENCH-COMPOSITE-011",
+      "case_type": "COMPOSITE_MULTI_DOCUMENT",
+      "targets_hit": 1,
+      "total_targets": 4,
+      "target_recall": 0.25,
+      "full_coverage": false,
+      "latency_ms": 7293.2
+    },
+    {
+      "test_case_id": "BENCH-COMPOSITE-012",
+      "case_type": "COMPOSITE_MULTI_DOCUMENT",
+      "targets_hit": 0,
+      "total_targets": 4,
+      "target_recall": 0.0,
+      "full_coverage": false,
+      "latency_ms": 6922.9
+    },
+    {
+      "test_case_id": "BENCH-COMPOSITE-013",
+      "case_type": "COMPOSITE_MULTI_DOCUMENT",
+      "targets_hit": 1,
+      "total_targets": 4,
+      "target_recall": 0.25,
+      "full_coverage": false,
+      "latency_ms": 6438.5
+    },
+    {
+      "test_case_id": "BENCH-COMPOSITE-014",
+      "case_type": "COMPOSITE_MULTI_DOCUMENT",
+      "targets_hit": 2,
+      "total_targets": 4,
+      "target_recall": 0.5,
+      "full_coverage": false,
+      "latency_ms": 6849.1
+    },
+    {
+      "test_case_id": "BENCH-COMPOSITE-015",
+      "case_type": "COMPOSITE_MULTI_DOCUMENT",
+      "targets_hit": 0,
+      "total_targets": 4,
+      "target_recall": 0.0,
+      "full_coverage": false,
+      "latency_ms": 5703.4
+    },
+    {
+      "test_case_id": "BENCH-COMPOSITE-016",
+      "case_type": "COMPOSITE_MULTI_DOCUMENT",
+      "targets_hit": 1,
+      "total_targets": 4,
+      "target_recall": 0.25,
+      "full_coverage": false,
+      "latency_ms": 7170.5
+    }
+  ]
+}

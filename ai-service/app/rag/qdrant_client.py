@@ -225,30 +225,41 @@ def search_legal_sops(
     query_tokens = tokenize_text(search_q)
 
     try:
-        from qdrant_client.http import models as qmodels
-        domain_filter = qmodels.Filter(
-            should=[
-                qmodels.FieldCondition(key="target_specialist", match=qmodels.MatchValue(value=target_specialist)),
-                qmodels.FieldCondition(key="target_specialist", match=qmodels.MatchValue(value="conventional_field_specialist"))
-            ]
-        )
+        candidate_map: Dict[str, Any] = {}
+        if target_specialist:
+            try:
+                from qdrant_client.http import models as qmodels
+                domain_filter = qmodels.Filter(
+                    should=[
+                        qmodels.FieldCondition(key="target_specialist", match=qmodels.MatchValue(value=target_specialist)),
+                        qmodels.FieldCondition(key="target_specialist", match=qmodels.MatchValue(value="conventional_field_specialist"))
+                    ]
+                )
+                domain_results = client.search(
+                    collection_name=COLLECTION_NAME,
+                    query_vector=query_vector,
+                    query_filter=domain_filter,
+                    limit=150
+                )
+                for pt in domain_results:
+                    candidate_map[str(pt.id)] = pt
+            except Exception as fe:
+                print(f"[!] Payload filter warning: {fe}")
 
-        candidates_raw = client.search(
+        global_results = client.search(
             collection_name=COLLECTION_NAME,
             query_vector=query_vector,
-            query_filter=domain_filter,
-            limit=100
+            limit=150
         )
+        for pt in global_results:
+            pid = str(pt.id)
+            if pid not in candidate_map:
+                candidate_map[pid] = pt
 
-        if not candidates_raw:
-            candidates_raw = client.search(
-                collection_name=COLLECTION_NAME,
-                query_vector=query_vector,
-                limit=100
-            )
-
+        candidates_raw = list(candidate_map.values())
         if not candidates_raw:
             return []
+
 
         dense_sorted = sorted(candidates_raw, key=lambda pt: float(pt.score), reverse=True)
         dense_rank_map = {str(pt.id): r for r, pt in enumerate(dense_sorted, 1)}
