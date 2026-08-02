@@ -99,9 +99,24 @@ def rerank_domain_stratified(
             continue
         sub_q = sub_queries.get(domain, "")
         if sub_q:
-            domain_ranked[domain] = rerank_chunks(sub_q, cand_list, top_k=len(cand_list))
+            ranked = rerank_chunks(sub_q, cand_list, top_k=len(cand_list))
         else:
-            domain_ranked[domain] = sorted(cand_list, key=lambda x: x.get("score", 0.0), reverse=True)
+            ranked = sorted(cand_list, key=lambda x: x.get("score", 0.0), reverse=True)
+
+        # Intra-domain page/section diversity filter (max 2 chunks per doc page)
+        diverse_list = []
+        page_counts = {}
+        for pt in ranked:
+            doc = pt.get("source", "")
+            page = pt.get("page", 1)
+            key = f"{doc}_{page}"
+            count = page_counts.get(key, 0)
+            if count < 2:
+                diverse_list.append(pt)
+                page_counts[key] = count + 1
+
+        domain_ranked[domain] = diverse_list
+
 
     if not domain_ranked:
         return []

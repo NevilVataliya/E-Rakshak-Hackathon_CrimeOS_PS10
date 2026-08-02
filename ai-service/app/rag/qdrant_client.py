@@ -68,8 +68,11 @@ def tokenize_text(text: str) -> List[str]:
 HIGH_IMPACT_STATUTORY_TOKENS = {
     "bns", "bsa", "bnss", "it", "act", "sop", "1930", "cfcfrms", "pocso", "posh",
     "section", "sec", "panchnama", "certificate", "hash", "mule", "freeze", "debit",
-    "seizure", "custody", "diary", "fir", "zerofir"
+    "seizure", "custody", "diary", "fir", "zerofir", "65b", "cheating", "extortion",
+    "impersonation", "fraudulent", "forgery", "blackmail", "coercion", "arrest",
+    "search", "inquest", "maalkhana", "admissibility", "forensics", "primary", "secondary"
 }
+
 
 def compute_bm25_score(query_tokens: List[str], text_tokens: List[str], avg_len: float = 200.0) -> float:
     if not query_tokens or not text_tokens:
