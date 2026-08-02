@@ -197,12 +197,8 @@ def run_rag_benchmark_evaluation(dataset_path: str = None, output_dir: str = Non
             targets = tc["ground_truth_targets"]
 
             start_t = time.time()
-            retrieved_all = []
-            for tgt in targets:
-                spec = tgt["target_specialist"]
-                query_str = f"{narrative[:1500]} {crime_sub}".strip()
-                res = search_legal_sops(query_str, target_specialist=spec, top_k=15, use_hyde=True)
-                retrieved_all.extend(res)
+            query_str = f"{narrative[:1500]} {crime_sub}".strip()
+            retrieved_all = search_legal_sops(query_str, target_specialist="multi_specialist", top_k=20, use_hyde=True)
             latency = time.time() - start_t
 
             targets_hit = 0

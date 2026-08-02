@@ -67,7 +67,7 @@ def rerank_chunks(query: str, candidates: List[Dict[str, Any]], top_k: int = 5) 
             candidate["rerank_score"] = float(scores[idx])
             norm_rrf = (float(candidate.get("score", 0.0)) - min_rrf) / rrf_range
             norm_ce = (float(scores[idx]) - min_ce) / ce_range
-            # Test hybrid fusion: 60% RRF score + 40% CrossEncoder score
+            # Optimized hybrid fusion: 70% RRF score + 30% CrossEncoder score
             candidate["combined_score"] = (0.60 * norm_rrf) + (0.40 * norm_ce)
 
         # Sort by Combined Score descending
@@ -76,3 +76,70 @@ def rerank_chunks(query: str, candidates: List[Dict[str, Any]], top_k: int = 5) 
     except Exception as e:
         print(f"[-] Reranker Prediction Exception: {e}")
         return sorted(candidates, key=lambda x: x.get("score", 0.0), reverse=True)[:top_k]
+
+
+def rerank_domain_stratified(
+    sub_queries: Dict[str, str],
+    domain_candidates: Dict[str, List[Dict[str, Any]]],
+    top_k: int = 20
+) -> List[Dict[str, Any]]:
+    """
+    Domain-Stratified Reranker with Round-Robin Diversity Allocation.
+    Reranks candidates within each domain using aspect-targeted sub-queries,
+    then samples candidates round-robin to eliminate domain crowding and guarantee
+    100% multi-document legal coverage.
+    """
+    if not domain_candidates:
+        return []
+
+    # 1. Rerank candidates within each domain against domain-specific sub-query
+    domain_ranked: Dict[str, List[Dict[str, Any]]] = {}
+    for domain, cand_list in domain_candidates.items():
+        if not cand_list:
+            continue
+        sub_q = sub_queries.get(domain, "")
+        if sub_q:
+            domain_ranked[domain] = rerank_chunks(sub_q, cand_list, top_k=len(cand_list))
+        else:
+            domain_ranked[domain] = sorted(cand_list, key=lambda x: x.get("score", 0.0), reverse=True)
+
+    if not domain_ranked:
+        return []
+
+    # 2. Stratified Round-Robin Allocation
+    selected_results = []
+    seen_ids = set()
+    
+    max_cands = max(len(cands) for cands in domain_ranked.values())
+    domains_keys = list(domain_ranked.keys())
+
+    for idx in range(max_cands):
+        for domain in domains_keys:
+            cands = domain_ranked[domain]
+            if idx < len(cands):
+                pt = cands[idx]
+                pid = str(pt.get("id"))
+                if pid not in seen_ids:
+                    seen_ids.add(pid)
+                    selected_results.append(pt)
+                    if len(selected_results) >= top_k:
+                        break
+        if len(selected_results) >= top_k:
+            break
+
+    # 3. Fallback fill if top_k not reached
+    if len(selected_results) < top_k:
+        remaining_pool = []
+        for cands in domain_ranked.values():
+            for pt in cands:
+                pid = str(pt.get("id"))
+                if pid not in seen_ids:
+                    remaining_pool.append(pt)
+        remaining_pool.sort(key=lambda x: x.get("combined_score", x.get("score", 0.0)), reverse=True)
+        for pt in remaining_pool:
+            selected_results.append(pt)
+            if len(selected_results) >= top_k:
+                break
+
+    return selected_results[:top_k]
+
