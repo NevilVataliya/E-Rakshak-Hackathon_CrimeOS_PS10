@@ -6,6 +6,8 @@ from langchain_anthropic import ChatAnthropic
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_groq import ChatGroq
 
+
+
 # Load root .env file and local .env file
 root_env_path = Path(__file__).resolve().parent.parent / '.env'
 if root_env_path.exists():
@@ -16,6 +18,20 @@ load_dotenv()
 ENABLE_DEMO_FALLBACKS = os.getenv("ENABLE_DEMO_FALLBACKS", "false").lower() == "true"
 DEBUG = os.getenv("DEBUG", "true").lower() == "true"
 USE_OLLAMA = os.getenv("USE_OLLAMA", "false").lower() == "true"
+OFFLINE_MODE = os.getenv("OFFLINE_MODE", "auto").lower()
+
+def is_offline_mode() -> bool:
+    """
+    Returns True if system is explicitly configured for offline execution
+    or if no cloud LLM API keys are configured in auto mode.
+    """
+    if OFFLINE_MODE in ("true", "1", "yes"):
+        return True
+    if OFFLINE_MODE in ("false", "0", "no"):
+        return False
+    # Auto mode: offline if no cloud API keys exist
+    has_keys = bool(GEMINI_API_KEY or OPENAI_API_KEY or GROQ_API_KEY or ANTHROPIC_API_KEY)
+    return not has_keys
 
 # Persistent Model Cache Directory Configuration
 MODEL_CACHE_DIR = os.getenv("MODEL_CACHE_DIR", str(Path(__file__).resolve().parent / "models_cache"))
@@ -81,8 +97,15 @@ def get_agent_llm(provider: str = "auto", temperature: float = 0.2):
         return ChatOpenAI(model="gpt-4o", api_key=OPENAI_API_KEY, temperature=temperature)
 
     # AUTO SELECTION
-    if GROQ_API_KEY:
-        return ChatGroq(model_name="llama-3.3-70b-versatile", groq_api_key=GROQ_API_KEY, temperature=temperature)
+    if GEMINI_API_KEY and (env_provider == "gemini" or not GROQ_API_KEY):
+        return ChatGoogleGenerativeAI(model="gemini-2.0-flash", google_api_key=GEMINI_API_KEY, temperature=temperature)
+    elif GROQ_API_KEY:
+        try:
+            return ChatGroq(model_name="llama-3.3-70b-versatile", groq_api_key=GROQ_API_KEY, temperature=temperature)
+        except Exception:
+            if GEMINI_API_KEY:
+                return ChatGoogleGenerativeAI(model="gemini-2.0-flash", google_api_key=GEMINI_API_KEY, temperature=temperature)
+            return ChatGroq(model_name="llama3-70b-8192", groq_api_key=GROQ_API_KEY, temperature=temperature)
     elif ANTHROPIC_API_KEY:
         return ChatAnthropic(model="claude-3-5-sonnet-20240620", api_key=ANTHROPIC_API_KEY, temperature=temperature)
     elif OPENAI_API_KEY:
@@ -92,4 +115,7 @@ def get_agent_llm(provider: str = "auto", temperature: float = 0.2):
     else:
         if not ENABLE_DEMO_FALLBACKS:
             raise ValueError("No Agent LLM API Keys found in .env (GROQ_API_KEY, OPENAI_API_KEY, ANTHROPIC_API_KEY, or GEMINI_API_KEY required).")
-        return ChatOpenAI(model="gpt-4o-mini", api_key="mock", temperature=temperature)
+        return None
+
+
+

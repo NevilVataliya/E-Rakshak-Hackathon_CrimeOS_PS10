@@ -1,128 +1,85 @@
 import os
-import json
-import fitz  # PyMuPDF
-import google.generativeai as genai
-from PIL import Image
 from typing import Union, List, Dict, Any, Optional
-from config import GEMINI_API_KEY, get_agent_llm, ENABLE_DEMO_FALLBACKS
+from config import GEMINI_API_KEY, get_agent_llm, is_offline_mode
 from app.utils.json_helper import parse_llm_json
 from app.models.schemas import ComplaintIngestionSchema
+from app.ingestion.base_processor import BaseFileProcessor
+from app.ingestion.processors import (
+    TextProcessor,
+    DocxProcessor,
+    PDFProcessor,
+    AudioProcessor,
+    ImageProcessor
+)
+from app.ingestion.heuristic_extractor import extract_entities_heuristic
 
-if GEMINI_API_KEY:
-    genai.configure(api_key=GEMINI_API_KEY)
-
-def extract_text_from_pdf(pdf_path: str) -> str:
-    text = ""
-    try:
-        doc = fitz.open(pdf_path)
-        for page in doc:
-            text += page.get_text()
-        doc.close()
-    except Exception as e:
-        print(f"[-] PyMuPDF extraction error: {e}")
-        if not ENABLE_DEMO_FALLBACKS:
-            raise e
-    return text
-
-import re
-
-def extract_entities_heuristic(text: str, fallback_reason: str = None) -> dict:
+class IntakeAgent:
     """
-    Rule-based & Regex Heuristic Entity Extractor.
-    Used as a high-reliability fallback when LLM API keys are absent or API calls fail.
-    Extracts real phone numbers, VPAs, monetary loss, bank accounts, and language from input text.
+    Multimodal Ingestion Agent using an Open/Closed Plugin Architecture.
+    Allows runtime registration of file handlers for PDF, DOCX, Text, Images, and Audio.
     """
-    raw = text or ""
-    
-    # Language Detection (Gujarati, Hindi, English)
-    lang = "en"
-    if re.search(r'[\u0A80-\u0AFF]', raw):
-        lang = "gu"
-    elif re.search(r'[\u0900-\u097F]', raw):
-        lang = "hi"
+    def __init__(self, processors: List[BaseFileProcessor] = None):
+        self._processors = processors or []
 
-    # Extract Phone Numbers (+91 9876543210, 9876543210, etc.)
-    phones = list(set(re.findall(r'\+?\d{10,12}', raw)))
-    
-    # Extract UPI VPAs (e.g. scammer@paytm, user@ybl)
-    vpas = list(set(re.findall(r'[a-zA-Z0-9.\-_]+@[a-zA-Z0-9.]+', raw)))
+    def register_processor(self, processor: BaseFileProcessor):
+        self._processors.append(processor)
 
-    # Extract Online Handles / Telegram IDs (e.g. @CCMB_B4, @CyberCrime)
-    handles = list(set(re.findall(r'@[a-zA-Z0-9_]{3,}', raw)))
-    
-    # Extract Monetary Loss (Rs. 85,000, 85000 INR, 85000 રૂપિયા)
-    loss = 0
-    loss_match = re.search(r'(?:rs\.?|inr|₹|રૂપિયા|રૂ|rupees)\s*([\d,]+)|([\d,]+)\s*(?:rs\.?|inr|₹|રૂપિયા|રૂ|rupees)', raw, re.IGNORECASE)
-    if loss_match:
-        val_str = (loss_match.group(1) or loss_match.group(2) or "0").replace(",", "")
-        if val_str.isdigit():
-            loss = int(val_str)
+    def process_files(self, file_paths: List[str], offline_mode: bool = False) -> Dict[str, Any]:
+        output_parts = []
+        engines_used = []
+        warnings = []
+        is_fully_offline = True
 
-    # Extract Potential Bank Accounts (9 to 18 digits)
-    all_num_str = re.findall(r'\b\d{9,18}\b', raw)
-    accounts = []
-    for num in all_num_str:
-        if num not in phones and not num.startswith("91") and len(num) >= 9:
-            accounts.append({
-                "account_number": num,
-                "ifsc": "SBIN0001234",
-                "bank": "State Bank of India",
-                "account_name": "Accused Fraudster",
-                "account_role": "accused",
-                "is_victim_account": False
-            })
+        for path in file_paths:
+            if not os.path.exists(path):
+                continue
+            filename = os.path.basename(path)
+            _, ext = os.path.splitext(path)
 
-    # Default entities if none found in text
-    if not phones:
-        phones = ["+91 98765 43210"]
-    if not vpas:
-        vpas = ["scammer@paytm"]
-    if not accounts:
-        accounts = [{"account_number": "30910293101", "ifsc": "SBIN0001234", "bank": "State Bank of India", "account_name": "Accused Fraudster", "account_role": "accused", "is_victim_account": False}]
-    if loss == 0:
-        loss = 85000
+            processor_found = False
+            for processor in self._processors:
+                if processor.can_handle(ext):
+                    res = processor.extract_content(path, offline_mode=offline_mode)
+                    if res.get("content"):
+                        output_parts.append(res["content"])
+                    if res.get("engine_used"):
+                        engines_used.append(res["engine_used"])
+                    if res.get("warning"):
+                        warnings.append(res["warning"])
+                    if not res.get("is_offline", True):
+                        is_fully_offline = False
+                    processor_found = True
+                    break
 
-    raw_lower = raw.lower()
-    sub_type = "UPI Financial Fraud"
-    if any(k in raw_lower for k in ["custom", "customs", "mdma", "parcel", "telegram", "cbi", "arrest"]):
-        sub_type = "Digital Arrest & Custom Impersonation Fraud"
-    elif vpas:
-        sub_type = "UPI Financial Fraud"
-    else:
-        sub_type = "Cyber Financial Fraud"
+            if not processor_found:
+                warnings.append(f"No registered processor for file type extension '{ext}' ({filename})")
+                output_parts.append(f"[File {filename} attached - Unsupported file format]")
 
-    translated = raw if lang == "en" else f"Victim reported unauthorized financial fraud of Rs. {loss:,} involving suspect line {phones[0]}."
+        return {
+            "combined_text": "\n\n".join(output_parts),
+            "engines_used": list(set(engines_used)),
+            "warnings": warnings,
+            "is_fully_offline": is_fully_offline
+        }
 
-    return {
-        "original_language": lang,
-        "translated_text": translated,
-        "crime_category": "CYBER" if (vpas or "upi" in raw_lower or "fraud" in raw_lower or "custom" in raw_lower) else "CONVENTIONAL",
-        "crime_sub_type": sub_type,
-        "severity_score": 8.5 if loss >= 50000 else 6.5,
-        "entities": {
-            "persons": [{"name": "Ramesh Patel", "role": "victim"}],
-            "phone_numbers": phones,
-            "email_addresses": [],
-            "online_handles": handles,
-            "bank_accounts": accounts,
-            "vpas_upis": vpas,
-            "monetary_loss": loss,
-            "crime_locations": ["Gujarat"],
-            "date_time_of_incident": "Recent"
-        },
-        "key_facts": [
-            f"Complaint processed (language: {lang.upper()}).",
-            f"Extracted {len(vpas)} VPAs, {len(phones)} phone numbers, {len(handles)} online handles, and {len(accounts)} bank accounts."
-        ],
-        "raw_text": raw,
-        "fallback_used": True,
-        "fallback_reason": fallback_reason or "LLM invocation error or missing LLM API keys."
-    }
+# Default global instance pre-registered with default file processors
+default_intake_agent = IntakeAgent(processors=[
+    TextProcessor(),
+    DocxProcessor(),
+    PDFProcessor(),
+    AudioProcessor(),
+    ImageProcessor()
+])
 
-def process_multimodal_complaint(file_paths: Union[str, List[str]] = None, file_path: str = None, raw_text: str = None, input_type: str = "text") -> dict:
+def process_multimodal_complaint(
+    file_paths: Union[str, List[str]] = None,
+    file_path: str = None,
+    raw_text: str = None,
+    input_type: str = "text"
+) -> Dict[str, Any]:
     """
     Multimodal Complaint Ingestion Engine.
-    Processes text prompt plus multiple uploaded files (PDFs, Images, Audio) simultaneously.
+    Supports Standalone Offline execution and Hybrid Online LLM processing.
     """
     paths = []
     if isinstance(file_paths, list):
@@ -132,146 +89,227 @@ def process_multimodal_complaint(file_paths: Union[str, List[str]] = None, file_
     if file_path and file_path not in paths:
         paths.append(file_path)
 
-    text_parts = []
-    if raw_text:
-        text_parts.append(raw_text)
+    # 1. Determine System Operational Mode
+    system_offline = is_offline_mode()
 
-    image_objects = []
-    audio_file_uploads = []
+    # 2. Execute Pluggable Intake Processors
+    file_results = default_intake_agent.process_files(paths, offline_mode=system_offline)
+    
+    text_components = []
+    if raw_text and raw_text.strip():
+        text_components.append(f"[User Input Complaint Text]:\n{raw_text.strip()}")
+    if file_results["combined_text"]:
+        text_components.append(file_results["combined_text"])
 
-    for path in paths:
-        if path and os.path.exists(path):
-            filename = os.path.basename(path).lower()
+    extracted_text = "\n\n".join(text_components) if text_components else "No complaint narrative provided."
 
-            if filename.endswith('.pdf') or input_type == 'pdf':
-                pdf_text = extract_text_from_pdf(path)
-                if len(pdf_text.strip()) > 10:
-                    text_parts.append(f"[PDF Document {filename}]:\n{pdf_text}")
-                elif GEMINI_API_KEY:
-                    try:
-                        doc = fitz.open(path)
-                        page = doc.load_page(0)
-                        pix = page.get_pixmap()
-                        temp_img_path = path + "_page1.png"
-                        pix.save(temp_img_path)
-                        image_objects.append(Image.open(temp_img_path))
-                        doc.close()
-                        text_parts.append(f"[Scanned PDF {filename} - Vision OCR Attached]")
-                    except Exception as e:
-                        print(f"[-] Scanned PDF Vision Error for {filename}: {e}")
+    # Strip null bytes (\x00) that pdfplumber/PyMuPDF can embed from garbled PDF streams.
+    # PostgreSQL TEXT columns reject \x00 with "invalid byte sequence for encoding UTF8".
+    extracted_text = extracted_text.replace("\x00", "")
 
-            elif any(filename.endswith(ext) for ext in ['.jpg', '.jpeg', '.png', '.bmp']) or input_type == 'image':
-                try:
-                    image_objects.append(Image.open(path))
-                    text_parts.append(f"[Image File {filename} - Vision OCR Attached]")
-                except Exception as e:
-                    print(f"[-] Image Loading Error for {filename}: {e}")
+    # 3. Offline Mode Execution Branch
+    if system_offline:
+        res = extract_entities_heuristic(
+            text=extracted_text,
+            fallback_reason="System operating in Standalone Offline Mode. Local extractors active."
+        )
+        res["processing_mode"] = "OFFLINE_STANDALONE"
+        res["engines_used"] = file_results["engines_used"] + ["local_regex_heuristic_extractor"]
+        res["warnings"] = file_results["warnings"] + ["Cloud LLM extraction skipped in Offline Mode."]
+        res["is_offline"] = True
+        return res
 
-            elif any(filename.endswith(ext) for ext in ['.wav', '.mp3', '.m4a', '.ogg']) or input_type == 'audio':
-                if GEMINI_API_KEY:
-                    try:
-                        print(f"[*] Uploading audio file to Gemini ASR API: {path}")
-                        up = genai.upload_file(path=path)
-                        audio_file_uploads.append(up)
-                        text_parts.append(f"[Audio Recording {filename} - Multimodal ASR Attached]")
-                    except Exception as e:
-                        print(f"[-] Gemini Audio Upload Error for {filename}: {e}")
-
-    extracted_text = "\n\n".join(text_parts) if text_parts else (raw_text or "")
-
-    # Multimodal LLM Prompt with Detailed Bank Account Extraction
+    # 4. Online Mode Execution Branch (Cloud LLM Extraction)
     prompt_text = f"""
 You are an expert Law Enforcement Fact Analyst for Indian Police.
-Analyze the following complaint input (Text/Image OCR/Audio ASR in English, Hindi, or Gujarati):
+Analyze the following complaint input (Text, OCR, Audio Transcription in English, Hindi, or Gujarati).
 
 === COMPLAINT INPUT ===
 {extracted_text}
 =======================
 
+IMPORTANT: This document may span MULTIPLE PAGES (marked as --- Page 1/N ---, --- Page 2/N --- etc.).
+You MUST read and extract entities from EVERY PAGE. Do NOT stop at the first page.
+Pay special attention to investigation reports on later pages which often name secondary accused, money mules, absconding suspects, and field investigation findings.
+
+CRITICAL — GUJARATI/HINDI NUMERALS:
+The document may contain amounts written in Gujarati (Gujarati) or Hindi (Devanagari) digits, NOT ASCII digits.
+Examples of Gujarati digits: ૦=0 ૧=1 ૨=2 ૩=3 ૪=4 ૫=5 ૬=6 ૭=7 ૮=8 ૯=9
+Examples of Devanagari digits: ०=0 १=1 २=2 ३=3 ४=4 ५=5 ६=6 ७=7 ८=8 ९=9
+When you see amounts like "રૂ.૯,૦૦,૦૦૦" or "₹९,००,०००", convert them correctly:
+  - ૯,૦૦,૦૦૦ = 9,00,000 (NINE LAKHS) — NOT 90,000
+  - ૯૦,૦૦૦ = 90,000
+  - ૯,૦૦,૦૦,૦૦૦ = 9,00,00,000 (NINE CRORES)
+Use Indian numbering (lakhs/crores) as written in the original. DO NOT misread lakh amounts as thousands.
+
+CRITICAL — MONETARY_LOSS GUIDANCE:
+The `monetary_loss` field must be set to the EXPLICITLY STATED TOTAL LOSS AMOUNT in the document, NOT the sum of individual transactions.
+- If the document states a total amount like "રૂ.૯,૦૦,૦૦૦" or "₹9,00,000" or "nine lakhs", use THAT as `monetary_loss`.
+- Individual transfer amounts (e.g. "₹2,50,000 ... ₹2,00,000") are part of the money_trail, but the `monetary_loss` is the TOTAL claimed loss.
+- Only if NO total is stated, fall back to the sum of all individual transfers.
+
 Task:
 1. Detect original language (en, hi, gu).
-2. Translate text to clear English if it's in Hindi or Gujarati.
+2. Translate the FULL document to clear English. Include key details from all pages.
 3. Classify crime category: "CYBER" or "CONVENTIONAL" or "HYBRID".
 4. Determine the exact crime sub-type based strictly on the complaint narrative.
-5. Extract key entities in valid JSON:
-   - persons: list of objects with "name" and "role" (victim, accused, suspect, witness)
-   - phone_numbers: list of phone numbers
-   - email_addresses: list of emails
-   - online_handles: list of Telegram handles/social handles (e.g. @CCMB_B4)
-   - bank_accounts: list of objects with:
-     * "account_number": string
-     * "ifsc": string
-     * "bank": string (e.g. Union Bank, IndusInd Bank, IDBI Bank)
-     * "account_name": string
-     * "account_role": "victim" if this is the complainant's own debited account, OR "accused" if this is a suspect/mule beneficiary account
-     * "is_victim_account": true if complainant's account, false if beneficiary/accused account
-   - vpas_upis: list of UPI IDs/VPAs
-   - monetary_loss: number in INR (or 0)
-   - crime_locations: list of locations
-   - date_time_of_incident: string description
-   - key_facts: bullet list of 3-5 key facts
-   - severity_score: number between 1.0 and 10.0
+5. Extract ALL entities in valid JSON. Include the money_trail (transfer chain) when accounts/UPIs are involved.
+
+PERSONS — Extract ALL persons mentioned across all pages, including:
+  - Primary complainant/victim
+  - All accused persons (named, identified, or traced)
+  - Absconding / untraceable suspects (still extract them with status: "absconding" or "untraceable")
+  - Persons with aliases (urfé / ઉર્ફે / alias) — extract BOTH the real name and alias
+  - Persons identified during investigation on later pages
+  For each person, extract:
+    * name: full name as written
+    * alias: alternate name / urfé name (null if none)
+    * role: "victim", "accused", "suspect", "witness", "mule", or "fake_identity"
+    * father_name: S/O or father's name (null if not mentioned)
+    * age: numeric age (null if not mentioned)
+    * address: full address if mentioned (null if not mentioned)
+    * status: "arrested", "absconding", "untraceable", "questioned", "produced" (null if not clear)
+
+BANK ACCOUNTS — For EACH bank account:
+  * account_number, ifsc, bank name
+  * account_role: "victim" or "accused"
+  * is_victim_account: true ONLY for the original complainant's account
+  Note the money trail order if multiple accounts are mentioned as a transfer chain.
+
+LEGAL SECTIONS — Record the sections EXACTLY as stated in the document, preserving the original statute prefix (IPC, IT Act, BNS, etc.). Do NOT convert or renumber sections between statutes. The legal specialist agent will independently identify the correct current BNS sections via the RAG legal corpus.
+Record ONLY sections that are EXPLICITLY mentioned/numbered in the document, or that are directly and unambiguously evident from the facts. Do NOT force a fixed list of sections. Include the section number AND a short description in brackets.
 
 Respond ONLY in valid JSON matching this exact structure:
 {{
   "original_language": "gu|hi|en",
-  "translated_text": "...",
+  "translated_text": "<FULL ENGLISH TRANSLATION covering all pages>",
   "crime_category": "CYBER|CONVENTIONAL|HYBRID",
-  "crime_sub_type": "Digital Arrest & Custom Impersonation Fraud",
+  "crime_sub_type": "<SPECIFIC SUB TYPE>",
   "severity_score": 7.5,
+  "bns_sections_identified": ["<BNS_SECTION_1>", "<BNS_SECTION_2>"],
   "entities": {{
-    "persons": [{{"name": "...", "role": "victim|accused"}}],
+    "persons": [
+      {{
+        "name": "<FULL NAME>",
+        "alias": "<ALIAS OR NULL>",
+        "role": "victim|accused|suspect|witness|mule|fake_identity",
+        "father_name": "<S/O NAME OR NULL>",
+        "age": null,
+        "address": "<ADDRESS OR NULL>",
+        "status": "arrested|absconding|untraceable|questioned|produced|null"
+      }}
+    ],
     "phone_numbers": [],
     "email_addresses": [],
-    "online_handles": ["@CCMB_B4"],
+    "online_handles": [],
     "bank_accounts": [
       {{
-        "account_number": "<ACCOUNT_NUMBER>",
-        "ifsc": "<IFSC_CODE>",
-        "bank": "<BANK_NAME>",
-        "account_name": "<ACCOUNT_HOLDER_NAME>",
+        "account_number": "<NUMBER>",
+        "ifsc": "<IFSC>",
+        "bank": "<BANK NAME>",
+        "account_name": "<HOLDER NAME>",
         "account_role": "victim|accused",
         "is_victim_account": false
       }}
     ],
     "vpas_upis": [],
     "monetary_loss": 0,
+    "money_trail": [
+      {{
+        "step": 1,
+        "from_account": "<FROM ACCOUNT NUMBER OR UPI>",
+        "from_bank": "<FROM BANK NAME>",
+        "to_account": "<TO ACCOUNT NUMBER OR UPI>",
+        "to_bank": "<TO BANK NAME>",
+        "amount": 0,
+        "method": "UPI|IMPS|NEFT|RTGS|Cheque|Cash",
+        "date": "<DD/MM/YYYY>",
+        "notes": "<e.g. 'victim to mule1', 'mule1 to mule2', 'withdrawn at ATM'>"
+      }}
+    ],
     "crime_locations": [],
-    "date_time_of_incident": "..."
+    "date_time_of_incident": "<DATE RANGE>"
   }},
-  "key_facts": []
+  "key_facts": [
+    "<SPECIFIC FACT 1 — include EXACT amounts with Indian numbering (e.g. ₹9,00,000 / nine lakhs), not generic descriptions>",
+    "<SPECIFIC FACT 2 — include the money trail / transfer chain: from which account/UPI to which, and the method>",
+    "<SPECIFIC FACT 3 — include investigation findings: where money was withdrawn, which mule accounts were traced, any arrests or absconding suspects>",
+    "<SPECIFIC FACT 4 — include exact dates, times, and locations mentioned>"
+  ]
 }}
 """
 
     try:
-        response_text = ""
-        if GEMINI_API_KEY and (image_objects or audio_file_uploads):
-            model = genai.GenerativeModel("gemini-1.5-flash")
-            inputs = [prompt_text]
-            for img in image_objects:
-                inputs.append(img)
-            for aud in audio_file_uploads:
-                inputs.append(aud)
-            
-            res = model.generate_content(inputs)
-            response_text = res.text
-        else:
-            llm = get_agent_llm("auto", temperature=0.1)
-            if llm is None:
-                raise ValueError("No LLM instance available. Using heuristic parsing.")
-            resp = llm.invoke(prompt_text)
-            response_text = resp.content if hasattr(resp, 'content') else str(resp)
+        llm = get_agent_llm("auto", temperature=0.1)
+        if llm is None:
+            raise ValueError("No Cloud LLM API key available.")
+        
+        resp = llm.invoke(prompt_text)
+        response_text = resp.content if hasattr(resp, 'content') else str(resp)
 
         data = parse_llm_json(response_text, schema_model=ComplaintIngestionSchema)
         data['raw_text'] = extracted_text
+        data['processing_mode'] = "HYBRID_ONLINE"
+        data['engines_used'] = file_results["engines_used"] + ["cloud_agent_llm"]
+        data['warnings'] = file_results["warnings"]
+        data['is_offline'] = False
+        data['fallback_used'] = False
+
+        # DETERMINISTIC MONETARY LOSS OVERRIDE
+        # The LLM may sum individual transfers (₹2.5L + ₹2L = ₹4.5L) instead of using
+        # the explicitly stated total loss (રૂ.૯,૦૦,૦૦૦ = ₹9,00,000). We override with
+        # the LARGEST amount found in the raw text, which handles Gujarati/Hindi digits
+        # and correctly picks the total loss over any individual transfer/commission.
+        try:
+            import re as _re
+            from app.ingestion.heuristic_extractor import _normalize_indic_digits
+            # Match all currency amounts (prefix or suffix) with optional Indic digits
+            _amount_patterns = [
+                r'(?:rs\.?|inr|₹|રૂપિયા|રૂ|रुपये|रू|rupees)[.\s]*([\d,\u0A80-\u0AFF\u0900-\u097F]+)',
+                r'([\d,\u0A80-\u0AFF\u0900-\u097F]+)[.\s]*(?:rs\.?|inr|₹|રૂપિયા|રૂ|रुपये|रू|rupees)',
+            ]
+            _all_amounts = []
+            for _pat in _amount_patterns:
+                for _m in _re.finditer(_pat, extracted_text, _re.IGNORECASE):
+                    _num_raw = _m.group(1)
+                    _num_ascii = _normalize_indic_digits(_num_raw)
+                    _digits_only = _re.sub(r'[^\d]', '', _num_ascii)
+                    if _digits_only.isdigit():
+                        _all_amounts.append(float(int(_digits_only)))
+            if _all_amounts:
+                heuristic_loss = max(_all_amounts)
+                data['entities']['monetary_loss'] = heuristic_loss
+        except Exception:
+            pass  # keep LLM value if heuristic fails
+
+        # DETERMINISTIC LEGAL SECTION PRESERVATION OVERRIDE
+        # The LLM may incorrectly convert IPC/IT Act sections to BNS numbers (e.g. "IPC 388" -> "BNS 386",
+        # "IPC 419" -> "BNS 419") even when instructed not to. The BNS 2023 is structurally different from
+        # the IPC and sections CANNOT be mapped 1:1. We override with a deterministic parser that extracts
+        # the sections EXACTLY AS WRITTEN in the raw text, preserving the original statute prefix.
+        # The BNS Agent independently identifies the correct current BNS sections via RAG grounding.
+        try:
+            from app.ingestion.heuristic_extractor import _extract_legal_sections_heuristic
+            preserved_sections = _extract_legal_sections_heuristic(extracted_text)
+            # ALWAYS override with the deterministic result — even an empty list.
+            # The LLM hallucinates sections (e.g. 'IPC 420', 'IT Act 66D') when the
+            # document mentions NO explicit legal sections. The heuristic extractor
+            # is authoritative: it preserves sections EXACTLY as written, and returns
+            # [] when none are explicitly stated. Keeping the LLM's hallucinated
+            # sections would violate the "record ONLY explicitly mentioned sections"
+            # requirement.
+            data['bns_sections_identified'] = preserved_sections
+        except Exception:
+            pass  # keep LLM value if deterministic parser fails
+
         return data
 
     except Exception as e:
         reason_msg = f"{type(e).__name__}: {str(e)}"
-        print("\n" + "=" * 70)
-        print("⚠️ [INGESTION WARNING] LLM EXCEPTION TRIGGERED HEURISTIC FALLBACK")
-        print(f"⚠️ [Reason]: {reason_msg}")
-        print(f"⚠️ [Input Text Length]: {len(extracted_text)} chars")
-        print("=" * 70 + "\n")
-        return extract_entities_heuristic(extracted_text, fallback_reason=reason_msg)
-
+        print(f"⚠️ [INGESTION WARNING] LLM Exception: {reason_msg}. Falling back to Heuristic Extractor.")
+        res = extract_entities_heuristic(extracted_text, fallback_reason=reason_msg)
+        res["processing_mode"] = "HYBRID_ONLINE_FALLBACK"
+        res["engines_used"] = file_results["engines_used"] + ["local_heuristic_fallback"]
+        res["warnings"] = file_results["warnings"] + [f"LLM API Error: {reason_msg}"]
+        res["is_offline"] = False
+        return res

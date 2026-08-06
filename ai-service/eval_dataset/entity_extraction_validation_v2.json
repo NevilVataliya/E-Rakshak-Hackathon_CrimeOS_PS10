@@ -1,0 +1,687 @@
+{
+    "benchmark_metadata": {
+        "version": "2.0",
+        "created_at": "2026-08-05",
+        "description": "Validation dataset v2 — stresses deterministic legal-section preservation, Indic numeral parsing, money-trail extraction, and diverse crime scenarios",
+        "total_test_cases": 12,
+        "distribution": {
+            "cyber_fraud": 5,
+            "conventional_crime": 2,
+            "hybrid": 2,
+            "legal_section_preservation": 3
+        },
+        "focus_areas": [
+            "IPC/IT Act section preservation as-stated (no IPC->BNS conversion)",
+            "BNS section identification for Gujarati FIRs",
+            "Gujarati/Hindi numeral monetary-loss parsing",
+            "Money-trail (transfer chain) extraction",
+            "Multi-accused / money-mule scenarios"
+        ]
+    },
+    "test_cases": [
+        {
+            "test_case_id": "V2-001",
+            "description": "Digital Arrest / CBI Impersonation with full IPC + IT Act section list",
+            "input_type": "text",
+            "raw_input_text": "Cyber Crime Police Station, Surat City. Old Traffic Office, Surat Range IG Office, Athwal Lines, Surat City. Date: 12/05/2024. Subject: Investigation of accused and submission of report. The above subject is to inform that a crime has been registered at Cyber Crime Police Station, Surat City, under IPC sections 388, 170, 465, 467, 468, 471, 120(B), 34 and IT Act sections 66(C), 66(D) on 10/05/2024. The accused had made a call from an unknown mobile number +2223755264, posing as Sukhraj Raja, and had a conversation with the complainant. The accused had also sent a message from Telegram ID Cyber Crime Mumbai Branch B04 (@CCMB_B4), posing as Rakesh Kumar Singh, Police Inspector. The accused had threatened the complainant to arrest him in a drug case and had asked him to pay Rs 9,00,000. The complainant was asked to transfer the money to account number 200501154197 at IndusInd Bank. The accused had told the complainant that a parcel was sent from Mumbai to Thailand and it was returned. The parcel contained 5 passports, 3 credit cards, 140 grams of MDMA, and 4 kilograms of clothes. The complainant received a call from +918828818331. The total monetary loss is Rs 9,00,000.",
+            "expected_output": {
+                "original_language": "en",
+                "crime_category": "CYBER",
+                "crime_sub_type_keywords": [
+                    "digital arrest",
+                    "impersonation",
+                    "custom",
+                    "fraud"
+                ],
+                "severity_score_range": [
+                    7.0,
+                    9.5
+                ],
+                "bns_sections_identified": [
+                    "IPC 388",
+                    "IPC 170",
+                    "IPC 465",
+                    "IPC 467",
+                    "IPC 468",
+                    "IPC 471",
+                    "IPC 120(B)",
+                    "IPC 34",
+                    "IT Act 66(C)",
+                    "IT Act 66(D)"
+                ],
+                "no_bns_mislabeled_from_ipc": [
+                    "388",
+                    "170",
+                    "465",
+                    "467",
+                    "468",
+                    "471",
+                    "420",
+                    "506"
+                ],
+                "entities": {
+                    "persons": [
+                        {
+                            "name": "Sukhraj Raja",
+                            "role": "accused"
+                        },
+                        {
+                            "name": "Rakesh Kumar Singh",
+                            "role": "accused"
+                        }
+                    ],
+                    "phone_numbers": [
+                        "+2223755264",
+                        "+918828818331"
+                    ],
+                    "email_addresses": [],
+                    "online_handles": [
+                        "@CCMB_B4"
+                    ],
+                    "bank_accounts": [
+                        {
+                            "account_number": "200501154197",
+                            "bank_keywords": [
+                                "indusind"
+                            ],
+                            "account_role": "accused",
+                            "is_victim_account": false
+                        }
+                    ],
+                    "vpas_upis": [],
+                    "monetary_loss": 900000,
+                    "monetary_loss_tolerance": 0.05
+                }
+            }
+        },
+        {
+            "test_case_id": "V2-002",
+            "description": "Gujarati FIR with BNS 318 & 351 + Indic numeral monetary loss (₹9,00,000)",
+            "input_type": "text",
+            "raw_input_text": "સાયબર ક્રાઈમ પોલીસ સ્ટેશન, સુરત. ફરિયાદ અરજી. માનનીય પોલીસ નિરીક્ષક સાહેબ, હું રાજેશ પટેલ, રહે. અડાજણ, સુરત. મને ટેલિગ્રામ પર પાર્ટ-ટાઈમ YouTube વિડિયો લાઈકિંગ જોબની ઓફર મળી હતી. શરૂઆતમાં ₹500 કમિશન મળ્યું, પછી ટાસ્ક કમ્પલીટ કરવાના નામે રૂ.૯,૦૦,૦૦૦ ટ્રાન્સફર કરાવ્યા. મેં ₹2,50,000 SBI એકાઉન્ટ 39201948102 (IFS Code SBIN0004012) થી બેનેફિશિયરી એકાઉન્ટ ICICI 00192847192 (નામ: રમેશ શાહ) માં UPI ટ્રાન્ઝેક્શન id 419201948102 થી મોકલ્યા. પછી Axis Bank 91802938102 માં ₹2,00,000 ટ્રાન્સફર કરાવ્યા. ટેલિગ્રામ એડમિન ગ્રુપમાંથી મને રીમુવ કરી દીધો અને પૈસા પાછા નથી મળી રહ્યા. મોબાઈલ નંબર +91 9825102948 અને ટેલિગ્રામ હેન્ડલ @task_admin_surat હતું. જો આ રકમ ફ્રીઝ કરવામાં આવે તો મદદ થશે. આરોપીએ મને ધમકી પણ આપી છે કે જો પોલીસમાં ફરિયાદ કરીશ તો મારા પરિવારને નુકસાન પહોંચાડશે.",
+            "expected_output": {
+                "original_language": "gu",
+                "crime_category": "CYBER",
+                "crime_sub_type_keywords": [
+                    "job",
+                    "task",
+                    "fraud",
+                    "like"
+                ],
+                "severity_score_range": [
+                    6.5,
+                    9.0
+                ],
+                "bns_sections_identified": [],
+                "no_bns_mislabeled_from_ipc": [],
+                "entities": {
+                    "persons": [
+                        {
+                            "name": "રાજેશ પટેલ",
+                            "role": "victim",
+                            "name_alternates": [
+                                "Rajesh Patel"
+                            ]
+                        },
+                        {
+                            "name": "રમેશ શાહ",
+                            "role": "accused",
+                            "name_alternates": [
+                                "Ramesh Shah"
+                            ]
+                        }
+                    ],
+                    "phone_numbers": [
+                        "+919825102948"
+                    ],
+                    "email_addresses": [],
+                    "online_handles": [
+                        "@task_admin_surat"
+                    ],
+                    "bank_accounts": [
+                        {
+                            "account_number": "39201948102",
+                            "bank_keywords": [
+                                "sbi"
+                            ],
+                            "account_role": "victim",
+                            "is_victim_account": true
+                        },
+                        {
+                            "account_number": "00192847192",
+                            "bank_keywords": [
+                                "icici"
+                            ],
+                            "account_role": "accused",
+                            "is_victim_account": false
+                        },
+                        {
+                            "account_number": "91802938102",
+                            "bank_keywords": [
+                                "axis"
+                            ],
+                            "account_role": "accused",
+                            "is_victim_account": false
+                        }
+                    ],
+                    "vpas_upis": [
+                        "419201948102"
+                    ],
+                    "monetary_loss": 900000,
+                    "monetary_loss_tolerance": 0.10
+                }
+            }
+        },
+        {
+            "test_case_id": "V2-003",
+            "description": "UPI Payment Fraud with multiple VPAs and money trail",
+            "input_type": "text",
+            "raw_input_text": "I am Priya Mehta, resident of Ahmedabad. On 15/06/2024, I received a call from +919876543210 claiming to be from SBI customer care. The caller told me my SBI debit card was going to be blocked and I need to update my KYC. He asked me to install AnyDesk app and share the code. After sharing the code, three transactions were made from my account Rs 49,999 to raju.fraud@paytm, Rs 25,000 to quickpay.scam@ybl, and Rs 15,500 to money.transfer@oksbi. Total loss is Rs 90,499. My SBI account number is 38712456890 from SBI Satellite branch, IFSC SBIN0002345. I also received WhatsApp messages from +917890123456 with fake SBI links.",
+            "expected_output": {
+                "original_language": "en",
+                "crime_category": "CYBER",
+                "crime_sub_type_keywords": [
+                    "upi",
+                    "fraud",
+                    "financial",
+                    "kyc"
+                ],
+                "severity_score_range": [
+                    6.0,
+                    9.0
+                ],
+                "bns_sections_identified": [],
+                "no_bns_mislabeled_from_ipc": [],
+                "entities": {
+                    "persons": [
+                        {
+                            "name": "Priya Mehta",
+                            "role": "victim"
+                        }
+                    ],
+                    "phone_numbers": [
+                        "+919876543210",
+                        "+917890123456"
+                    ],
+                    "email_addresses": [],
+                    "online_handles": [],
+                    "bank_accounts": [
+                        {
+                            "account_number": "38712456890",
+                            "bank_keywords": [
+                                "sbi",
+                                "state bank"
+                            ],
+                            "account_role": "victim",
+                            "is_victim_account": true
+                        }
+                    ],
+                    "vpas_upis": [
+                        "raju.fraud@paytm",
+                        "quickpay.scam@ybl",
+                        "money.transfer@oksbi"
+                    ],
+                    "monetary_loss": 90499,
+                    "monetary_loss_tolerance": 0.05
+                }
+            }
+        },
+        {
+            "test_case_id": "V2-004",
+            "description": "Crypto Investment Scam with Telegram and Tron wallet",
+            "input_type": "text",
+            "raw_input_text": "My name is Rajesh Kumar, I live in Surat. I was added to a Telegram group called 'Crypto Profit Masters' by a person named David Chen (@crypto_david_official). The group admin promised 300% returns on crypto investment. I was asked to transfer money to a Union Bank account number 510101456789012, IFSC UBIN0531456, held by Mohit Agarwal. I transferred Rs 5,00,000 on 01/07/2024 and Rs 3,00,000 on 05/07/2024. Total loss Rs 8,00,000. They also asked me to buy USDT worth Rs 2,00,000 and send to Tron wallet address TJ7nRPMkC4FJsq8yzWPHX7RTF5x5VLqbwq. Their Telegram group link is t.me/cryptoprofitmasters. I also contacted their customer support on WhatsApp at +85267890123.",
+            "expected_output": {
+                "original_language": "en",
+                "crime_category": "CYBER",
+                "crime_sub_type_keywords": [
+                    "crypto",
+                    "investment",
+                    "fraud",
+                    "scam"
+                ],
+                "severity_score_range": [
+                    7.5,
+                    9.5
+                ],
+                "bns_sections_identified": [],
+                "no_bns_mislabeled_from_ipc": [],
+                "entities": {
+                    "persons": [
+                        {
+                            "name": "Rajesh Kumar",
+                            "role": "victim"
+                        },
+                        {
+                            "name": "David Chen",
+                            "role": "accused"
+                        },
+                        {
+                            "name": "Mohit Agarwal",
+                            "role": "accused"
+                        }
+                    ],
+                    "phone_numbers": [
+                        "+85267890123"
+                    ],
+                    "email_addresses": [],
+                    "online_handles": [
+                        "@crypto_david_official"
+                    ],
+                    "bank_accounts": [
+                        {
+                            "account_number": "510101456789012",
+                            "bank_keywords": [
+                                "union"
+                            ],
+                            "account_role": "accused",
+                            "is_victim_account": false
+                        }
+                    ],
+                    "vpas_upis": [],
+                    "monetary_loss": 800000,
+                    "monetary_loss_tolerance": 0.10
+                }
+            }
+        },
+        {
+            "test_case_id": "V2-005",
+            "description": "Sextortion via Instagram with morphed video threat",
+            "input_type": "text",
+            "raw_input_text": "I am Vikram Patel, age 28, residing in Vadodara. On 20/06/2024, I received a friend request on Instagram from an account named 'Simran Kaur' (@simran_beauty_official). After accepting, we started chatting and moved to video call. During the video call, the person recorded my compromising video. Then a person named Amit contacted me from +918765432109 demanding Rs 2,50,000 or he will upload the video online. He shared a YouTube link showing the video was already uploaded. I paid Rs 50,000 via Google Pay to amitkumar2024@gpay out of fear. He is now demanding more money. His Instagram handle is @amit_dark_web. The video has been uploaded on YouTube channel 'Expose India' and I want it removed immediately.",
+            "expected_output": {
+                "original_language": "en",
+                "crime_category": "CYBER",
+                "crime_sub_type_keywords": [
+                    "sextortion",
+                    "blackmail",
+                    "extortion"
+                ],
+                "severity_score_range": [
+                    7.0,
+                    9.5
+                ],
+                "bns_sections_identified": [],
+                "no_bns_mislabeled_from_ipc": [],
+                "entities": {
+                    "persons": [
+                        {
+                            "name": "Vikram Patel",
+                            "role": "victim"
+                        },
+                        {
+                            "name": "Amit",
+                            "role": "accused"
+                        }
+                    ],
+                    "phone_numbers": [
+                        "+918765432109"
+                    ],
+                    "email_addresses": [],
+                    "online_handles": [
+                        "@simran_beauty_official",
+                        "@amit_dark_web"
+                    ],
+                    "bank_accounts": [],
+                    "vpas_upis": [
+                        "amitkumar2024@gpay"
+                    ],
+                    "monetary_loss": 50000,
+                    "monetary_loss_tolerance": 0.10
+                }
+            }
+        },
+        {
+            "test_case_id": "V2-006",
+            "description": "Army Officer Impersonation OLX Scam",
+            "input_type": "text",
+            "raw_input_text": "I am Sneha Desai from Rajkot. I found a listing on OLX for a Royal Enfield Classic 350 at Rs 85,000. The seller identified himself as Major Ravi Verma, Army Officer posted at Jamnagar. He showed me his Army ID and said he is being transferred urgently. He asked me to pay advance of Rs 40,000 via PhonePe to armyravi350@ibl. After payment he asked for Rs 20,000 more for transport via UPI to logistics.india@axl. After paying Rs 60,000 total, the seller blocked my number. His phone number was +919123456780 and secondary number +916789012345. He also communicated via email ravi.verma.army@gmail.com. I believe the army ID was fake and the name Major Ravi Verma is fictitious.",
+            "expected_output": {
+                "original_language": "en",
+                "crime_category": "CYBER",
+                "crime_sub_type_keywords": [
+                    "olx",
+                    "fraud",
+                    "cheating",
+                    "advance",
+                    "impersonation"
+                ],
+                "severity_score_range": [
+                    5.5,
+                    8.0
+                ],
+                "bns_sections_identified": [],
+                "no_bns_mislabeled_from_ipc": [],
+                "entities": {
+                    "persons": [
+                        {
+                            "name": "Sneha Desai",
+                            "role": "victim"
+                        },
+                        {
+                            "name": "Ravi Verma",
+                            "role": "accused"
+                        }
+                    ],
+                    "phone_numbers": [
+                        "+919123456780",
+                        "+916789012345"
+                    ],
+                    "email_addresses": [
+                        "ravi.verma.army@gmail.com"
+                    ],
+                    "online_handles": [],
+                    "bank_accounts": [],
+                    "vpas_upis": [
+                        "armyravi350@ibl",
+                        "logistics.india@axl"
+                    ],
+                    "monetary_loss": 60000,
+                    "monetary_loss_tolerance": 0.05
+                }
+            }
+        },
+        {
+            "test_case_id": "V2-007",
+            "description": "Robbery with physical assault (Conventional)",
+            "input_type": "text",
+            "raw_input_text": "I am Raman Singh, age 45, shopkeeper at Maninagar, Ahmedabad. On 25/06/2024 at around 11:30 PM, three unknown persons entered my gold shop 'Shree Laxmi Jewellers'. One person was carrying a country-made revolver and two had iron rods. They threatened me and my employee Kishore at gunpoint. They looted 450 grams of gold ornaments worth Rs 28,00,000, Rs 1,50,000 cash from the counter, and my personal mobile phone Samsung Galaxy S24 IMEI 352456789012345. One accused was approximately 5'8 tall, dark complexion, wearing a red cap with a scar on his left cheek. They fled on a black Pulsar motorcycle with number plate GJ-01-XX-4567. The incident was captured on my shop CCTV camera (4 cameras, DVR brand Hikvision). My shop is located at Plot 42, Maninagar Main Road, opposite SBI Branch.",
+            "expected_output": {
+                "original_language": "en",
+                "crime_category": "CONVENTIONAL",
+                "crime_sub_type_keywords": [
+                    "robbery",
+                    "dacoity",
+                    "armed",
+                    "loot"
+                ],
+                "severity_score_range": [
+                    8.0,
+                    10.0
+                ],
+                "bns_sections_identified": [],
+                "no_bns_mislabeled_from_ipc": [],
+                "entities": {
+                    "persons": [
+                        {
+                            "name": "Raman Singh",
+                            "role": "victim"
+                        },
+                        {
+                            "name": "Kishore",
+                            "role": "witness"
+                        }
+                    ],
+                    "phone_numbers": [],
+                    "email_addresses": [],
+                    "online_handles": [],
+                    "bank_accounts": [],
+                    "vpas_upis": [],
+                    "monetary_loss": 2950000,
+                    "monetary_loss_tolerance": 0.15
+                }
+            }
+        },
+        {
+            "test_case_id": "V2-008",
+            "description": "Missing child case (Conventional)",
+            "input_type": "text",
+            "raw_input_text": "I am Meena Devi, wife of Sanjay Kumar, resident of Naranpura, Ahmedabad. My daughter Anita, age 14, has been missing since 22/06/2024 from around 4:00 PM. She went to school (DAV Public School, Naranpura) in the morning but did not return home. She was wearing a blue school uniform with white shoes. She is approximately 5'2 in height, fair complexion, has a birthmark on her right hand. Her school bag (red color, Wildcraft brand) is also missing. Her friend Pooja Sharma, who studies in the same class, told us that Anita left school at 3:30 PM with an unknown man on a white Honda Activa scooter. Pooja described the man as aged around 30-35, medium build, wearing sunglasses. We have tried calling all her friends and relatives but could not find her. We suspect foul play. Her Aadhaar number is 4567 8901 2345.",
+            "expected_output": {
+                "original_language": "en",
+                "crime_category": "CONVENTIONAL",
+                "crime_sub_type_keywords": [
+                    "missing",
+                    "child",
+                    "kidnap",
+                    "abduction"
+                ],
+                "severity_score_range": [
+                    8.5,
+                    10.0
+                ],
+                "bns_sections_identified": [],
+                "no_bns_mislabeled_from_ipc": [],
+                "entities": {
+                    "persons": [
+                        {
+                            "name": "Meena Devi",
+                            "role": "victim"
+                        },
+                        {
+                            "name": "Anita",
+                            "role": "victim"
+                        },
+                        {
+                            "name": "Sanjay Kumar",
+                            "role": "victim"
+                        },
+                        {
+                            "name": "Pooja Sharma",
+                            "role": "witness"
+                        }
+                    ],
+                    "phone_numbers": [],
+                    "email_addresses": [],
+                    "online_handles": [],
+                    "bank_accounts": [],
+                    "vpas_upis": [],
+                    "monetary_loss": 0,
+                    "monetary_loss_tolerance": 0.0
+                }
+            }
+        },
+        {
+            "test_case_id": "V2-009",
+            "description": "Hybrid: Online stalking leading to physical assault",
+            "input_type": "text",
+            "raw_input_text": "I am Neha Joshi, age 25, working at TCS Gandhinagar. A person named Karan Malhotra has been stalking me online and offline for the past 3 months. He created multiple fake Instagram accounts (@neha_lover_2024, @karan_for_neha) and sent me threatening messages. His real Instagram is @karan_malhotra_gn. On 18/06/2024, he followed me from my office and physically assaulted me near Infocity bus stop at around 8 PM. He pushed me, tore my dupatta, and threatened to throw acid on my face. He called me from +919988776655 and +917766554433 making threats. He also sent threatening emails from karanmalhotra.threat@protonmail.com. I have WhatsApp screenshots of his threats. His home address is B-204, Satyam Apartments, Sector 7, Gandhinagar. I fear for my life.",
+            "expected_output": {
+                "original_language": "en",
+                "crime_category": "HYBRID",
+                "crime_sub_type_keywords": [
+                    "stalking",
+                    "assault",
+                    "threat",
+                    "harassment"
+                ],
+                "severity_score_range": [
+                    7.5,
+                    10.0
+                ],
+                "bns_sections_identified": [],
+                "no_bns_mislabeled_from_ipc": [],
+                "entities": {
+                    "persons": [
+                        {
+                            "name": "Neha Joshi",
+                            "role": "victim"
+                        },
+                        {
+                            "name": "Karan Malhotra",
+                            "role": "accused"
+                        }
+                    ],
+                    "phone_numbers": [
+                        "+919988776655",
+                        "+917766554433"
+                    ],
+                    "email_addresses": [
+                        "karanmalhotra.threat@protonmail.com"
+                    ],
+                    "online_handles": [
+                        "@neha_lover_2024",
+                        "@karan_for_neha",
+                        "@karan_malhotra_gn"
+                    ],
+                    "bank_accounts": [],
+                    "vpas_upis": [],
+                    "monetary_loss": 0,
+                    "monetary_loss_tolerance": 0.0
+                }
+            }
+        },
+        {
+            "test_case_id": "V2-010",
+            "description": "Hybrid: Matrimonial fraud with financial cheating",
+            "input_type": "text",
+            "raw_input_text": "I am Sunita Rana, age 32, from Baroda. I met a man named Arjun Thakur on Shaadi.com. He claimed to be an NRI software engineer in Canada. We talked for 3 months on WhatsApp (+14165551234). He proposed marriage and asked me to send Rs 3,00,000 for visa processing to ICICI Bank account 012345678901, IFSC ICIC0001234, account holder Deepak Bhatia. He then asked for Rs 2,00,000 more for ticket booking via Google Pay to arjun.canada@okicici. Total paid Rs 5,00,000. He also took my personal photos and Aadhaar details. After payment he blocked me everywhere. I found the Shaadi.com profile is deleted. His email was arjun.thakur.canada@gmail.com. His WhatsApp profile picture shows him with another woman. I believe he is a serial fraud operating from India, not Canada.",
+            "expected_output": {
+                "original_language": "en",
+                "crime_category": "HYBRID",
+                "crime_sub_type_keywords": [
+                    "matrimon",
+                    "fraud",
+                    "cheat"
+                ],
+                "severity_score_range": [
+                    6.5,
+                    9.0
+                ],
+                "bns_sections_identified": [],
+                "no_bns_mislabeled_from_ipc": [],
+                "entities": {
+                    "persons": [
+                        {
+                            "name": "Sunita Rana",
+                            "role": "victim"
+                        },
+                        {
+                            "name": "Arjun Thakur",
+                            "role": "accused"
+                        },
+                        {
+                            "name": "Deepak Bhatia",
+                            "role": "accused"
+                        }
+                    ],
+                    "phone_numbers": [
+                        "+14165551234"
+                    ],
+                    "email_addresses": [
+                        "arjun.thakur.canada@gmail.com"
+                    ],
+                    "online_handles": [],
+                    "bank_accounts": [
+                        {
+                            "account_number": "012345678901",
+                            "bank_keywords": [
+                                "icici"
+                            ],
+                            "account_role": "accused",
+                            "is_victim_account": false
+                        }
+                    ],
+                    "vpas_upis": [
+                        "arjun.canada@okicici"
+                    ],
+                    "monetary_loss": 500000,
+                    "monetary_loss_tolerance": 0.05
+                }
+            }
+        },
+        {
+            "test_case_id": "V2-011",
+            "description": "Legal section preservation: BNS sections in FIR (no IPC)",
+            "input_type": "text",
+            "raw_input_text": "Crime registered at Cyber Crime Police Station, Surat City under Bharatiya Nyaya Sanhita sections 318 and 351 and Information Technology Act section 66C on 15/07/2024. The accused cheated the complainant of Rs 4,50,000 by promising a government job. The complainant transferred Rs 4,50,000 to HDFC Bank account 50100234567890, IFSC HDFC0000456, held by Suresh Kumar. The accused threatened the complainant when he demanded his money back. Total loss Rs 4,50,000.",
+            "expected_output": {
+                "original_language": "en",
+                "crime_category": "CYBER",
+                "crime_sub_type_keywords": [
+                    "job",
+                    "cheating",
+                    "fraud"
+                ],
+                "severity_score_range": [
+                    6.0,
+                    8.5
+                ],
+                "bns_sections_identified": [
+                    "BNS 318",
+                    "BNS 351",
+                    "IT Act 66C"
+                ],
+                "no_bns_mislabeled_from_ipc": [],
+                "entities": {
+                    "persons": [
+                        {
+                            "name": "Suresh Kumar",
+                            "role": "accused"
+                        }
+                    ],
+                    "phone_numbers": [],
+                    "email_addresses": [],
+                    "online_handles": [],
+                    "bank_accounts": [
+                        {
+                            "account_number": "50100234567890",
+                            "bank_keywords": [
+                                "hdfc"
+                            ],
+                            "account_role": "accused",
+                            "is_victim_account": false
+                        }
+                    ],
+                    "vpas_upis": [],
+                    "monetary_loss": 450000,
+                    "monetary_loss_tolerance": 0.05
+                }
+            }
+        },
+        {
+            "test_case_id": "V2-012",
+            "description": "Legal section preservation: Mixed IPC + BNS in one FIR (transitional period)",
+            "input_type": "text",
+            "raw_input_text": "FIR registered at Ahmedabad City Crime Branch under IPC sections 420, 467, 468, 471 and BNS section 318 on 01/08/2024. The accused, posing as a bank manager, obtained the complainant's OTP and siphoned Rs 7,50,000 from his account. The accused used a mule account at ICICI Bank 112233445566, IFSC ICIC0007788. The total financial loss is Rs 7,50,000. The complainant also received threatening calls from +917654321098.",
+            "expected_output": {
+                "original_language": "en",
+                "crime_category": "CYBER",
+                "crime_sub_type_keywords": [
+                    "bank",
+                    "otp",
+                    "fraud",
+                    "cheating"
+                ],
+                "severity_score_range": [
+                    6.5,
+                    9.0
+                ],
+                "bns_sections_identified": [
+                    "IPC 420",
+                    "IPC 467",
+                    "IPC 468",
+                    "IPC 471",
+                    "BNS 318"
+                ],
+                "no_bns_mislabeled_from_ipc": [
+                    "420",
+                    "467",
+                    "468",
+                    "471"
+                ],
+                "entities": {
+                    "persons": [],
+                    "phone_numbers": [
+                        "+917654321098"
+                    ],
+                    "email_addresses": [],
+                    "online_handles": [],
+                    "bank_accounts": [
+                        {
+                            "account_number": "112233445566",
+                            "bank_keywords": [
+                                "icici"
+                            ],
+                            "account_role": "accused",
+                            "is_victim_account": false
+                        }
+                    ],
+                    "vpas_upis": [],
+                    "monetary_loss": 750000,
+                    "monetary_loss_tolerance": 0.05
+                }
+            }
+        }
+    ]
+}

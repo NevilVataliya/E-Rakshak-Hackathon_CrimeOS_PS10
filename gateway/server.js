@@ -114,6 +114,14 @@ app.get('/api/complaints', authenticateToken, async (req, res) => {
   }
 });
 
+// Strip PostgreSQL-illegal null bytes (0x00) from any string value.
+// PostgreSQL TEXT/VARCHAR columns reject \x00 with "invalid byte sequence for encoding UTF8".
+function sanitizeForPg(value) {
+  if (typeof value === 'string') return value.replace(/\x00/g, '');
+  if (value === null || value === undefined) return '';
+  return value;
+}
+
 function extractEntitiesHeuristic(rawText = '') {
   const text = rawText || '';
   const lang = /[\u0A80-\u0AFF]/.test(text) ? 'gu' : /[\u0900-\u097F]/.test(text) ? 'hi' : 'en';
@@ -189,12 +197,12 @@ app.post(['/api/complaints/upload', '/api/ingest'], upload.any(), async (req, re
          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
         [
           cmpNumber,
-          req.body.input_type || 'multimodal',
-          data.original_language || 'gu',
-          data.raw_text || req.body.raw_text || '',
-          data.translated_text || '',
-          JSON.stringify(data.entities || {}),
-          data.crime_category || 'CYBER',
+          sanitizeForPg(req.body.input_type || 'multimodal'),
+          sanitizeForPg(data.original_language || 'gu'),
+          sanitizeForPg(data.raw_text || req.body.raw_text || ''),
+          sanitizeForPg(data.translated_text || ''),
+          sanitizeForPg(JSON.stringify(data.entities || {})),
+          sanitizeForPg(data.crime_category || 'CYBER'),
           data.severity_score || 8.0,
           'ASSIGNED'
         ]
@@ -356,10 +364,26 @@ app.post('/api/linkage/search', authenticateToken, async (req, res) => {
       search_query: search_query || null,
       search_type: search_type || 'auto'
     });
-    res.json(response.data);
-  } catch (err) {
-    console.error('Linkage search proxy error:', err.message);
+
+    // If ai-service returned real matches, forward them directly.
+    // If matches are empty AND demo fallbacks are enabled, fall through to
+    // the demo data generator below so the UI is never blank during dev.
+    const aiData = response.data;
+    if (aiData.matches && aiData.matches.length > 0) {
+      return res.json(aiData);
+    }
     if (!ENABLE_DEMO_FALLBACKS) {
+      return res.json(aiData);   // real system with 0 matches — return as-is
+    }
+    // ENABLE_DEMO_FALLBACKS=true && 0 real matches → generate demo data below
+    throw new Error('__DEMO_FALLBACK__');   // sentinel to enter catch branch
+
+  } catch (err) {
+    const isDemoSentinel = err.message === '__DEMO_FALLBACK__';
+    if (!isDemoSentinel) {
+      console.error('Linkage search proxy error:', err.message);
+    }
+    if (!ENABLE_DEMO_FALLBACKS && !isDemoSentinel) {
       return res.status(500).json({ error: err.message, detail: 'Linkage search proxy failed' });
     }
 

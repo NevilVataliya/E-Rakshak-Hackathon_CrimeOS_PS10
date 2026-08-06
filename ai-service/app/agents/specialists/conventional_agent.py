@@ -15,9 +15,10 @@ def conventional_agent_node(state: AgentState) -> dict:
     crime_sub = state.get('crime_sub_type') or 'Physical Crime'
     complaint_text = state.get('translated_text') or state.get('complaint_text') or ''
     feedback = state.get('evaluation_feedback') or []
+    iteration = state.get('iteration_count') or 0
     entities = state.get('entities') or {}
     
-    semantic_query = complaint_text[:500].strip()
+    semantic_query = complaint_text[:1000].strip()
     keyword_query = f"{crime_sub} conventional investigation procedure BNSS spot panchnama witness CCTV seizure SOP".strip()
     qdrant_docs = search_legal_sops(semantic_query=semantic_query, keyword_query=keyword_query, target_specialist="conventional_field_specialist", top_k=4)
     
@@ -29,15 +30,27 @@ def conventional_agent_node(state: AgentState) -> dict:
 
     llm = get_agent_llm("auto", temperature=0.1)
 
+    # Build retry instruction block — injected only on re-runs
+    retry_block = ""
+    if feedback and iteration > 0:
+        issues = "\n".join(f"  - {f}" for f in feedback)
+        retry_block = f"""
+⚠️  CRITICAL RETRY INSTRUCTION (Attempt {iteration + 1}):
+Your previous output was REJECTED by the Evaluator for the following specific reasons:
+{issues}
+
+You MUST directly address and fix each of the above failures in this response.
+Do NOT return an empty 'field_steps' list. You MUST provide at least one actionable field investigation directive.
+"""
+
     prompt = f"""
 You are the Conventional Field Crime Specialist Agent for Indian Law Enforcement.
 Ground your recommendations on the RETRIEVED QDRANT POLICE PROCEDURE CHUNKS provided below.
-
+{retry_block}
 CRIME CATEGORY: {crime_category}
 SUB-TYPE: {crime_sub}
-COMPLAINT NARRATIVE: {complaint_text[:1000]}
+COMPLAINT NARRATIVE: {complaint_text[:3000]}
 EXTRACTED ENTITIES: {json.dumps(entities)}
-EVALUATOR FEEDBACK: {feedback if feedback else "None"}
 
 === RETRIEVED QDRANT CHUNKS ===
 {rag_context}

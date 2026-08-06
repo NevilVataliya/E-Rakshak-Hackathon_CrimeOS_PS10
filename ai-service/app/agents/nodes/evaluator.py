@@ -111,7 +111,31 @@ def evaluator_node(state: AgentState) -> dict:
                     continue
                     
                 safe_reqs.append(r)
-            cyber_draft['recommended_legal_requests'] = safe_reqs
+        cyber_draft['recommended_legal_requests'] = safe_reqs
+    # ---------------------------------------------------------
+
+    # ---------------------------------------------------------
+    # CONVENTIONAL DRAFT GROUNDING VALIDATOR (field_steps)
+    # ---------------------------------------------------------
+    if conv_draft and 'field_steps' in conv_draft:
+        safe_field_steps = []
+        for step in conv_draft['field_steps']:
+            desc_raw = (step.get('description') or '') + " " + (step.get('title') or '')
+
+            # Check for phantom phone/bank numbers in field step descriptions
+            numbers = re.findall(r'\b\d{9,18}\b', desc_raw)
+            is_hallucination = False
+            for num in numbers:
+                if num not in allowed_phones and num not in allowed_banks:
+                    is_hallucination = True
+                    break
+
+            if is_hallucination:
+                print(f"[!] Evaluator stripped field_step due to HALLUCINATION/UNGROUNDED entity: {step.get('title')}")
+                continue
+
+            safe_field_steps.append(step)
+        conv_draft['field_steps'] = safe_field_steps
     # ---------------------------------------------------------
 
     # Check 1: Check BNS grounding
@@ -131,6 +155,7 @@ def evaluator_node(state: AgentState) -> dict:
 
     state_update = {
         "cyber_draft": cyber_draft,
+        "conventional_draft": conv_draft,
         "iteration_count": iteration + 1
     }
 
@@ -139,9 +164,17 @@ def evaluator_node(state: AgentState) -> dict:
         print(f"[!] Evaluator REJECTED drafts (Iteration {iteration + 1}): {feedback}")
         state_update["evaluation_status"] = "REJECTED"
         state_update["evaluation_feedback"] = feedback
+        state_update["evaluation_degraded"] = False
+    elif feedback and iteration >= 2:
+        # Forced approval after hitting retry cap — mark as degraded so downstream nodes are aware
+        print(f"[!] Evaluator FORCE-APPROVED after hitting iteration cap. Output may be DEGRADED. Unresolved issues: {feedback}")
+        state_update["evaluation_status"] = "APPROVED"
+        state_update["evaluation_feedback"] = feedback  # preserve for synthesis warning
+        state_update["evaluation_degraded"] = True
     else:
         print(f"[+] Evaluator APPROVED drafts! Passing to HITL review.")
         state_update["evaluation_status"] = "APPROVED"
         state_update["evaluation_feedback"] = []
+        state_update["evaluation_degraded"] = False
 
     return state_update

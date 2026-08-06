@@ -21,6 +21,8 @@ def synthesis_node(state: AgentState) -> dict:
     crime_category = state.get('crime_category') or 'CYBER'
     crime_sub_type = state.get('crime_sub_type') or 'Police Investigation'
     complaint_text = state.get('translated_text') or state.get('complaint_text') or ''
+    evaluation_degraded = state.get('evaluation_degraded') or False
+    unresolved_feedback = state.get('evaluation_feedback') or []
     
     # 1. Master FIR Details & Grounded Legal Sections (Strict exact compilation)
     bns_sections = bns_draft.get('bns_sections') or []
@@ -65,7 +67,32 @@ def synthesis_node(state: AgentState) -> dict:
                 "sop_reference": None
             })
         step_idx += 1
-        
+
+    # Money Trail Tracing Step — trace the full end-to-end fund flow from ingestion entities
+    money_trail = entities.get('money_trail') or []
+    if money_trail:
+        hops = []
+        for mt in money_trail:
+            if isinstance(mt, dict):
+                hops.append(
+                    f"{mt.get('from_account')} → {mt.get('to_account')} "
+                    f"(₹{mt.get('amount')}, {mt.get('method')}, {mt.get('date')})"
+                )
+        if hops:
+            steps.append({
+                "step_number": step_idx,
+                "title": "Money Trail Tracing & End-to-End Fund Flow Analysis",
+                "description": (
+                    "Trace the full transfer chain of the defrauded amount: " + " → ".join(hops)
+                    + ". Obtain outward + inward statements for each hop, issue Section 94 BNSS notices "
+                    "for KYC/IP/device metadata, debit-freeze every mule account, and identify the final "
+                    "withdrawal point (ATM / cash-out / crypto exchange) for seizure and forensic imaging."
+                ),
+                "category": "CYBER",
+                "sop_reference": None
+            })
+            step_idx += 1
+
     field_steps = conv_draft.get('field_steps') or []
     for step in field_steps:
         if isinstance(step, dict):
@@ -229,7 +256,21 @@ def synthesis_node(state: AgentState) -> dict:
         })
 
     # D. Emergency Section 79(3)(b) IT Act Content Takedown Notice & Platform Subpoena
-    handles = re.findall(r'@\w+', complaint_text)
+    # Use entity-extracted handles as primary source, fall back to regex on complaint text
+    entity_handles = entities.get('online_handles') or []
+    regex_handles = re.findall(r'@\w+', complaint_text)
+    # Merge, deduplicate, preserve entity-extracted ones first
+    all_handles_lower = set()
+    merged_handles = []
+    for h in entity_handles + regex_handles:
+        if h.lower() not in all_handles_lower:
+            merged_handles.append(h)
+            all_handles_lower.add(h.lower())
+    handles = merged_handles
+
+    has_telegram = bool(entity_handles) or "Telegram" in complaint_text or "telegram" in complaint_text.lower()
+    has_whatsapp = "WhatsApp" in complaint_text or "whatsapp" in complaint_text.lower()
+
     if "takedown" in complaint_text.lower() or "video" in complaint_text.lower() or "blackmail" in complaint_text.lower() or "sextortion" in crime_sub_type.lower():
         takedown_pdf_file = f"Order_Section_79_IT_Act_Takedown_{case_number}.pdf"
         takedown_pdf_path = os.path.join(pdf_dir, takedown_pdf_file)
@@ -259,21 +300,32 @@ def synthesis_node(state: AgentState) -> dict:
             "description": f"Emergency Takedown & Blocking Order for objectionable video ({handle_str})"
         })
 
-    if handles or "Telegram" in complaint_text or "WhatsApp" in complaint_text:
+    if handles or has_telegram or has_whatsapp:
+        # Determine platform targets based on available signals
+        platform_targets = []
+        if has_telegram:
+            platform_targets.append("Telegram FZ-LLC (Legal Compliance)")
+        if has_whatsapp:
+            platform_targets.append("Meta Platforms Inc. (WhatsApp Legal Compliance)")
+        if not platform_targets:
+            platform_targets.append("Messaging Platform Legal Compliance")
+        platform_str = " & ".join(platform_targets)
+
+        handle_str = ", ".join(handles) if handles else "Target Suspect Handle"
         subpoena_pdf_file = f"Notice_Platform_Subpoena_{case_number}.pdf"
         subpoena_pdf_path = os.path.join(pdf_dir, subpoena_pdf_file)
-        handle_str = ", ".join(handles) if handles else "Target Suspect Handle"
 
         try:
             generate_section_94_bnss_pdf(
                 output_path=subpoena_pdf_path,
                 case_data=master_fir,
                 request_details={
-                    "target_provider": "Messaging Platform Legal Compliance (Telegram FZ-LLC / Meta)",
+                    "target_provider": platform_str,
                     "items": [
                         f"Suspect User Handle / ID: {handle_str}",
                         "IP Login Logs with Port Numbers & Device IMEI",
-                        "Registration Phone Number & Account Associated Email"
+                        "Registration Phone Number & Account Associated Email",
+                        "Message History, Group Membership & Contact List Metadata"
                     ]
                 }
             )
@@ -282,10 +334,10 @@ def synthesis_node(state: AgentState) -> dict:
 
         legal_requests.append({
             "request_type": "PLATFORM_SUBPOENA",
-            "target_provider": "Messaging Platform Legal Compliance (Telegram/Meta)",
+            "target_provider": platform_str,
             "status": "APPROVED",
             "pdf_url": f"/api/requests/download/{subpoena_pdf_file}",
-            "description": f"IP Login Logs & Registration Details for handle {handle_str}"
+            "description": f"IP Login Logs & Registration Details for handle(s): {handle_str}"
         })
 
     # Fallback if no specific requests built
@@ -318,6 +370,11 @@ def synthesis_node(state: AgentState) -> dict:
         f"Found {len(cross_matches)} cross-case matches linking to past complaints. "
         f"Section 94 BNSS Turnkey PDF generated for immediate service provider dispatch."
     )
+    if evaluation_degraded and unresolved_feedback:
+        summary_text += (
+            f" [QUALITY WARNING: Evaluator could not fully resolve: {'; '.join(unresolved_feedback)}. "
+            "Manual verification by Investigating Officer is recommended.]"
+        )
 
     print(f"[+] Synthesis Node Completed: Master FIR and {len(legal_requests)} distinct legal notice PDFs ready.")
     

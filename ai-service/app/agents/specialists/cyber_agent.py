@@ -13,6 +13,7 @@ def cyber_agent_node(state: AgentState) -> dict:
     """
     entities = state.get('entities') or {}
     feedback = state.get('evaluation_feedback') or []
+    iteration = state.get('iteration_count') or 0
     crime_sub = state.get('crime_sub_type') or 'Cyber Fraud'
     complaint_text = state.get('translated_text') or state.get('complaint_text') or ''
     
@@ -21,7 +22,11 @@ def cyber_agent_node(state: AgentState) -> dict:
     handles = ", ".join(entities.get('online_handles') or [])
     emails = ", ".join(entities.get('email_addresses') or [])
     
-    semantic_query = complaint_text[:500].strip()
+    # Money trail (transfer chain) extracted at ingestion — used for full-chain tracing
+    money_trail = entities.get('money_trail') or []
+    money_trail_str = json.dumps(money_trail, ensure_ascii=False) if money_trail else "No money trail captured at ingestion. Trace from the complaint narrative and bank/UPI entities."
+    
+    semantic_query = complaint_text[:1000].strip()
     keyword_query = f"{crime_sub} digital evidence CDR IPDR LERS bank debit freeze SOP {vpas} {phones} {handles} {emails}".strip()
     qdrant_docs = search_legal_sops(semantic_query=semantic_query, keyword_query=keyword_query, target_specialist="cyber_financial_intel_specialist", top_k=4)
     
@@ -33,14 +38,28 @@ def cyber_agent_node(state: AgentState) -> dict:
 
     llm = get_agent_llm("auto", temperature=0.1)
 
+    # Build retry instruction block — injected only on re-runs
+    retry_block = ""
+    if feedback and iteration > 0:
+        issues = "\n".join(f"  - {f}" for f in feedback)
+        retry_block = f"""
+⚠️  CRITICAL RETRY INSTRUCTION (Attempt {iteration + 1}):
+Your previous output was REJECTED by the Evaluator for the following specific reasons:
+{issues}
+
+You MUST directly address and fix each of the above failures in this response.
+Do NOT return an empty 'digital_directives' list. Generate at least one directive per entity present in EXTRACTED CASE ENTITIES.
+Never invent any phone numbers, bank accounts, UPI IDs, or handles not present in EXTRACTED CASE ENTITIES.
+"""
+
     prompt = f"""
 You are the Senior Cyber & Financial Intelligence Specialist Agent for Indian Law Enforcement.
 Ground your investigation directives strictly on the RETRIEVED QDRANT SOP CHUNKS provided below.
-
+{retry_block}
 CRIME SUB-TYPE: {crime_sub}
-COMPLAINT SUMMARY: {complaint_text[:1000]}
+COMPLAINT SUMMARY: {complaint_text[:3000]}
 EXTRACTED CASE ENTITIES: {json.dumps(entities)}
-EVALUATOR FEEDBACK: {feedback if feedback else "None"}
+MONEY TRAIL (TRANSFER CHAIN): {money_trail_str}
 
 === RETRIEVED QDRANT SOP CHUNKS ===
 {rag_context}
@@ -54,6 +73,15 @@ CRITICAL RULES FOR UNIVERSAL UNBIASED EXTRACTION:
 2. For each directive, generate an explicit title, description, category ("CYBER"), and sop_reference citing the EXACT source document name and page number found in RETRIEVED QDRANT SOP CHUNKS above.
 3. VICTIM SAFETY OVERRIDE: Look closely at the 'is_victim_account' or 'account_role' tag for every bank account. You are FORBIDDEN from issuing freezing, lien, or suspension notices against any account where "is_victim_account": true or "account_role": "victim". For victim accounts, you may only request standard outward transaction statements. Freezing notices are ONLY for "accused" or mule accounts.
 4. If a specific entity is NOT explicitly listed in the EXTRACTED CASE ENTITIES JSON, generating a directive for it is considered a SEVERE SAFETY VIOLATION.
+5. MONEY-TRAIL TRACING: You MUST trace the FULL transfer chain of the defrauded amount. Use the MONEY TRAIL (TRANSFER CHAIN) above if present; otherwise reconstruct it from the COMPLAINT SUMMARY and the bank_accounts / vpas_upis entities. For each hop in the chain (victim → mule1 → mule2 → ... → withdrawal/ATM), generate a directive that:
+   - Requests the outward transaction statement / full ledger for the source account/UPI
+   - Requests the inward + outward transaction statement for each intermediate mule account/UPI
+   - Issues a Section 94 BNSS notice to the bank/PSP for each mule account/UPI to obtain KYC, IP address, device fingerprint, and transaction logs
+   - Debit-freezes every mule (accused) account/UPI identified in the chain
+   - Identifies the final withdrawal point (ATM location, cash-out account, or crypto exchange) and directs seizure/forensic imaging of that endpoint
+   Do NOT stop at the first mule account — trace the END-TO-END trail until the money is withdrawn or the chain terminates.
+   IMPORTANT KEYWORD REQUIREMENT: At least ONE directive in 'digital_directives' MUST have the words "Money Trail" or "Fund Flow" in its 'title' (e.g., "Money Trail Tracing — ICICI 00192847192 → Axis 91802938102"). This ensures the directive is clearly identifiable as the money-trail tracing step.
+6. If a specific entity is NOT explicitly listed in the EXTRACTED CASE ENTITIES JSON, generating a directive for it is considered a SEVERE SAFETY VIOLATION.
 
 Respond ONLY in valid JSON matching this exact structure:
 {{

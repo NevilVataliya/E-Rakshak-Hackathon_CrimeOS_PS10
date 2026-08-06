@@ -14,8 +14,9 @@ def bsa_agent_node(state: AgentState) -> dict:
     crime_sub_type = state.get('crime_sub_type') or 'General Offence'
     complaint_text = state.get('translated_text') or state.get('complaint_text') or ''
     feedback = state.get('evaluation_feedback') or []
+    iteration = state.get('iteration_count') or 0
     
-    semantic_query = complaint_text[:500].strip()
+    semantic_query = complaint_text[:1000].strip()
     keyword_query = f"BSA evidence certificate electronic records section 63 BSA hash calculation panchnama physical evidence chain of custody".strip()
     qdrant_docs = search_legal_sops(semantic_query=semantic_query, keyword_query=keyword_query, target_specialist="bsa_specialist", top_k=4)
     
@@ -27,13 +28,25 @@ def bsa_agent_node(state: AgentState) -> dict:
 
     llm = get_agent_llm("auto", temperature=0.1)
     
+    # Build retry instruction block — injected only on re-runs
+    retry_block = ""
+    if feedback and iteration > 0:
+        issues = "\n".join(f"  - {f}" for f in feedback)
+        retry_block = f"""
+⚠️  CRITICAL RETRY INSTRUCTION (Attempt {iteration + 1}):
+Your previous output was REJECTED by the Evaluator for the following specific reasons:
+{issues}
+
+You MUST directly address and fix each of the above failures in this response.
+Do NOT return empty 'bsa_requirements' or 'mandatory_checklists'. You MUST provide at least one evidence rule and one checklist item.
+"""
+
     prompt = f"""
 You are the BSA Evidence Specialist Agent for Indian Law Enforcement.
 Ground your requirements on the RETRIEVED QDRANT TEXT CHUNKS provided below (Bharatiya Sakshya Adhiniyam, 2023).
-
+{retry_block}
 CRIME TYPE: {crime_sub_type}
-COMPLAINT NARRATIVE: {complaint_text[:1000]}
-EVALUATOR FEEDBACK: {feedback if feedback else "None"}
+COMPLAINT NARRATIVE: {complaint_text[:3000]}
 
 === RETRIEVED QDRANT CHUNKS ===
 {rag_context}

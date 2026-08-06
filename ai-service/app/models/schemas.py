@@ -4,7 +4,12 @@ from typing import List, Dict, Any, Optional, Union
 # --- 1. COMPLAINT INGESTION SCHEMA ---
 class PersonEntity(BaseModel):
     name: Optional[str] = Field(default=None)
-    role: Optional[str] = Field(default=None)
+    role: Optional[str] = Field(default=None)           # victim, accused, suspect, witness
+    alias: Optional[str] = Field(default=None)          # urfé / alias / AKA
+    father_name: Optional[str] = Field(default=None)    # S/O field from Indian FIRs
+    age: Optional[int] = Field(default=None)
+    address: Optional[str] = Field(default=None)
+    status: Optional[str] = Field(default=None)         # arrested, absconding, untraceable, questioned
 
 class BankAccountSchema(BaseModel):
     account_number: Optional[str] = Field(default=None)
@@ -14,6 +19,17 @@ class BankAccountSchema(BaseModel):
     account_role: Optional[str] = Field(default="accused") # "victim" or "accused"
     is_victim_account: Optional[bool] = Field(default=False)
 
+class MoneyTrailItem(BaseModel):
+    step: Optional[int] = Field(default=None)
+    from_account: Optional[str] = Field(default=None)
+    from_bank: Optional[str] = Field(default=None)
+    to_account: Optional[str] = Field(default=None)
+    to_bank: Optional[str] = Field(default=None)
+    amount: Optional[float] = Field(default=None)
+    method: Optional[str] = Field(default=None)  # RTGS, NEFT, IMPS, UPI, Cash, Cheque
+    date: Optional[str] = Field(default=None)
+    notes: Optional[str] = Field(default=None)
+
 class EntitiesSchema(BaseModel):
     persons: List[PersonEntity] = Field(default_factory=list)
     phone_numbers: List[str] = Field(default_factory=list)
@@ -22,6 +38,7 @@ class EntitiesSchema(BaseModel):
     bank_accounts: List[Union[BankAccountSchema, Dict[str, Any], str]] = Field(default_factory=list)
     vpas_upis: List[str] = Field(default_factory=list)
     monetary_loss: float = Field(default=0.0)
+    money_trail: List[Union[MoneyTrailItem, Dict[str, Any]]] = Field(default_factory=list)
     crime_locations: List[str] = Field(default_factory=list)
     date_time_of_incident: Optional[str] = Field(default=None)
 
@@ -31,9 +48,11 @@ class ComplaintIngestionSchema(BaseModel):
     crime_category: Optional[str] = Field(default=None)
     crime_sub_type: Optional[str] = Field(default=None)
     severity_score: float = Field(default=5.0)
+    bns_sections_identified: List[str] = Field(default_factory=list)  # IPC→BNS mapped sections from ingestion
     entities: EntitiesSchema = Field(default_factory=EntitiesSchema)
     key_facts: List[str] = Field(default_factory=list)
     raw_text: Optional[str] = Field(default=None)
+    complaint_number: Optional[str] = Field(default=None)
 
 
 # --- 2. BNS LEGAL AGENT SCHEMA ---

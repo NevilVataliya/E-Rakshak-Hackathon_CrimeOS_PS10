@@ -40,6 +40,7 @@ class InvestigationRequest(BaseModel):
     crime_category: Optional[str] = "CYBER"
     crime_sub_type: Optional[str] = None
     entities: Optional[Dict[str, Any]] = None
+    bns_sections_identified: Optional[List[str]] = None
 
 class ResponseParseRequest(BaseModel):
     file_path: Optional[str] = None
@@ -54,6 +55,30 @@ class LinkageSearchRequest(BaseModel):
 @app.get("/health")
 def health_check():
     return {"status": "online", "service": "Crime OS AI Backend", "engine": "FastAPI + LangGraph + Pandas Analytics"}
+
+@app.get("/api/system/status")
+def system_status():
+    from config import is_offline_mode, OFFLINE_MODE, GEMINI_API_KEY, OPENAI_API_KEY, GROQ_API_KEY, ANTHROPIC_API_KEY, ENABLE_DEMO_FALLBACKS
+    offline = is_offline_mode()
+    has_keys = bool(GEMINI_API_KEY or OPENAI_API_KEY or GROQ_API_KEY or ANTHROPIC_API_KEY)
+    return {
+        "offline_mode": offline,
+        "config_mode": OFFLINE_MODE,
+        "cloud_keys_configured": has_keys,
+        "enable_demo_fallbacks": ENABLE_DEMO_FALLBACKS,
+        "active_processors": ["TextProcessor (.txt,.md,.csv)", "DocxProcessor (.docx,.doc)", "PDFProcessor (.pdf)", "AudioProcessor (.wav,.mp3,.m4a,.ogg)", "ImageProcessor (.png,.jpg,.webp)"],
+        "offline_capable_components": ["local_text_reader", "python_docx_extractor", "pymupdf_text", "tesseract_ocr", "faster_whisper", "heuristic_regex_extractor"],
+        "warnings": ["Cloud API calls disabled in Standalone Offline Mode."] if offline else []
+    }
+
+@app.get("/api/config")
+def get_config():
+    from config import ENABLE_DEMO_FALLBACKS, is_offline_mode
+    return {
+        "enable_demo_fallbacks": ENABLE_DEMO_FALLBACKS,
+        "offline_mode": is_offline_mode()
+    }
+
 
 @app.post("/api/ingest")
 async def ingest_complaint(
@@ -97,6 +122,7 @@ async def run_investigation(req: InvestigationRequest):
         "crime_category": req.crime_category or "CYBER",
         "crime_sub_type": req.crime_sub_type or "General Police Investigation",
         "entities": req.entities or {},
+        "bns_sections_identified": req.bns_sections_identified or [],
         "active_specialists": [],
         "cross_case_matches": [],
         "bns_draft": None,
@@ -105,6 +131,7 @@ async def run_investigation(req: InvestigationRequest):
         "conventional_draft": None,
         "evaluation_status": "PENDING",
         "evaluation_feedback": [],
+        "evaluation_degraded": False,
         "iteration_count": 0,
         "hitl_approved": False,
         "io_custom_notes": "",
@@ -140,72 +167,227 @@ async def parse_provider_response(req: ResponseParseRequest):
 @app.post("/api/linkage/search")
 async def search_entity_linkages(req: LinkageSearchRequest):
     """
-    Searches cross-case criminal databases for entity overlaps (phones, VPAs, bank accounts).
-    Returns matched FIR cases, police stations, confidence scores, and recommended actions.
-    """
-    entities = req.entities or {}
-    search_queries = []
+    Cross-case criminal entity linkage search.
 
-    if req.search_query:
-        search_queries.append({"type": req.search_type or "manual", "value": req.search_query, "role": "accused"})
+    Primary path  → PostgreSQL `complaints` table: exact entity overlap on
+                    phone_numbers, vpas_upis, bank_accounts, email_addresses.
+    Secondary path → Qdrant vector similarity (semantic) for any entity value
+                    that returns fewer than 3 exact Postgres hits.
+
+    Returns a fully-formed response with `matches` AND `stats` so the
+    frontend always has data to render.
+    """
+    import psycopg2
+    import psycopg2.extras
+    from config import DATABASE_URL
+
+    entities   = req.entities or {}
+    search_queries: list[dict] = []
+
+    # ── Build search query list ────────────────────────────────────────────
+    if req.search_query and req.search_query.strip():
+        search_queries.append({
+            "type": req.search_type or "manual",
+            "value": req.search_query.strip(),
+        })
 
     for phone in entities.get("phone_numbers", []):
-        search_queries.append({"type": "phone", "value": phone, "role": "accused"})
+        v = str(phone).strip()
+        if v:
+            search_queries.append({"type": "phone", "value": v})
+
     for vpa in entities.get("vpas_upis", []):
-        search_queries.append({"type": "vpa", "value": vpa, "role": "accused"})
+        v = str(vpa).strip()
+        if v:
+            search_queries.append({"type": "vpa", "value": v})
+
     for acct in entities.get("bank_accounts", []):
         if isinstance(acct, dict):
-            search_queries.append({
-                "type": "bank_account",
-                "value": acct.get("account_number", ""),
-                "bank": acct.get("bank", "Bank"),
-                "role": acct.get("account_role", "accused"),
-                "is_victim": acct.get("is_victim_account", False)
-            })
+            v = str(acct.get("account_number", "")).strip()
         else:
-            search_queries.append({"type": "bank_account", "value": str(acct), "bank": "Bank", "role": "accused", "is_victim": False})
+            v = str(acct).strip()
+        if v:
+            search_queries.append({"type": "bank_account", "value": v})
 
-    matches = []
-    
-    # Query Qdrant Vector DB for actual cross-case entity overlaps
-    client = get_qdrant_client()
+    for email in entities.get("email_addresses", []):
+        v = str(email).strip()
+        if v:
+            search_queries.append({"type": "email", "value": v})
+
+    matches: list[dict] = []
+    seen_match_keys: set[str] = set()   # deduplicate (entity_value, case_number)
+
+    # ── Confidence weights by entity type ─────────────────────────────────
+    CONFIDENCE = {
+        "phone":        0.95,
+        "vpa":          0.92,
+        "bank_account": 0.90,
+        "email":        0.85,
+        "manual":       0.80,
+    }
+
+    # ── Match type labels by entity ────────────────────────────────────────
+    MATCH_TYPE = {
+        "phone":        "CDR_RECURRENCE",
+        "vpa":          "RECURRING_MULE",
+        "bank_account": "BENEFICIARY_RECURRENCE",
+        "email":        "EMAIL_OVERLAP",
+        "manual":       "MANUAL_SEARCH_HIT",
+    }
+
+    ACTION = {
+        "phone":        "Issue Section 94 BNSS Notice for CDR/IPDR from TSP. Check CCTNS for accused subscriber.",
+        "vpa":          "Issue Section 94 BNSS Notice to UPI PSP Nodal Officer. Initiate 1930 CFCFRMS freeze.",
+        "bank_account": "Issue Section 94 BNSS Notice to Bank Nodal Cell. Debit-freeze mule account immediately.",
+        "email":        "Obtain subscriber details from e-mail provider via MLAT / Section 94 BNSS.",
+        "manual":       "Cross-verify entity in CCTNS and ICJS portals.",
+    }
+
+    # ── PRIMARY: PostgreSQL exact-match ────────────────────────────────────
+    pg_error = None
     try:
-        if client and client.collection_exists(COLLECTION_NAME):
+        conn = psycopg2.connect(DATABASE_URL)
+        cur  = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+
+        # Fetch all OTHER complaints (already ingested) with their entities
+        cur.execute(
+            """
+            SELECT complaint_number, extracted_entities, crime_category
+            FROM   complaints
+            WHERE  complaint_number IS NOT NULL
+            """)
+        rows = cur.fetchall()
+        cur.close()
+        conn.close()
+
+        for row in rows:
+            cmp_num = row["complaint_number"]
+            # Skip the case we're analysing itself
+            if cmp_num == req.case_number:
+                continue
+
+            try:
+                ent = row["extracted_entities"]
+                if isinstance(ent, str):
+                    import json as _json
+                    ent = _json.loads(ent)
+            except Exception:
+                ent = {}
+
+            # Flatten stored entity values for fast lookup
+            stored_phones  = {str(p).strip() for p in (ent.get("phone_numbers") or [])}
+            stored_vpas    = {str(v).strip() for v in (ent.get("vpas_upis") or [])}
+            stored_accts   = set()
+            for a in (ent.get("bank_accounts") or []):
+                stored_accts.add(str(a.get("account_number","")).strip() if isinstance(a, dict) else str(a).strip())
+            stored_emails  = {str(e).strip() for e in (ent.get("email_addresses") or [])}
+
+            STORED_MAP = {
+                "phone":        stored_phones,
+                "vpa":          stored_vpas,
+                "bank_account": stored_accts,
+                "email":        stored_emails,
+            }
+
             for sq in search_queries:
-                val = sq["value"]
-                if not val:
-                    continue
-                # Search for true vector/payload matches in Qdrant collection
-                q_res = client.search(
-                    collection_name=COLLECTION_NAME,
-                    query_vector=get_query_embedding(str(val)),
-                    limit=5
+                entity_type  = sq["type"]
+                entity_value = sq["value"]
+                stored_set   = STORED_MAP.get(entity_type, set())
+
+                # Exact or substring match (normalise whitespace, case-insensitive)
+                hit = any(
+                    entity_value.lower().replace(" ", "") in s.lower().replace(" ", "")
+                    or s.lower().replace(" ", "") in entity_value.lower().replace(" ", "")
+                    for s in stored_set
                 )
-                for pt in q_res:
-                    if float(pt.score) >= 0.78:
-                        p = pt.payload or {}
-                        if p.get("case_number") and p.get("case_number") != req.case_number:
-                            matches.append({
-                                "entity_type": sq["type"],
-                                "entity_value": val,
-                                "match_type": "CROSS_CASE_RECURRENCE",
-                                "matched_case": p.get("case_number"),
-                                "matched_fir": p.get("fir_number", p.get("case_number")),
-                                "police_station": p.get("police_station", "Cyber Crime PS"),
-                                "confidence": round(float(pt.score), 2),
-                                "description": f"Entity {val} matched in historical FIR case {p.get('case_number')}.",
-                                "recommended_action": "Requisition Section 94 BNSS records from target police station."
-                            })
+
+                if hit:
+                    dedup_key = f"{entity_value}|{cmp_num}"
+                    if dedup_key in seen_match_keys:
+                        continue
+                    seen_match_keys.add(dedup_key)
+
+                    confidence = CONFIDENCE.get(entity_type, 0.80)
+                    matches.append({
+                        "entity_type":         entity_type,
+                        "entity_value":        entity_value,
+                        "match_type":          MATCH_TYPE.get(entity_type, "CROSS_CASE_RECURRENCE"),
+                        "matched_case":        cmp_num,
+                        "matched_fir":         cmp_num.replace("CMP-", "FIR-"),
+                        "police_station":      "Cyber Crime PS (same station)",
+                        "confidence":          confidence,
+                        "description":         (
+                            f"Entity '{entity_value}' ({entity_type}) found in complaint "
+                            f"{cmp_num} (crime: {row.get('crime_category','CYBER')})."
+                        ),
+                        "recommended_action":  ACTION.get(entity_type, ACTION["manual"]),
+                    })
+
     except Exception as e:
-        print(f"[*] Qdrant linkage search exception: {e}")
+        pg_error = str(e)
+        print(f"[!] Postgres linkage search error: {e}")
+
+    # ── SECONDARY: Qdrant semantic similarity (for manual/vague queries) ───
+    # Only runs for search queries that got < 3 Postgres hits, so the Qdrant
+    # SOP collection can still surface related SOPs as investigative hints.
+    pg_hit_values = {m["entity_value"] for m in matches}
+    qdrant_queries = [sq for sq in search_queries if sq["value"] not in pg_hit_values]
+
+    if qdrant_queries:
+        client = get_qdrant_client()
+        try:
+            if client and client.collection_exists(COLLECTION_NAME):
+                for sq in qdrant_queries[:3]:   # cap to avoid latency
+                    val = sq["value"]
+                    if not val:
+                        continue
+                    q_res = client.search(
+                        collection_name=COLLECTION_NAME,
+                        query_vector=get_query_embedding(str(val)),
+                        limit=3
+                    )
+                    for pt in q_res:
+                        if float(pt.score) >= 0.82:
+                            p = pt.payload or {}
+                            c_num = p.get("case_number")
+                            if c_num and c_num != req.case_number:
+                                dedup_key = f"{val}|{c_num}"
+                                if dedup_key not in seen_match_keys:
+                                    seen_match_keys.add(dedup_key)
+                                    matches.append({
+                                        "entity_type":        sq["type"],
+                                        "entity_value":       val,
+                                        "match_type":         "SEMANTIC_SIMILARITY",
+                                        "matched_case":       c_num,
+                                        "matched_fir":        p.get("fir_number", c_num),
+                                        "police_station":     p.get("police_station", "Cyber Crime PS"),
+                                        "confidence":         round(float(pt.score), 2),
+                                        "description":        f"Semantic similarity match for '{val}' in case {c_num}.",
+                                        "recommended_action": "Review matched case records and cross-check in CCTNS.",
+                                    })
+        except Exception as e:
+            print(f"[*] Qdrant secondary linkage pass exception: {e}")
+
+    # ── Build stats ────────────────────────────────────────────────────────
+    stats = {
+        "total_entities_searched":  len(search_queries),
+        "total_matches":            len(matches),
+        "high_confidence":          sum(1 for m in matches if m["confidence"] >= 0.85),
+        "medium_confidence":        sum(1 for m in matches if 0.70 <= m["confidence"] < 0.85),
+        "low_confidence":           sum(1 for m in matches if m["confidence"] < 0.70),
+        "unique_linked_cases":      len({m["matched_case"] for m in matches}),
+        "unique_police_stations":   len({m["police_station"] for m in matches}),
+    }
 
     return {
-        "status": "success",
-        "case_number": req.case_number,
+        "status":       "success",
+        "case_number":  req.case_number,
         "total_queries": len(search_queries),
-        "total_matches": len(matches),
-        "matches": matches
+        "matches":      matches,
+        "stats":        stats,
+        **({"pg_error": pg_error} if pg_error else {}),
     }
+
 
 @app.get("/api/search-sops")
 def search_sops_endpoint(query: str, specialist: Optional[str] = None):

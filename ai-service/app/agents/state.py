@@ -25,6 +25,7 @@ class AgentState(TypedDict):
     # Evaluator State (Anti-Laziness Loop)
     evaluation_status: str  # PENDING, REJECTED, APPROVED
     evaluation_feedback: List[str]
+    evaluation_degraded: bool  # True when force-approved after hitting retry cap
     iteration_count: int
     
     # HITL Approval State
