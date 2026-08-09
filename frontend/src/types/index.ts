@@ -24,6 +24,14 @@ export interface ExtractedEntities {
   date_time_of_incident?: string;
 }
 
+export interface CaseActivityLog {
+  timestamp: string;
+  module: string;
+  step_title: string;
+  details: string;
+  officer?: string;
+}
+
 export interface PoliceCase {
   case_number: string;
   fir_number: string;
@@ -39,6 +47,7 @@ export interface PoliceCase {
   entities: ExtractedEntities;
   sections: string[];
   created_at: string;
+  activity_timeline?: CaseActivityLog[];
 }
 
 export interface GroundedSOPStep {

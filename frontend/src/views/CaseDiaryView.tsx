@@ -5,16 +5,30 @@ import {
   Printer,
   CheckCircle,
   FileText,
-  Award,
   Sparkles,
-  Lock
+  Lock,
+  Cpu,
+  Network,
+  Send,
+  BarChart3,
+  Clock,
+  Loader2,
+  FileSpreadsheet
 } from 'lucide-react';
 import { useCaseStore } from '../store/caseStore';
+import { useLangStore } from '../store/langStore';
 
 export default function CaseDiaryView() {
-  const { activeCase } = useCaseStore();
+  const { activeCase, generateCaseSummary } = useCaseStore();
+  const { t } = useLangStore();
+
   const [downloading, setDownloading] = useState(false);
   const [toastMsg, setToastMsg] = useState('');
+
+  // Summary Generator State
+  const [summaryModalOpen, setSummaryModalOpen] = useState(false);
+  const [generatingSummary, setGeneratingSummary] = useState(false);
+  const [generatedSummaryText, setGeneratedSummaryText] = useState('');
 
   const handleDownloadDiary = () => {
     setDownloading(true);
@@ -25,6 +39,28 @@ export default function CaseDiaryView() {
     }, 1200);
   };
 
+  const handleGenerateSummary = async () => {
+    setGeneratingSummary(true);
+    try {
+      const summary = await generateCaseSummary(activeCase?.case_number || 'CR-2026-9910');
+      setGeneratedSummaryText(summary);
+      setSummaryModalOpen(true);
+    } catch (err) {
+      console.error(err);
+      setToastMsg('Failed to generate statutory case summary.');
+    } finally {
+      setGeneratingSummary(false);
+    }
+  };
+
+  const timeline = activeCase?.activity_timeline || [
+    { timestamp: '2026-07-24T10:00:00Z', module: 'MODULE_1_INTAKE', step_title: 'Complaint Ingested & Indic Translation', details: 'Ingested Gujarati complaint text; extracted loss ₹2,00,000, suspect account 30910293101.' },
+    { timestamp: '2026-07-24T10:05:12Z', module: 'MODULE_2_LINKAGE', step_title: 'Cross-Case Serial Linkage Search', details: 'Scanned database; linked suspect account 30910293101 to FIR-019/2026.' },
+    { timestamp: '2026-07-24T10:12:45Z', module: 'MODULE_3_INVESTIGATION', step_title: 'Multi-Agent LangGraph Pod Execution', details: 'Grounding complete; identified Section 318(4) BNS 2023 & Section 66D IT Act.' },
+    { timestamp: '2026-07-24T10:20:00Z', module: 'MODULE_4_WORKFLOW', step_title: 'Section 94 BNSS Legal Notice Dispatched', details: 'Generated & dispatched email order to SBI Nodal Officer (cgc.fraud@sbi.co.in).' },
+    { timestamp: '2026-07-24T10:28:30Z', module: 'MODULE_5_ANALYTICS', step_title: 'Provider Reply Ingested & Parsed', details: 'Parsed SBI transaction ledger CSV; 38 midnight calls flagged.' }
+  ];
+
   return (
     <div className="flex-1 flex flex-col p-4 overflow-hidden gap-3 select-none">
 
@@ -32,16 +68,27 @@ export default function CaseDiaryView() {
       <div className="flex items-center justify-between border-b border-white/10 pb-3 shrink-0">
         <div>
           <h1 className="text-base font-extrabold tracking-wide text-white uppercase font-mono flex items-center gap-2">
-            Module 6: Court-Ready Form 50 Case Diary & BSA 63 Certificate Compiler
+            Module 6: Auto-Logged Digital Case Diary & Court Brief Synthesizer
           </h1>
           <p className="text-xs text-slate-400">
-            Compiles all 6 investigation steps into official Police Case Diary (Form 50) and mandatory Section 63 BSA Electronic Evidence Certificate.
+            Automatically logs every investigative step taken in this case and synthesizes Section 167 BNSS Case Diaries & Court Summaries.
           </p>
         </div>
 
-        <span className="rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-2 py-0.5 text-xs font-bold font-mono">
-          ● Judicial Court Ready
-        </span>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleGenerateSummary}
+            disabled={generatingSummary}
+            className="flex items-center gap-1.5 rounded bg-indigo-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-indigo-500 transition-colors disabled:opacity-50"
+          >
+            {generatingSummary ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
+            <span>Auto-Generate Court Case Summary</span>
+          </button>
+
+          <span className="rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-2 py-0.5 text-xs font-bold font-mono">
+            ● Judicial Court Ready
+          </span>
+        </div>
       </div>
 
       {/* Toast Notification */}
@@ -52,49 +99,51 @@ export default function CaseDiaryView() {
         </div>
       )}
 
-      {/* Main Grid: Form 50 & BSA Certificate */}
+      {/* Main Grid: Case Timeline & BSA Certificate */}
       <div className="flex-1 grid grid-cols-12 gap-3 overflow-hidden">
 
-        {/* Left Column: Form 50 Summary (7 Cols) */}
+        {/* Left Column: Chronological Activity Log (7 Cols) */}
         <div className="col-span-7 rounded border border-white/10 bg-[#0d1322] p-3 flex flex-col justify-between overflow-y-auto space-y-3">
           <div className="space-y-3">
             <span className="text-xs font-bold uppercase tracking-wider text-slate-300 border-b border-white/10 pb-1.5 flex items-center justify-between">
-              <span>Police Case Diary — Form 50 Summary</span>
+              <span className="flex items-center gap-1.5">
+                <Clock className="h-4 w-4 text-blue-400" />
+                Auto-Recorded Chronological Investigation Timeline
+              </span>
               <span className="font-mono text-blue-400">{activeCase?.case_number || 'CR-2026-9910'}</span>
             </span>
 
+            {/* Event Timeline List */}
             <div className="space-y-2 text-xs">
-              <div className="rounded border border-white/10 bg-[#050811] p-2.5 space-y-1">
-                <div className="flex items-center justify-between font-bold text-white">
-                  <span>FIR: {activeCase?.fir_number || 'FIR-042/2026'}</span>
-                  <span className="text-emerald-400 text-[10px] font-mono">Status: Verified & Grounded</span>
+              {timeline.map((item, idx) => (
+                <div key={idx} className="rounded border border-white/10 bg-[#050811] p-2.5 space-y-1 hover:border-blue-500/30 transition-colors">
+                  <div className="flex items-center justify-between">
+                    <span className="flex items-center gap-1.5 font-bold text-white text-xs">
+                      {item.module === 'MODULE_1_INTAKE' && <FileText className="h-3.5 w-3.5 text-blue-400" />}
+                      {item.module === 'MODULE_2_LINKAGE' && <Network className="h-3.5 w-3.5 text-amber-400" />}
+                      {item.module === 'MODULE_3_INVESTIGATION' && <Cpu className="h-3.5 w-3.5 text-emerald-400" />}
+                      {item.module === 'MODULE_4_WORKFLOW' && <Send className="h-3.5 w-3.5 text-rose-400" />}
+                      {item.module === 'MODULE_5_ANALYTICS' && <BarChart3 className="h-3.5 w-3.5 text-indigo-400" />}
+                      <span>{item.step_title}</span>
+                    </span>
+                    <span className="font-mono text-[10px] text-slate-400">
+                      {new Date(item.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-300 leading-relaxed font-sans">{item.details}</p>
                 </div>
-                <p className="text-slate-400 leading-relaxed font-sans">{activeCase?.translated_text}</p>
-              </div>
-
-              <div className="rounded border border-white/10 bg-[#050811] p-2.5 space-y-1">
-                <span className="font-bold text-slate-400 uppercase tracking-wider text-[10px] block">
-                  Chronological Investigation Log
-                </span>
-                <ul className="space-y-1 text-slate-300 text-[11px] list-disc list-inside">
-                  <li>Multimodal Gujarati complaint statement ingested & verified by NLP engine.</li>
-                  <li>Qdrant vector similarity search executed across 7,337 grounded SOP chunks.</li>
-                  <li>Section 94 BNSS Legal Notice dispatched to Paytm Payments Bank Nodal Cell.</li>
-                  <li>Section 1930 / CFCFRMS Emergency Debit Freeze issued for SBI A/C 30910293101.</li>
-                  <li>Telecom CDR & IPDR log parsed (1,420 records) with primary cell tower anchor at CG Road, Surat.</li>
-                </ul>
-              </div>
+              ))}
             </div>
           </div>
 
-          <div className="pt-2 flex gap-2">
+          <div className="pt-2 flex gap-2 border-t border-white/10">
             <button
               onClick={handleDownloadDiary}
               disabled={downloading}
               className="flex-1 flex items-center justify-center gap-2 rounded bg-emerald-600 p-2.5 text-xs font-bold text-white hover:bg-emerald-500 transition-colors disabled:opacity-50"
             >
               <Download className="h-4 w-4" />
-              <span>{downloading ? 'Compiling PDF Bundle...' : 'Download Master Court PDF Bundle'}</span>
+              <span>{downloading ? 'Compiling PDF Bundle...' : 'Download Master Court Case Bundle'}</span>
             </button>
 
             <button
@@ -107,7 +156,7 @@ export default function CaseDiaryView() {
           </div>
         </div>
 
-        {/* Right Column: Section 63 BSA Hash Certifier (5 Cols) */}
+        {/* Right Column: Statutory Summary & BSA Certificate (5 Cols) */}
         <div className="col-span-5 rounded border border-white/10 bg-[#0d1322] p-3 flex flex-col justify-between overflow-y-auto space-y-3">
           <div className="space-y-3">
             <span className="text-xs font-bold uppercase tracking-wider text-slate-300 border-b border-white/10 pb-1.5 flex items-center gap-1.5">
@@ -116,7 +165,7 @@ export default function CaseDiaryView() {
             </span>
 
             <p className="text-xs text-slate-400 leading-relaxed font-sans">
-              Mandatory certificate under Bharatiya Sakshya Adhiniyam (BSA), 2023 certifying the authenticity of electronic records and server logs.
+              Mandatory certificate under Bharatiya Sakshya Adhiniyam (BSA), 2023 certifying the authenticity of electronic records, server logs, and automated activity streams.
             </p>
 
             <div className="rounded border border-emerald-500/30 bg-emerald-500/10 p-2.5 space-y-1 text-xs">
@@ -128,23 +177,61 @@ export default function CaseDiaryView() {
                 e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
               </p>
               <p className="text-[11px] text-slate-300">
-                Certified Officer: <b className="text-white">PSI V. K. Patel (Investigating Officer)</b>
+                Certified Officer: <b className="text-white">{activeCase?.assigned_io || 'PSI V. K. Patel (IO)'}</b>
               </p>
             </div>
           </div>
 
-          <div className="rounded border border-blue-500/30 bg-blue-500/10 p-2.5 space-y-1 text-xs">
-            <span className="font-bold text-blue-300 flex items-center gap-1">
-              <Sparkles className="h-3.5 w-3.5 text-blue-400" />
-              Judicial Admissibility Guard
+          <div className="rounded border border-indigo-500/30 bg-indigo-500/10 p-2.5 space-y-1 text-xs">
+            <span className="font-bold text-indigo-300 flex items-center gap-1">
+              <Sparkles className="h-3.5 w-3.5 text-indigo-400" />
+              Statutory Charge Sheet Briefing
             </span>
             <p className="text-[10px] text-slate-300 leading-relaxed font-sans">
-              Verified legal quotes from original government SOP PDFs in Qdrant with zero synthetic fallbacks.
+              All 5 module logs are cryptographically bound to case {activeCase?.case_number || 'CR-2026-9910'} for charge sheet submission under Section 193 BNSS.
             </p>
           </div>
         </div>
 
       </div>
+
+      {/* Statutory Case Summary Report Modal */}
+      {summaryModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
+          <div className="w-full max-w-2xl rounded-lg border border-white/10 bg-[#0d1322] p-4 space-y-3 shadow-2xl">
+            <div className="flex items-center justify-between border-b border-white/10 pb-2">
+              <h3 className="text-xs font-bold text-indigo-300 uppercase tracking-wider flex items-center gap-1.5 font-mono">
+                <Sparkles className="h-4 w-4 text-indigo-400" />
+                Statutory Case Diary & Charge Sheet Brief (Section 167 BNSS)
+              </h3>
+              <button onClick={() => setSummaryModalOpen(false)} className="text-slate-400 hover:text-white text-xs">✕</button>
+            </div>
+
+            <textarea
+              rows={16}
+              readOnly
+              value={generatedSummaryText}
+              className="w-full rounded border border-white/10 bg-[#050811] p-3 text-xs font-mono text-slate-200 outline-none leading-relaxed"
+            />
+
+            <div className="pt-2 flex justify-end gap-2">
+              <button
+                onClick={() => setSummaryModalOpen(false)}
+                className="px-3 py-1.5 rounded border border-white/10 text-xs font-semibold text-slate-400 hover:text-white"
+              >
+                Close
+              </button>
+              <button
+                onClick={() => window.print()}
+                className="px-4 py-1.5 rounded bg-indigo-600 text-xs font-bold text-white hover:bg-indigo-500 transition-colors flex items-center gap-1.5"
+              >
+                <Printer className="h-3.5 w-3.5" />
+                <span>Print Legal Summary Report</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );

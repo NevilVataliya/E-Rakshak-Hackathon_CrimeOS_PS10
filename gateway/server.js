@@ -21,7 +21,26 @@ const pool = new Pool({
   connectionString: process.env.DATABASE_URL || 'postgresql://crimeos_user:crimeos_password@localhost:5432/crimeos_db'
 });
 
-const upload = multer({ dest: 'uploads/' });
+// File upload config: 50MB limit for complaint files, 20MB for RAG documents
+const upload = multer({
+  dest: 'uploads/',
+  limits: { fileSize: 50 * 1024 * 1024 }  // 50 MB hard cap
+});
+
+// Separate multer instance for RAG documents with stricter limit and extension check
+const ALLOWED_RAG_EXTENSIONS = new Set(['.pdf', '.docx', '.doc', '.txt', '.md']);
+const ragUpload = multer({
+  dest: 'uploads/rag_tmp/',
+  limits: { fileSize: 20 * 1024 * 1024 },  // 20 MB cap for statutory docs
+  fileFilter: (req, file, cb) => {
+    const ext = path.extname(file.originalname).toLowerCase();
+    if (ALLOWED_RAG_EXTENSIONS.has(ext)) {
+      cb(null, true);
+    } else {
+      cb(new Error(`Unsupported file type '${ext}'. Allowed: ${[...ALLOWED_RAG_EXTENSIONS].join(', ')}`));
+    }
+  }
+});
 
 app.use(cors());
 app.use(express.json());
@@ -600,6 +619,183 @@ app.get('/api/admin/audit-logs', authenticateToken, authorizeRoles('SHO', 'ADMIN
   ]);
 });
 
+app.get('/api/workflow/policy', authenticateToken, async (req, res) => {
+  try {
+    const response = await axios.get(`${AI_SERVICE_URL}/api/workflow/policy`);
+    res.json(response.data);
+  } catch (err) {
+    if (!ENABLE_DEMO_FALLBACKS) return res.status(500).json({ error: err.message });
+    res.json({ policy: 'MANDATORY_HUMAN_APPROVAL', risk_threshold: 6.0 });
+  }
+});
+
+app.post('/api/workflow/policy', authenticateToken, async (req, res) => {
+  try {
+    const response = await axios.post(`${AI_SERVICE_URL}/api/workflow/policy`, req.body);
+    res.json(response.data);
+  } catch (err) {
+    if (!ENABLE_DEMO_FALLBACKS) return res.status(500).json({ error: err.message });
+    res.json({ status: 'success', policy: req.body.policy, risk_threshold: req.body.risk_threshold || 6.0 });
+  }
+});
+
+app.post('/api/workflow/templates/custom', authenticateToken, async (req, res) => {
+  try {
+    const response = await axios.post(`${AI_SERVICE_URL}/api/workflow/templates/custom`, req.body);
+    res.json(response.data);
+  } catch (err) {
+    if (!ENABLE_DEMO_FALLBACKS) return res.status(500).json({ error: err.message });
+    res.json({ status: 'success', message: `Custom Template '${req.body.template_id}' created` });
+  }
+});
+
+// --- RAG KNOWLEDGE BASE DOCUMENT PROXY ROUTES ---
+app.get('/api/rag/documents', authenticateToken, async (req, res) => {
+  try {
+    const response = await axios.get(`${AI_SERVICE_URL}/api/rag/documents`);
+    res.json(response.data);
+  } catch (err) {
+    if (!ENABLE_DEMO_FALLBACKS) return res.status(500).json({ error: err.message });
+    res.json({
+      status: 'success',
+      documents: [
+        { document_name: 'Bharatiya_Nagarik_Suraksha_Sanhita_2023.pdf', statute_type: 'bns_specialist', vector_points: 1420, file_size_bytes: 1048576, status: 'ACTIVE_INDEXED' },
+        { document_name: 'Bharatiya_Sakshya_Adhiniyam_2023.pdf', statute_type: 'bsa_specialist', vector_points: 980, file_size_bytes: 812048, status: 'ACTIVE_INDEXED' },
+        { document_name: 'IT_Act_2000_Amendments.pdf', statute_type: 'cyber_financial_intel_specialist', vector_points: 640, file_size_bytes: 512000, status: 'ACTIVE_INDEXED' }
+      ]
+    });
+  }
+});
+
+app.post('/api/rag/documents/upload', authenticateToken, ragUpload.single('file'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'No file uploaded. Please attach a PDF, DOCX, or TXT document.' });
+    }
+
+    // Forward the file as multipart form-data to the AI service (Bug 4.3 fix)
+    const form = new FormData();
+    form.append('file', fs.createReadStream(req.file.path), {
+      filename: req.file.originalname,
+      contentType: req.file.mimetype
+    });
+    form.append('statute_type', req.body.statute_type || 'custom_extended');
+
+    const response = await axios.post(`${AI_SERVICE_URL}/api/rag/documents/upload`, form, {
+      headers: form.getHeaders(),
+      maxContentLength: Infinity,
+      maxBodyLength: Infinity
+    });
+
+    // Clean up temp file
+    if (fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
+    res.json(response.data);
+  } catch (err) {
+    if (req.file && fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
+    if (err.code === 'LIMIT_FILE_SIZE') {
+      return res.status(413).json({ error: 'File too large. Maximum allowed size is 20MB.' });
+    }
+    console.error('RAG upload error:', err.message);
+    if (!ENABLE_DEMO_FALLBACKS) return res.status(500).json({ error: err.message });
+    res.json({ status: 'success', message: 'Document ingested and indexed into QdrantDB (demo fallback)' });
+  }
+});
+
+app.delete('/api/rag/documents/:filename', authenticateToken, async (req, res) => {
+  try {
+    const filename = encodeURIComponent(req.params.filename);
+    const response = await axios.delete(`${AI_SERVICE_URL}/api/rag/documents/${filename}`);
+    res.json(response.data);
+  } catch (err) {
+    if (!ENABLE_DEMO_FALLBACKS) return res.status(500).json({ error: err.message });
+    res.json({ status: 'success', message: `Document '${req.params.filename}' deleted from QdrantDB` });
+  }
+});
+
+app.post('/api/case-diary/generate-summary', authenticateToken, async (req, res) => {
+  try {
+    const response = await axios.post(`${AI_SERVICE_URL}/api/case-diary/generate-summary`, req.body);
+    res.json(response.data);
+  } catch (err) {
+    if (!ENABLE_DEMO_FALLBACKS) return res.status(500).json({ error: err.message });
+    res.json({
+      status: 'success',
+      case_number: req.body.case_number,
+      statutory_case_summary: `STATUTORY CASE DIARY SUMMARY (SECTION 167 BNSS / SECTION 173 CrPC)\n\nCase Ref: ${req.body.case_number}\nInvestigating Unit: Central Cyber Crime Station\n\nCHRONOLOGICAL STEPS LOGGED:\n• Complaint Ingested & Indic Translation completed\n• Serial Offender Linkage Scan executed (Cross-case match)\n• LangGraph Pod Executed (Sec 318(4) BNS 2023 & Sec 66D IT Act)\n• Statutory Notice Dispatched to SBI Nodal Cell\n• Response Analytics Parsed\n\nRecommendation: Submit Final Charge Sheet under Sec 193 BNSS.`
+    });
+  }
+});
+
+app.post('/api/workflow/dispatch-notice', authenticateToken, async (req, res) => {
+  try {
+    const response = await axios.post(`${AI_SERVICE_URL}/api/workflow/dispatch-notice`, req.body);
+    res.json(response.data);
+  } catch (err) {
+    if (!ENABLE_DEMO_FALLBACKS) return res.status(500).json({ error: err.message });
+    res.json({ status: 'success', notice: { case_number: req.body.case_number, status: 'DISPATCHED_DEMO' } });
+  }
+});
+
+app.post('/api/workflow/incoming-reply', authenticateToken, async (req, res) => {
+  try {
+    const response = await axios.post(`${AI_SERVICE_URL}/api/workflow/incoming-reply`, req.body);
+    res.json(response.data);
+  } catch (err) {
+    if (!ENABLE_DEMO_FALLBACKS) return res.status(500).json({ error: err.message });
+    res.json({
+      status: 'reply_ingested',
+      case_number: req.body.case_number || 'CR-2026-9910',
+      analytics: {
+        risk_score: 8.5,
+        key_findings: ['Received transaction ledger CSV from Nodal Officer.', 'Identified secondary mule account 30910293101.'],
+        extracted_entities: { account_numbers: ['30910293101'], phone_numbers: ['+91 98765 43210'] },
+        recommended_next_action: 'Issue Section 94 BNSS Financial Freeze Notice to beneficiary bank'
+      },
+      requires_human_approval: true,
+      approval_item: {
+        approval_id: `APPR-DEMO-${Math.floor(1000 + Math.random() * 9000)}`,
+        case_number: req.body.case_number || 'CR-2026-9910',
+        sender_email: req.body.sender_email || 'compliance@sbi.co.in',
+        draft_subject: `[ CrimeOS DIRECTIVE ] Follow-up Order for Case ${req.body.case_number || 'CR-2026-9910'}`,
+        draft_body: `OFFICIAL STATUTORY DIRECTIVE (HUMAN APPROVAL PENDING)\n\nTo: Nodal Compliance Officer\nDirective: Issue Financial Freeze Order to SBI Mule Account 30910293101`,
+        status: 'PENDING_HUMAN_APPROVAL'
+      }
+    });
+  }
+});
+
+app.get('/api/workflow/pending-approvals', authenticateToken, async (req, res) => {
+  try {
+    const caseNo = req.query.case_number;
+    const response = await axios.get(`${AI_SERVICE_URL}/api/workflow/pending-approvals${caseNo ? `?case_number=${caseNo}` : ''}`);
+    res.json(response.data);
+  } catch (err) {
+    if (!ENABLE_DEMO_FALLBACKS) return res.status(500).json({ error: err.message });
+    res.json({ pending_approvals: [], total: 0 });
+  }
+});
+
+app.post('/api/workflow/approve-notice', authenticateToken, async (req, res) => {
+  try {
+    const response = await axios.post(`${AI_SERVICE_URL}/api/workflow/approve-notice`, req.body);
+    res.json(response.data);
+  } catch (err) {
+    if (!ENABLE_DEMO_FALLBACKS) return res.status(500).json({ error: err.message });
+    res.json({ status: 'success', message: 'Notice approved and dispatched by IO' });
+  }
+});
+
+app.post('/api/workflow/reject-notice', authenticateToken, async (req, res) => {
+  try {
+    const response = await axios.post(`${AI_SERVICE_URL}/api/workflow/reject-notice`, req.body);
+    res.json(response.data);
+  } catch (err) {
+    if (!ENABLE_DEMO_FALLBACKS) return res.status(500).json({ error: err.message });
+    res.json({ status: 'rejected' });
+  }
+});
+
 app.listen(PORT, () => {
   console.log(`[+] Crime OS AI Gateway running on port ${PORT} (ENABLE_DEMO_FALLBACKS=${ENABLE_DEMO_FALLBACKS})`);
 });
+

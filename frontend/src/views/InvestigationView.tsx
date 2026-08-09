@@ -17,11 +17,13 @@ import {
 } from 'lucide-react';
 import PDFPreviewModal from '../components/common/PDFPreviewModal';
 import { useCaseStore } from '../store/caseStore';
+import { useLangStore } from '../store/langStore';
 import { GroundedSOPStep } from '../types';
 
 export default function InvestigationView() {
   const navigate = useNavigate();
   const { activeCase, runInvestigationStudio, investigationData, loading, error, setSelectedInspectorItem } = useCaseStore();
+  const { t } = useLangStore();
   const [pdfModalOpen, setPdfModalOpen] = useState(false);
   const [expandedStep, setExpandedStep] = useState<number | null>(0);
 
@@ -46,10 +48,10 @@ export default function InvestigationView() {
       <div className="flex items-center justify-between border-b border-white/10 pb-3 shrink-0">
         <div>
           <h1 className="text-base font-extrabold tracking-wide text-white uppercase font-mono flex items-center gap-2">
-            AI Investigation & SOP Analysis
+            {t('investigation.title', 'Module 3: LangGraph Agentic Investigation Studio')}
           </h1>
           <p className="text-xs text-slate-400">
-            AI-powered analysis across legal frameworks with verified citations from official manuals.
+            {t('investigation.subtitle', 'Multi-agent pod execution (BNS 2023, BSA 2023, Cyber & Conventional Specialists) generating Master FIR and Legal PDFs.')}
           </p>
         </div>
 
@@ -57,18 +59,18 @@ export default function InvestigationView() {
           <button
             onClick={handleRunAgentStudio}
             disabled={loading}
-            className="flex items-center gap-1.5 rounded bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-blue-500 transition-colors disabled:opacity-50 shadow-sm"
+            className="flex items-center gap-1.5 rounded bg-amber-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-amber-500 transition-colors disabled:opacity-50 shadow-sm"
           >
-            {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
-            <span>{steps.length > 0 ? 'Re-Generate Investigation Path' : 'Generate Investigation Path'}</span>
+            {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Play className="h-3.5 w-3.5" />}
+            <span>{t('investigation.btn_run', 'Execute Agentic Investigation Graph')}</span>
           </button>
 
           <button
             onClick={() => navigate('/subpoenas')}
-            className="flex items-center gap-1.5 rounded bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-500 transition-colors"
+            className="flex items-center gap-1.5 rounded bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-blue-500 transition-colors"
           >
-            <span>Proceed to Subpoenas & Notices</span>
-            <ArrowRight className="h-3.5 w-3.5" />
+            <span>{t('investigation.proceed_to_subpoenas', 'Proceed to Module 4: Workflow Automator')}</span>
+            <ArrowRight className="h-4 w-4" />
           </button>
         </div>
       </div>

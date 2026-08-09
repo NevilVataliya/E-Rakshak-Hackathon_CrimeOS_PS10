@@ -18,6 +18,16 @@ interface CaseState {
   linkageLoading: boolean;
   linkageError: string | null;
 
+  // Workflow Automator HITL Approval Queue & Policy State
+  pendingApprovals: any[];
+  approvalLoading: boolean;
+  automationPolicy: 'MANDATORY_HUMAN_APPROVAL' | 'AUTONOMOUS_LLM_AUTO_DISPATCH' | 'HYBRID_RISK_THRESHOLD';
+  riskThreshold: number;
+
+  // RAG Knowledge Base State (Qdrant Vector DB)
+  ragDocuments: any[];
+  ragLoading: boolean;
+
   fetchCases: () => Promise<void>;
   setActiveCase: (policeCase: PoliceCase | null) => void;
   addCaseFromComplaint: (complaintData: any) => PoliceCase;
@@ -29,6 +39,24 @@ interface CaseState {
   // Linkage Module 2 Actions
   runLinkageSearch: (caseNumber: string, entities: any, searchQuery?: string, searchType?: string) => Promise<void>;
   clearLinkage: () => void;
+
+  // Workflow Automator Actions (HITL + Autonomous LLM Engine)
+  fetchPendingApprovals: (caseNumber?: string) => Promise<void>;
+  approveNotice: (approvalId: string, approvedBy?: string, customSubject?: string, customBody?: string) => Promise<void>;
+  rejectNotice: (approvalId: string) => Promise<void>;
+  simulateIncomingReply: (payload: { case_number: string; sender_email: string; subject: string; body_text: string; attachments?: any[] }) => Promise<any>;
+  fetchAutomationPolicy: () => Promise<void>;
+  setAutomationPolicy: (policy: 'MANDATORY_HUMAN_APPROVAL' | 'AUTONOMOUS_LLM_AUTO_DISPATCH' | 'HYBRID_RISK_THRESHOLD', riskThreshold?: number) => Promise<void>;
+  registerCustomTemplate: (payload: { template_id: string; title: string; category?: string; subject_template: string; body_template: string; required_vars?: string[]; legal_statute_ref?: string }) => Promise<void>;
+  
+  // Dynamic RAG Knowledge Base Actions (Qdrant)
+  fetchRagDocuments: () => Promise<void>;
+  uploadRagDocument: (file: File, statuteType?: string) => Promise<void>;
+  deleteRagDocument: (filename: string) => Promise<void>;
+
+  // Automated Case Activity Logging & Court Summary Actions
+  addCaseActivityLog: (caseNumber: string, logItem: { module: string; step_title: string; details: string }) => void;
+  generateCaseSummary: (caseNumber: string) => Promise<string>;
 }
 
 const initialMockCases: PoliceCase[] = [
@@ -52,7 +80,13 @@ const initialMockCases: PoliceCase[] = [
       monetary_loss: 200000
     },
     sections: ['BNS Section 318(4)', 'IT Act Section 66D', 'BSA Section 63'],
-    created_at: '2026-07-24T10:00:00Z'
+    created_at: '2026-07-24T10:00:00Z',
+    activity_timeline: [
+      { timestamp: '2026-07-24T10:00:00Z', module: 'MODULE_1_INTAKE', step_title: 'Complaint Ingested & Indic Translation', details: 'Ingested Gujarati complaint text; extracted loss ₹2,00,000, suspect account 30910293101.' },
+      { timestamp: '2026-07-24T10:05:12Z', module: 'MODULE_2_LINKAGE', step_title: 'Cross-Case Serial Linkage Search', details: 'Scanned database; linked suspect account 30910293101 to FIR-019/2026.' },
+      { timestamp: '2026-07-24T10:12:45Z', module: 'MODULE_3_INVESTIGATION', step_title: 'Multi-Agent LangGraph Pod Execution', details: 'Grounding complete; identified Section 318(4) BNS 2023 & Section 66D IT Act.' },
+      { timestamp: '2026-07-24T10:20:00Z', module: 'MODULE_4_WORKFLOW', step_title: 'Section 94 BNSS Legal Notice Dispatched', details: 'Generated & dispatched email order to SBI Nodal Officer (cgc.fraud@sbi.co.in).' }
+    ]
   },
   {
     case_number: 'CR-2026-8814',
@@ -118,6 +152,16 @@ export const useCaseStore = create<CaseState>()(
       linkageLoading: false,
       linkageError: null,
 
+      // Workflow Automator HITL Queue & Policy initial state
+      pendingApprovals: [],
+      approvalLoading: false,
+      automationPolicy: 'MANDATORY_HUMAN_APPROVAL',
+      riskThreshold: 6.0,
+
+      // RAG Knowledge Base initial state
+      ragDocuments: [],
+      ragLoading: false,
+
       clearError: () => set({ error: null }),
 
       setSelectedInspectorItem: (item: any | null) => {
@@ -171,6 +215,14 @@ export const useCaseStore = create<CaseState>()(
 
         const updatedCases = [newCase, ...get().cases];
         set({ cases: updatedCases, activeCase: newCase, investigationData: null });
+
+        // Bug 4.1 fix: Log Module 1 intake event to activity timeline
+        get().addCaseActivityLog(newCaseNumber, {
+          module: 'MODULE_1_INTAKE',
+          step_title: 'Complaint Ingested & Processed',
+          details: `Complaint ingested in ${complaintData.original_language || 'auto'} language. Crime category: ${complaintData.crime_category || 'CYBER'}. Monetary loss: ₹${(complaintData.entities?.monetary_loss || 0).toLocaleString('en-IN')}.`
+        });
+
         return newCase;
       },
 
@@ -184,6 +236,15 @@ export const useCaseStore = create<CaseState>()(
             entities
           });
           set({ investigationData: res.data, error: null });
+
+          // Bug 4.1 fix: Log Module 3 investigation event to activity timeline
+          const steps = res.data?.investigation_steps || [];
+          const sections = res.data?.master_fir?.sections || res.data?.sections || 'N/A';
+          get().addCaseActivityLog(caseNumber, {
+            module: 'MODULE_3_INVESTIGATION',
+            step_title: 'Multi-Agent LangGraph Pod Execution',
+            details: `AI investigation complete. ${steps.length} investigation steps generated. Identified statutes: ${sections}. Cross-case matches: ${res.data?.cross_case_matches?.length || 0}.`
+          });
         } catch (err: any) {
           const errorMsg = err.response?.data?.detail || err.response?.data?.error || err.message || 'LangGraph investigation graph execution failed';
           console.error('[-] Agent Studio Execution Error:', errorMsg);
@@ -324,8 +385,14 @@ export const useCaseStore = create<CaseState>()(
           set({
             linkageMatches: rawMatches,
             linkageStats:   computedStats,
-
             linkageError: null
+          });
+
+          // Bug 4.1 fix: Log Module 2 linkage event to activity timeline
+          get().addCaseActivityLog(caseNumber, {
+            module: 'MODULE_2_LINKAGE',
+            step_title: 'Cross-Case Serial Linkage Search',
+            details: `Searched ${computedStats.total_entities_searched} entities. Found ${computedStats.total_matches} cross-case matches (${computedStats.high_confidence} high confidence) across ${computedStats.unique_linked_cases} linked cases.`
           });
         } catch (err: any) {
           const errorMsg = err.response?.data?.detail || err.response?.data?.error || err.message || 'Linkage search failed';
@@ -377,6 +444,219 @@ export const useCaseStore = create<CaseState>()(
 
       clearLinkage: () => {
         set({ linkageMatches: [], linkageStats: null, linkageError: null });
+      },
+
+      // --- Workflow Automator Actions (Mandatory Human Approval) ---
+      fetchPendingApprovals: async (caseNumber?: string) => {
+        set({ approvalLoading: true });
+        try {
+          const res = await api.get(`/api/workflow/pending-approvals${caseNumber ? `?case_number=${caseNumber}` : ''}`);
+          if (res.data && Array.isArray(res.data.pending_approvals)) {
+            set({ pendingApprovals: res.data.pending_approvals });
+          }
+        } catch (err) {
+          console.warn('[⚠️ Workflow Approvals Fetch Fallback]');
+        } finally {
+          set({ approvalLoading: false });
+        }
+      },
+
+      approveNotice: async (approvalId: string, approvedBy?: string, customSubject?: string, customBody?: string) => {
+        set({ approvalLoading: true });
+        try {
+          await api.post('/api/workflow/approve-notice', {
+            approval_id: approvalId,
+            approved_by: approvedBy || 'PSI Inspector V. K. Patel',
+            custom_subject: customSubject,
+            custom_body: customBody
+          });
+          // Update local state
+          const updated = get().pendingApprovals.map(item =>
+            item.approval_id === approvalId
+              ? { ...item, status: 'APPROVED_AND_DISPATCHED', approved_by: approvedBy || 'PSI Inspector V. K. Patel' }
+              : item
+          );
+          set({ pendingApprovals: updated });
+
+          // Bug 4.1 fix: Log Module 4 notice dispatch event to activity timeline
+          const approvedItem = get().pendingApprovals.find(i => i.approval_id === approvalId);
+          if (approvedItem) {
+            get().addCaseActivityLog(approvedItem.case_number, {
+              module: 'MODULE_4_WORKFLOW',
+              step_title: 'Legal Notice Approved & Dispatched',
+              details: `Notice approved by ${approvedBy || 'PSI Inspector V. K. Patel'}. Dispatched to: ${approvedItem.recipient_email}. Subject: ${approvedItem.draft_subject?.slice(0, 80) || 'Statutory Notice'}.`
+            });
+          }
+        } catch (err: any) {
+          console.error('Approve notice error:', err);
+        } finally {
+          set({ approvalLoading: false });
+        }
+      },
+
+      rejectNotice: async (approvalId: string) => {
+        set({ approvalLoading: true });
+        try {
+          await api.post('/api/workflow/reject-notice', { approval_id: approvalId });
+          const updated = get().pendingApprovals.map(item =>
+            item.approval_id === approvalId ? { ...item, status: 'REJECTED_BY_OFFICER' } : item
+          );
+          set({ pendingApprovals: updated });
+        } catch (err: any) {
+          console.error('Reject notice error:', err);
+        } finally {
+          set({ approvalLoading: false });
+        }
+      },
+
+      simulateIncomingReply: async (payload) => {
+        set({ approvalLoading: true });
+        try {
+          const res = await api.post('/api/workflow/incoming-reply', payload);
+          if (res.data && res.data.approval_item) {
+            const current = get().pendingApprovals;
+            set({ pendingApprovals: [res.data.approval_item, ...current] });
+
+            // Bug 4.1 fix: Log Module 5 analytics/reply event to activity timeline
+            const analytics = res.data.analytics || {};
+            get().addCaseActivityLog(payload.case_number, {
+              module: 'MODULE_5_ANALYTICS',
+              step_title: 'Authority Reply Received & Analyzed',
+              details: `Reply from ${payload.sender_email} analyzed. Risk score: ${analytics.risk_score || 'N/A'}/10. Recommended action: ${analytics.recommended_next_action || 'Review pending approval queue.'}`
+            });
+          }
+          return res.data;
+        } catch (err: any) {
+          console.error('Simulate incoming reply error:', err);
+          throw err;
+        } finally {
+          set({ approvalLoading: false });
+        }
+      },
+
+      fetchAutomationPolicy: async () => {
+        try {
+          const res = await api.get('/api/workflow/policy');
+          if (res.data && res.data.policy) {
+            set({
+              automationPolicy: res.data.policy,
+              riskThreshold: res.data.risk_threshold || 6.0
+            });
+          }
+        } catch (err) {
+          console.warn('[⚠️ Automation Policy Fetch Fallback]');
+        }
+      },
+
+      setAutomationPolicy: async (policy, riskThreshold = 6.0) => {
+        try {
+          await api.post('/api/workflow/policy', { policy, risk_threshold: riskThreshold });
+          set({ automationPolicy: policy, riskThreshold });
+        } catch (err) {
+          console.error('Set automation policy error:', err);
+          set({ automationPolicy: policy, riskThreshold });
+        }
+      },
+
+      registerCustomTemplate: async (payload) => {
+        try {
+          await api.post('/api/workflow/templates/custom', payload);
+        } catch (err) {
+          console.error('Register custom template error:', err);
+        }
+      },
+
+      fetchRagDocuments: async () => {
+        set({ ragLoading: true });
+        try {
+          const res = await api.get('/api/rag/documents');
+          if (res.data && res.data.documents) {
+            set({ ragDocuments: res.data.documents });
+          }
+        } catch (err) {
+          console.warn('[⚠️ RAG Document Fetch Fallback]');
+        } finally {
+          set({ ragLoading: false });
+        }
+      },
+
+      uploadRagDocument: async (file: File, statuteType = 'custom_extended') => {
+        set({ ragLoading: true });
+        try {
+          const formData = new FormData();
+          formData.append('file', file);
+          formData.append('statute_type', statuteType);
+
+          await api.post('/api/rag/documents/upload', formData, {
+            headers: { 'Content-Type': 'multipart/form-data' }
+          });
+          await get().fetchRagDocuments();
+        } catch (err) {
+          console.error('Upload RAG document error:', err);
+          throw err;
+        } finally {
+          set({ ragLoading: false });
+        }
+      },
+
+      deleteRagDocument: async (filename: string) => {
+        set({ ragLoading: true });
+        try {
+          const encName = encodeURIComponent(filename);
+          await api.delete(`/api/rag/documents/${encName}`);
+          const updated = get().ragDocuments.filter(d => d.document_name !== filename);
+          set({ ragDocuments: updated });
+        } catch (err) {
+          console.error('Delete RAG document error:', err);
+          throw err;
+        } finally {
+          set({ ragLoading: false });
+        }
+      },
+
+      addCaseActivityLog: (caseNumber, logItem) => {
+        const newLog = {
+          timestamp: new Date().toISOString(),
+          module: logItem.module,
+          step_title: logItem.step_title,
+          details: logItem.details,
+          officer: 'PSI Inspector V. K. Patel'
+        };
+
+        const updatedCases = get().cases.map(c => {
+          if (c.case_number === caseNumber) {
+            const timeline = c.activity_timeline || [];
+            return { ...c, activity_timeline: [newLog, ...timeline] };
+          }
+          return c;
+        });
+
+        set({ cases: updatedCases });
+
+        const active = get().activeCase;
+        if (active && active.case_number === caseNumber) {
+          const timeline = active.activity_timeline || [];
+          set({ activeCase: { ...active, activity_timeline: [newLog, ...timeline] } });
+        }
+      },
+
+      generateCaseSummary: async (caseNumber: string) => {
+        const targetCase = get().cases.find(c => c.case_number === caseNumber) || get().activeCase;
+        const timeline = targetCase?.activity_timeline || [];
+
+        try {
+          const res = await api.post('/api/case-diary/generate-summary', {
+            case_number: caseNumber,
+            activity_timeline: timeline,
+            investigating_officer: targetCase?.assigned_io || 'PSI Inspector V. K. Patel',
+            police_station: targetCase?.police_station || 'Central Cyber Crime Station'
+          });
+
+          return res.data?.statutory_case_summary || 'Statutory summary generated.';
+        } catch (err) {
+          console.error('Generate case summary error:', err);
+          return `STATUTORY CASE DIARY SUMMARY (SECTION 167 BNSS / SECTION 173 CrPC)\n\nCase Reference: ${caseNumber}\nInvestigating Unit: Central Cyber Crime Station\n\nCHRONOLOGICAL STEPS LOGGED:\n${timeline.map(l => `• [${l.module}] ${l.step_title}: ${l.details}`).join('\n')}\n\nRecommendation: Submit Final Charge Sheet under Sec 193 BNSS.`;
+        }
       }
     }),
     {

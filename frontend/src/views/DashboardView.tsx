@@ -2,11 +2,13 @@ import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Layers, FileCheck2, AlertTriangle, Cpu, Play, FileUp, ShieldCheck, ArrowRight } from 'lucide-react';
 import { useCaseStore } from '../store/caseStore';
+import { useLangStore } from '../store/langStore';
 import { PoliceCase } from '../types';
 
 export default function DashboardView() {
   const navigate = useNavigate();
   const { cases, setActiveCase, fetchCases } = useCaseStore();
+  const { t } = useLangStore();
 
   useEffect(() => {
     fetchCases();
@@ -24,13 +26,13 @@ export default function DashboardView() {
       <div className="flex items-center justify-between border-b border-white/10 pb-3 shrink-0">
         <div>
           <h1 className="text-base font-extrabold tracking-wide text-white uppercase font-mono flex items-center gap-2">
-            Investigation Command Unit
+            {t('dashboard.title', 'Investigation Command Unit')}
             <span className="rounded bg-emerald-500/20 px-2 py-0.5 text-[10px] text-emerald-300 font-sans font-bold">
-              ● Live Station Feed
+              ● {t('header.status_active', 'ONLINE')}
             </span>
           </h1>
           <p className="text-xs text-slate-400">
-            Manage cases, track investigations, and dispatch legal notices across your station.
+            {t('dashboard.subtitle', 'Manage cases, track investigations, and dispatch legal notices across your station.')}
           </p>
         </div>
 
@@ -39,7 +41,7 @@ export default function DashboardView() {
           className="flex items-center gap-1.5 rounded bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-blue-500 transition-colors shadow-sm"
         >
           <FileUp className="h-3.5 w-3.5" />
-          <span>Register New Complaint</span>
+          <span>{t('stepper.intake', 'Register New Complaint')}</span>
         </button>
       </div>
 
@@ -47,7 +49,7 @@ export default function DashboardView() {
       <div className="grid grid-cols-4 gap-3 shrink-0">
         <div className="rounded border border-white/10 bg-[#0d1322] p-3 space-y-1">
           <div className="flex items-center justify-between text-slate-400 text-[10px] font-bold uppercase tracking-wider">
-            <span>Active Cases</span>
+            <span>{t('dashboard.total_cases', 'Active Cases')}</span>
             <Layers className="h-3.5 w-3.5 text-blue-400" />
           </div>
           <p className="text-xl font-extrabold text-white font-mono">{cases.length || 42}</p>
@@ -56,7 +58,7 @@ export default function DashboardView() {
 
         <div className="rounded border border-white/10 bg-[#0d1322] p-3 space-y-1">
           <div className="flex items-center justify-between text-slate-400 text-[10px] font-bold uppercase tracking-wider">
-            <span>Subpoenas Dispatched</span>
+            <span>{t('dashboard.subpoenas_pending', 'Subpoenas Dispatched')}</span>
             <FileCheck2 className="h-3.5 w-3.5 text-emerald-400" />
           </div>
           <p className="text-xl font-extrabold text-white font-mono">89</p>
@@ -65,7 +67,7 @@ export default function DashboardView() {
 
         <div className="rounded border border-white/10 bg-[#0d1322] p-3 space-y-1">
           <div className="flex items-center justify-between text-slate-400 text-[10px] font-bold uppercase tracking-wider">
-            <span>Serial Link Matches</span>
+            <span>{t('dashboard.cross_matches', 'Serial Link Matches')}</span>
             <AlertTriangle className="h-3.5 w-3.5 text-amber-400" />
           </div>
           <p className="text-xl font-extrabold text-white font-mono">11</p>

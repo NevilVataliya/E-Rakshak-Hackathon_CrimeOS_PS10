@@ -1,12 +1,15 @@
 import React, { useState } from 'react';
-import { Shield, Search, Building2, ChevronDown, LogOut, Command } from 'lucide-react';
+import { Shield, Search, Building2, ChevronDown, LogOut, Command, Globe } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
 import { useCaseStore } from '../../store/caseStore';
+import { useLangStore } from '../../store/langStore';
+import { Language } from '../../i18n/translations';
 import CommandPaletteDialog from './CommandPaletteDialog';
 
 export default function CommandHeader() {
   const { user, logout } = useAuthStore();
   const { cases, activeCase, setActiveCase } = useCaseStore();
+  const { language, setLanguage, t } = useLangStore();
   const [cmdOpen, setCmdOpen] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
 
@@ -21,7 +24,7 @@ export default function CommandHeader() {
               <Shield className="h-3.5 w-3.5" />
             </div>
             <span className="text-xs font-extrabold tracking-wider text-white font-mono uppercase">
-              CrimeOS
+              {t('header.title', 'CrimeOS')}
             </span>
           </div>
 
@@ -29,26 +32,57 @@ export default function CommandHeader() {
 
           <div className="flex items-center gap-1.5 text-xs text-slate-300">
             <Building2 className="h-3.5 w-3.5 text-blue-400 shrink-0" />
-            <span className="font-semibold text-slate-200">{user?.police_station || 'Gujarat Cyber Crime Station'}</span>
+            <span className="font-semibold text-slate-200">{user?.police_station || t('header.badge_surat', 'Surat Cyber Crime Cell')}</span>
           </div>
         </div>
 
         {/* Center: Minimal Global Search Bar (CMDK Trigger) */}
         <button
           onClick={() => setCmdOpen(true)}
-          className="flex h-7 w-80 items-center justify-between rounded-lg border border-white/10 bg-[#050811] px-2.5 text-xs text-slate-400 transition-colors hover:border-white/20 hover:text-slate-200"
+          className="flex h-7 w-72 items-center justify-between rounded-lg border border-white/10 bg-[#050811] px-2.5 text-xs text-slate-400 transition-colors hover:border-white/20 hover:text-slate-200"
         >
           <div className="flex items-center gap-2">
             <Search className="h-3 w-3 text-slate-400" />
-            <span className="text-[11px] truncate">Search FIR, Phone, Bank A/c, or VPA...</span>
+            <span className="text-[11px] truncate">Search FIR, Phone, Bank A/c...</span>
           </div>
           <kbd className="inline-flex items-center gap-0.5 rounded border border-white/10 bg-[#0d1322] px-1.5 py-0.2 text-[9px] font-mono text-slate-400">
             <Command className="h-2.5 w-2.5" /> K
           </kbd>
         </button>
 
-        {/* Right: Active FIR Selector & IO Officer Profile */}
+        {/* Right: Language Selector Pill, Active FIR Selector & IO Officer Profile */}
         <div className="flex items-center gap-3">
+
+          {/* Multi-Lingual Language Switcher Pill */}
+          <div className="flex items-center gap-1 rounded-lg border border-white/10 bg-[#050811] p-0.5 text-[11px] font-semibold text-slate-300">
+            <Globe className="h-3 w-3 text-amber-400 ml-1 shrink-0" />
+            <button
+              onClick={() => setLanguage('en')}
+              className={`px-1.5 py-0.5 rounded text-[10px] font-bold transition-colors ${
+                language === 'en' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              EN
+            </button>
+            <button
+              onClick={() => setLanguage('gu')}
+              className={`px-1.5 py-0.5 rounded text-[10px] font-bold transition-colors ${
+                language === 'gu' ? 'bg-amber-600 text-white' : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              ગુજ
+            </button>
+            <button
+              onClick={() => setLanguage('hi')}
+              className={`px-1.5 py-0.5 rounded text-[10px] font-bold transition-colors ${
+                language === 'hi' ? 'bg-emerald-600 text-white' : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              हिं
+            </button>
+          </div>
+
+          <div className="h-3.5 w-px bg-white/10" />
 
           {/* Active FIR Selector */}
           <div className="flex items-center gap-1.5">
@@ -90,7 +124,7 @@ export default function CommandHeader() {
                 <div className="px-2.5 py-2 border-b border-white/10 text-xs">
                   <p className="font-bold text-white">{user?.full_name || 'PSI V. K. Patel'}</p>
                   <p className="text-[10px] text-blue-400 font-mono mt-0.5">{user?.role || 'Investigating Officer (IO)'}</p>
-                  <p className="text-[10px] text-slate-400 mt-0.5">{user?.police_station || 'Gujarat Cyber Crime Station'}</p>
+                  <p className="text-[10px] text-slate-400 mt-0.5">{user?.police_station || t('header.badge_surat', 'Surat Cyber Crime Cell')}</p>
                 </div>
                 <button
                   onClick={() => {

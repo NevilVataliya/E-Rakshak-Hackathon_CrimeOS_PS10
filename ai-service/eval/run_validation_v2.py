@@ -214,22 +214,17 @@ def run_validation_v2(dataset_path: str = None, output_dir: str = None, delay_se
 
         print(f"[*] Running {tc_id}: {tc['description'][:60]}...")
 
-        # Run the actual ingestion pipeline with retries on rate-limiting
+        # Run the actual ingestion pipeline.
+        # Retry (exponential backoff) + fallback/abort policy are handled centrally
+        # inside process_multimodal_complaint via app.utils.error_policy
+        # (configured via ERROR_POLICY, MAX_RETRIES, MAX_RETRY_WAIT_SEC, etc.).
         start_time = time.time()
         result = None
-        for attempt in range(1, 4):
-            try:
-                result = process_multimodal_complaint(raw_text=tc["raw_input_text"], input_type=tc.get("input_type", "text"))
-                break
-            except Exception as e:
-                err_str = str(e)
-                if ("rate_limit" in err_str.lower() or "429" in err_str) and attempt < 3:
-                    wait_t = 10 * attempt
-                    print(f"  [!] Rate limited. Retrying in {wait_t}s...")
-                    time.sleep(wait_t)
-                else:
-                    print(f"  [ERROR] Ingestion failed: {e}")
-                    break
+        try:
+            result = process_multimodal_complaint(raw_text=tc["raw_input_text"], input_type=tc.get("input_type", "text"))
+        except Exception as e:
+            print(f"  [ERROR] Ingestion failed: {e}")
+            result = None
 
         if result is None:
             case_results.append({"test_case_id": tc_id, "error": "Ingestion failed"})

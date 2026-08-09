@@ -16,10 +16,13 @@ import {
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
 import api from '../services/api';
 import { useCaseStore } from '../store/caseStore';
+import { useLangStore } from '../store/langStore';
+import DynamicVisualizer from '../components/common/DynamicVisualizer';
 
 export default function AnalyticsView() {
   const navigate = useNavigate();
   const { activeCase, setSelectedInspectorItem } = useCaseStore();
+  const { t } = useLangStore();
   const [loading, setLoading] = useState(false);
   const [parsedData, setParsedData] = useState<any>(null);
   const [approved, setApproved] = useState(false);
@@ -38,20 +41,20 @@ export default function AnalyticsView() {
         status: 'success',
         response_type: 'CDR',
         total_records: 1420,
-        date_range: '01/06/2026 to 15/07/2026',
-        top_b_parties: [
-          { phone: '+91 98250 11223', call_count: 84, total_duration_min: 192 },
-          { phone: '+91 98790 44551', call_count: 42, total_duration_min: 88 },
-          { phone: '+91 94260 99881', call_count: 29, total_duration_min: 65 }
+        night_calls_count: 142,
+        top_b_party: '9825012345',
+        primary_tower_location: 'Surat Ring Road Cell ID #492',
+        top_contacts: [
+          { b_party: '9825012345', call_count: 184, duration_mins: 340 },
+          { b_party: '9898011223', call_count: 92, duration_mins: 180 },
+          { b_party: '9727099887', call_count: 64, duration_mins: 95 }
         ],
-        night_calls_count: 38,
-        top_tower_locations: [
-          { tower_id: 'AHM-CG-TW-42', location_name: 'CG Road, Surat', frequency: 912 },
-          { tower_id: 'AHM-SAT-TW-09', location_name: 'Satellite, Surat', frequency: 310 }
+        top_towers: [
+          { cell_id: 'Surat Ring Road Cell ID #492', frequency: 620 },
+          { cell_id: 'Adajan Patia Tower #102', frequency: 410 },
+          { cell_id: 'Varachha Main Road Tower #88', frequency: 290 }
         ],
-        imei_history: ['864910049201923', '864910049201999'],
-        executive_summary: "Provider response ingested successfully (1,420 CDR records). Target number exhibited high-frequency night activity (38 calls between 00:00-05:00 AM). Primary anchor location identified at CG Road, Surat (912 calls). SIM swap detected across 2 distinct device IMEIs.",
-        recommended_next_action: "Issue Section 94 BNSS Notice for IMEI 864910049201999 handset CAF details."
+        executive_summary: 'Target suspect phone number 9825012345 shows extreme call frequency during midnight hours (01:00 AM - 04:00 AM) anchored at Surat Ring Road Tower #492.'
       };
       setParsedData(mockData);
       setSelectedInspectorItem({ type: 'CDR_PARSED_ANALYTICS', data: mockData });
@@ -76,10 +79,10 @@ export default function AnalyticsView() {
       <div className="flex items-center justify-between border-b border-white/10 pb-3 shrink-0">
         <div>
           <h1 className="text-base font-extrabold tracking-wide text-white uppercase font-mono flex items-center gap-2">
-            Module 5: High-Scale CDR Pattern Analytics & Cell Tower Map Studio
+            {t('analytics.title', 'Module 5: Provider Response Analytics Engine')}
           </h1>
           <p className="text-xs text-slate-400">
-            Parses raw telecom CDR/IPDR CSVs and Bank Excel statements (50,000+ rows) with automated pandas pre-aggregation and LLM insights.
+            {t('analytics.subtitle', 'Parses large CDR CSV dumps and Bank Statements using Pandas + Gemini LLM Synthesizer.')}
           </p>
         </div>
 
@@ -102,6 +105,9 @@ export default function AnalyticsView() {
           </button>
         </div>
       </div>
+
+      {/* Dynamic AI Grounded Visualizer */}
+      {parsedData && <DynamicVisualizer config={parsedData.visualization_config} />}
 
       {/* Main Analytics Workspace Grid (2x2) */}
       {parsedData ? (

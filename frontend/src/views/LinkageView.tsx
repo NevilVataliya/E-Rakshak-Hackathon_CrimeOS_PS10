@@ -13,6 +13,7 @@ import {
 import { Network, ArrowRight, ShieldCheck, Loader2, Search, Phone, CreditCard, Building, AlertTriangle, RefreshCw } from 'lucide-react';
 import { useCaseStore } from '../store/caseStore';
 import { LinkageMatch } from '../types';
+import { useLangStore } from '../store/langStore';
 
 // --- Node & Edge Color Mapping by Entity Type ---
 const entityStyle: Record<string, { bg: string; color: string; border: string; stroke: string }> = {
@@ -50,59 +51,53 @@ function buildGraphFromMatches(matches: LinkageMatch[], caseNumber: string) {
     // Entity node (column 2)
     if (!seenEntities.has(entityKey)) {
       seenEntities.add(entityKey);
-      const es = entityStyle[match.entity_type] || entityStyle.manual;
-      const typeLabel = match.entity_type === 'bank_account' ? 'A/C' : match.entity_type === 'vpa' ? 'UPI' : match.entity_type.charAt(0).toUpperCase() + match.entity_type.slice(1);
+      const estyle = entityStyle[match.entity_type] || entityStyle.manual;
       nodes.push({
-        id: entityKey,
+        id: `entity-${entityKey}`,
         type: 'default',
-        data: { label: `${typeLabel}: ${match.entity_value}`, matchData: match },
-        position: { x: 380, y: 60 + entityIndex * 120 },
-        style: { background: es.bg, color: es.color, border: `1px solid ${es.border}`, borderRadius: '8px', fontSize: '11px', fontWeight: 'bold', padding: '10px' }
+        data: { label: `${match.entity_type.toUpperCase()}: ${match.entity_value}` },
+        position: { x: 380, y: 80 + entityIndex * 90 },
+        style: { background: estyle.bg, color: estyle.color, border: `1px solid ${estyle.border}`, borderRadius: '8px', fontSize: '10px', fontWeight: 'semibold', padding: '8px' }
       });
       edges.push({
-        id: `e-fir-${entityKey}`,
+        id: `edge-main-${entityKey}`,
         source: 'fir-main',
-        target: entityKey,
-        style: { stroke: es.stroke },
-        markerEnd: { type: MarkerType.ArrowClosed, color: es.stroke }
+        target: `entity-${entityKey}`,
+        animated: true,
+        style: { stroke: estyle.stroke, strokeWidth: 1.5 },
+        markerEnd: { type: MarkerType.ArrowClosed, color: estyle.stroke }
       });
       entityIndex++;
     }
 
-    // Linked case node (column 3)
+    // Linked FIR node (column 3)
     if (!seenCases.has(caseKey)) {
       seenCases.add(caseKey);
-      const cs = entityStyle.linked_fir;
+      const lstyle = entityStyle.linked_fir;
       nodes.push({
-        id: caseKey,
+        id: `case-${caseKey}`,
         type: 'default',
-        data: { label: `${match.matched_fir} (${match.police_station})`, matchData: match },
-        position: { x: 700, y: 60 + caseIndex * 120 },
-        style: { background: cs.bg, color: cs.color, border: `1px solid ${cs.border}`, borderRadius: '8px', fontSize: '11px', fontWeight: 'bold', padding: '10px' }
+        data: { label: `${match.matched_case}\n(${match.matched_fir || 'FIR Linked'})` },
+        position: { x: 680, y: 80 + caseIndex * 90 },
+        style: { background: lstyle.bg, color: lstyle.color, border: `1px solid ${lstyle.border}`, borderRadius: '8px', fontSize: '10px', fontWeight: 'semibold', padding: '8px' }
       });
       caseIndex++;
     }
 
     // Edge from entity to linked case
-    const entityKey2 = `${match.entity_type}-${match.entity_value}`;
-    const edgeId = `e-${entityKey2}-${caseKey}-${idx}`;
-    const es = entityStyle[match.entity_type] || entityStyle.manual;
-    const pctLabel = `${Math.round(match.confidence * 100)}% Match`;
     edges.push({
-      id: edgeId,
-      source: entityKey2,
-      target: caseKey,
-      label: pctLabel,
+      id: `edge-${entityKey}-${caseKey}`,
+      source: `entity-${entityKey}`,
+      target: `case-${caseKey}`,
       animated: match.confidence >= 0.85,
-      style: { stroke: entityStyle.linked_fir.stroke },
-      markerEnd: { type: MarkerType.ArrowClosed, color: entityStyle.linked_fir.stroke }
+      style: { stroke: match.confidence >= 0.85 ? '#f43f5e' : '#f59e0b', strokeWidth: match.confidence >= 0.85 ? 2 : 1 },
+      markerEnd: { type: MarkerType.ArrowClosed, color: match.confidence >= 0.85 ? '#f43f5e' : '#f59e0b' }
     });
   });
 
   return { nodes, edges };
 }
 
-// Human-readable match type labels (keep in sync with ai-service MATCH_TYPE dict)
 const matchTypeLabels: Record<string, string> = {
   CDR_RECURRENCE: 'CDR Phone Recurrence',
   SUBSCRIBER_OVERLAP: 'Subscriber Overlap',
@@ -117,66 +112,49 @@ const matchTypeLabels: Record<string, string> = {
 
 export default function LinkageView() {
   const navigate = useNavigate();
-  const { activeCase, linkageMatches, linkageStats, linkageLoading, linkageError, runLinkageSearch, clearLinkage, setSelectedInspectorItem } = useCaseStore();
+  const { activeCase, linkageMatches, linkageStats, linkageLoading, linkageError, runLinkageSearch, setSelectedInspectorItem } = useCaseStore();
+  const { t } = useLangStore();
 
   const [manualQuery, setManualQuery] = useState('');
-  const [searchType, setSearchType] = useState<string>('auto');
+  const [searchType, setSearchType] = useState('auto');
 
-  // Build graph dynamically from linkage matches
-  const { nodes: graphNodes, edges: graphEdges } = useMemo(
-    () => buildGraphFromMatches(linkageMatches, activeCase?.case_number || 'CR-2026-9910'),
-    [linkageMatches, activeCase]
+  const activeCaseNumber = activeCase?.case_number || 'CR-2026-9910';
+
+  // Build graph nodes/edges
+  const { nodes: initialNodes, edges: initialEdges } = useMemo(
+    () => buildGraphFromMatches(linkageMatches, activeCaseNumber),
+    [linkageMatches, activeCaseNumber]
   );
 
-  const [nodes, setNodes, onNodesChange] = useNodesState(graphNodes);
-  const [edges, setEdges, onEdgesChange] = useEdgesState(graphEdges);
+  const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
+  const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
 
-  // Sync when matches change
   useEffect(() => {
-    setNodes(graphNodes);
-    setEdges(graphEdges);
-  }, [graphNodes, graphEdges, setNodes, setEdges]);
+    setNodes(initialNodes);
+    setEdges(initialEdges);
+  }, [initialNodes, initialEdges, setNodes, setEdges]);
 
-  const onConnect = useCallback((params: Connection) => setEdges((eds) => addEdge(params, eds)), [setEdges]);
+  const onConnect = useCallback((params: Connection) => setEdges((eds: any) => addEdge(params, eds)), [setEdges]);
 
   const onNodeClick = (_: any, node: any) => {
     const matchData = node.data?.matchData;
     if (matchData) {
-      setSelectedInspectorItem({
-        type: 'LINKAGE_NODE_INSPECTOR',
-        data: matchData
-      });
-    } else {
-      setSelectedInspectorItem({
-        type: 'LINKAGE_NODE_INSPECTOR',
-        data: {
-          entity_type: 'manual',
-          entity_value: node.data.label,
-          description: 'This is the active case under investigation.'
-        }
-      });
+      setSelectedInspectorItem({ type: 'LINKAGE_NODE_INSPECTOR', data: matchData });
     }
   };
 
   const handleAutoSearch = () => {
-    if (activeCase) {
-      runLinkageSearch(
-        activeCase.case_number,
-        activeCase.entities || {},
-        undefined,
-        undefined
-      );
-    }
+    const entities = activeCase?.entities || {
+      phone_numbers: ['9825012345'],
+      vpas_upis: ['fraud.scam@upi'],
+      bank_accounts: ['30910293101']
+    };
+    runLinkageSearch(activeCaseNumber, entities, manualQuery, searchType);
   };
 
   const handleManualSearch = () => {
-    if (manualQuery.trim() && activeCase) {
-      runLinkageSearch(
-        activeCase.case_number,
-        {},
-        manualQuery.trim(),
-        searchType
-      );
+    if (manualQuery.trim()) {
+      runLinkageSearch(activeCaseNumber, {}, manualQuery.trim(), searchType);
     }
   };
 
@@ -191,10 +169,10 @@ export default function LinkageView() {
       <div className="flex items-center justify-between border-b border-white/10 pb-3 shrink-0">
         <div>
           <h1 className="text-base font-extrabold tracking-wide text-white uppercase font-mono flex items-center gap-2">
-            Serial Offender Link Analysis
+            {t('linkage.title', 'Serial Offender Link Analysis')}
           </h1>
           <p className="text-xs text-slate-400">
-            Matches suspect entities across historical FIRs to identify serial offenders and linked cases.
+            {t('linkage.subtitle', 'Matches suspect entities across historical FIRs to identify serial offenders and linked cases.')}
           </p>
         </div>
 
@@ -205,14 +183,14 @@ export default function LinkageView() {
             className="flex items-center gap-1.5 rounded bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-blue-500 transition-colors disabled:opacity-50"
           >
             {linkageLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Search className="h-3.5 w-3.5" />}
-            <span>Scan for Linked Cases</span>
+            <span>{t('linkage.btn_search', 'Scan for Linked Cases')}</span>
           </button>
 
           <button
             onClick={() => navigate('/investigation')}
             className="flex items-center gap-1.5 rounded bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-500 transition-colors"
           >
-            <span>Proceed to Investigation Studio</span>
+            <span>{t('linkage.proceed_to_investigation', 'Proceed to Investigation Studio')}</span>
             <ArrowRight className="h-4 w-4" />
           </button>
         </div>

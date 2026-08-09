@@ -6,6 +6,17 @@ from langchain_anthropic import ChatAnthropic
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_groq import ChatGroq
 
+# Load centralized error-handling policy (fallback/abort + retry config)
+from app.utils.error_policy import (
+    ERROR_POLICY,
+    MAX_RETRIES,
+    RETRY_BASE_DELAY,
+    RETRY_MAX_DELAY,
+    RETRY_BACKOFF_FACTOR,
+    MAX_RETRY_WAIT_SEC,
+    get_policy_summary,
+)
+
 
 
 # Load root .env file and local .env file

@@ -13,20 +13,22 @@ import {
   ShieldCheck
 } from 'lucide-react';
 import { useCaseStore } from '../../store/caseStore';
-
-const guidedSteps = [
-  { step: 1, id: 'intake', title: 'Complaint Intake', path: '/intake', icon: FileText, subtitle: 'Multimodal Parsing' },
-  { step: 2, id: 'linkage', title: 'Serial Link Analysis', path: '/linkage', icon: Network, subtitle: 'Entity Cross-Match' },
-  { step: 3, id: 'investigation', title: 'Investigation Studio', path: '/investigation', icon: Bot, subtitle: 'Multi-Agent SOP' },
-  { step: 4, id: 'subpoenas', title: 'Subpoenas & Notices', path: '/subpoenas', icon: Send, subtitle: 'Section 94 BNSS' },
-  { step: 5, id: 'analytics', title: 'Response Analysis', path: '/analytics', icon: BarChart3, subtitle: 'CDR & Bank Logs' },
-  { step: 6, id: 'diary', title: 'Court Case Diary', path: '/case-diary', icon: FileCheck2, subtitle: 'Judicial Register' },
-];
+import { useLangStore } from '../../store/langStore';
 
 export default function TacticalStepperHeader() {
   const navigate = useNavigate();
   const location = useLocation();
   const { activeCase, linkageMatches, investigationData, legalRequests } = useCaseStore();
+  const { t } = useLangStore();
+
+  const guidedSteps = [
+    { step: 1, id: 'intake', title: t('stepper.intake', '1. Multimodal Complaint Intake'), path: '/intake', icon: FileText, subtitle: 'Multimodal Parsing' },
+    { step: 2, id: 'linkage', title: t('stepper.linkage', '2. Serial Crime Linkage Graph'), path: '/linkage', icon: Network, subtitle: 'Entity Cross-Match' },
+    { step: 3, id: 'investigation', title: t('stepper.investigation', '3. Agentic Studio & Master FIR'), path: '/investigation', icon: Bot, subtitle: 'Multi-Agent SOP' },
+    { step: 4, id: 'subpoenas', title: t('stepper.subpoenas', '4. Workflow Automator & Subpoenas'), path: '/subpoenas', icon: Send, subtitle: 'Section 94 BNSS' },
+    { step: 5, id: 'analytics', title: t('stepper.analytics', '5. CDR / Provider Response Analytics'), path: '/analytics', icon: BarChart3, subtitle: 'CDR & Bank Logs' },
+    { step: 6, id: 'diary', title: t('stepper.casediary', '6. Digital Case Diary'), path: '/case-diary', icon: FileCheck2, subtitle: 'Judicial Register' },
+  ];
 
   const currentPath = location.pathname;
 
@@ -57,7 +59,7 @@ export default function TacticalStepperHeader() {
         title="Command Dashboard"
       >
         <LayoutDashboard className="h-3.5 w-3.5 text-blue-400" />
-        <span className="hidden sm:inline text-[11px]">Dashboard</span>
+        <span className="hidden sm:inline text-[11px]">{t('stepper.dashboard', '0. Intelligence Dashboard')}</span>
       </button>
 
       <div className="h-4 w-px bg-white/10 mx-2 shrink-0" />
@@ -142,7 +144,7 @@ export default function TacticalStepperHeader() {
         title="Admin & Audit Trail"
       >
         <ShieldCheck className="h-3.5 w-3.5 text-indigo-400" />
-        <span className="hidden sm:inline text-[11px]">Audit</span>
+        <span className="hidden sm:inline text-[11px]">{t('stepper.admin', '7. Admin & Audit Logs')}</span>
       </button>
 
     </div>

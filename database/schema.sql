@@ -8,9 +8,16 @@ EXCEPTION
 END $$;
 
 DO $$ BEGIN
-    CREATE TYPE crime_category AS ENUM ('CYBER', 'CONVENTIONAL', 'HYBRID');
+    CREATE TYPE crime_category AS ENUM ('CYBER', 'CONVENTIONAL', 'WOMEN_CHILD', 'FINANCIAL', 'HYBRID');
 EXCEPTION
-    WHEN duplicate_object THEN null;
+    WHEN duplicate_object THEN
+        -- Add missing values if enum already exists from a prior deployment
+        BEGIN
+            ALTER TYPE crime_category ADD VALUE IF NOT EXISTS 'WOMEN_CHILD';
+        EXCEPTION WHEN others THEN null; END;
+        BEGIN
+            ALTER TYPE crime_category ADD VALUE IF NOT EXISTS 'FINANCIAL';
+        EXCEPTION WHEN others THEN null; END;
 END $$;
 
 DO $$ BEGIN

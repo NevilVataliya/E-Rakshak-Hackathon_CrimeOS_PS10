@@ -12,6 +12,14 @@ from app.ingestion.processors import (
     ImageProcessor
 )
 from app.ingestion.heuristic_extractor import extract_entities_heuristic
+from app.utils.error_policy import (
+    with_retry,
+    handle_llm_error,
+    is_retryable_error,
+    get_policy_summary,
+    ERROR_POLICY,
+    MAX_RETRIES,
+)
 
 class IntakeAgent:
     """
@@ -243,8 +251,18 @@ Respond ONLY in valid JSON matching this exact structure:
         llm = get_agent_llm("auto", temperature=0.1)
         if llm is None:
             raise ValueError("No Cloud LLM API key available.")
-        
-        resp = llm.invoke(prompt_text)
+
+        # Invoke the LLM with centralized retry logic (exponential backoff on
+        # rate limits / transient errors). The retry policy is configured via
+        # MAX_RETRIES, RETRY_BASE_DELAY, RETRY_MAX_DELAY, RETRY_BACKOFF_FACTOR.
+        resp = with_retry(
+            llm.invoke,
+            prompt_text,
+            on_retry=lambda e, attempt: print(
+                f"  [!] LLM transient error ({type(e).__name__}: {e}). "
+                f"Retrying (attempt {attempt}/{MAX_RETRIES})..."
+            ),
+        )
         response_text = resp.content if hasattr(resp, 'content') else str(resp)
 
         data = parse_llm_json(response_text, schema_model=ComplaintIngestionSchema)
@@ -306,10 +324,22 @@ Respond ONLY in valid JSON matching this exact structure:
 
     except Exception as e:
         reason_msg = f"{type(e).__name__}: {str(e)}"
-        print(f"⚠️ [INGESTION WARNING] LLM Exception: {reason_msg}. Falling back to Heuristic Extractor.")
-        res = extract_entities_heuristic(extracted_text, fallback_reason=reason_msg)
-        res["processing_mode"] = "HYBRID_ONLINE_FALLBACK"
-        res["engines_used"] = file_results["engines_used"] + ["local_heuristic_fallback"]
-        res["warnings"] = file_results["warnings"] + [f"LLM API Error: {reason_msg}"]
-        res["is_offline"] = False
-        return res
+
+        # Policy-aware error handling:
+        #   - ERROR_POLICY=fallback (default): fall back to the heuristic extractor
+        #     and continue processing (graceful degradation).
+        #   - ERROR_POLICY=abort: raise ErrorPolicyError and end the process
+        #     (fail-fast, no silent fallback).
+        def _heuristic_fallback():
+            res = extract_entities_heuristic(extracted_text, fallback_reason=reason_msg)
+            res["processing_mode"] = "HYBRID_ONLINE_FALLBACK"
+            res["engines_used"] = file_results["engines_used"] + ["local_heuristic_fallback"]
+            res["warnings"] = file_results["warnings"] + [f"LLM API Error: {reason_msg}"]
+            res["is_offline"] = False
+            return res
+
+        return handle_llm_error(
+            e,
+            context="process_multimodal_complaint",
+            fallback_func=_heuristic_fallback,
+        )

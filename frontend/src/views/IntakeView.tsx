@@ -25,10 +25,12 @@ import {
 import api from '../services/api';
 import { useCaseStore } from '../store/caseStore';
 import { BankAccountEntity } from '../types';
+import { useLangStore } from '../store/langStore';
 
 export default function IntakeView() {
   const navigate = useNavigate();
   const { addCaseFromComplaint, setSelectedInspectorItem } = useCaseStore();
+  const { t } = useLangStore();
 
   const [language, setLanguage] = useState('auto');
   const [rawText, setRawText] = useState('');
@@ -48,24 +50,39 @@ export default function IntakeView() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    const fetchStatus = async () => {
-      try {
-        const res = await api.get('/api/system/status');
-        setSystemStatus(res.data);
-      } catch (err) {
-        console.warn('Unable to fetch system status:', err);
-      }
-    };
-    fetchStatus();
+    // Fetch system offline/online mode status
+    api.get('/api/system/status')
+      .then(res => setSystemStatus(res.data))
+      .catch(err => console.warn('Could not fetch system status', err));
   }, []);
 
-  const handleFilesAdded = (files: FileList | File[]) => {
-    const newFiles = Array.from(files);
-    setAttachedFiles(prev => [...prev, ...newFiles]);
-  };
+  const ALLOWED_EXTENSIONS = new Set([
+    'pdf', 'docx', 'doc', 'txt', 'csv', 'md',
+    'png', 'jpg', 'jpeg', 'bmp', 'webp',
+    'wav', 'mp3', 'm4a', 'ogg', 'flac'
+  ]);
+  const MAX_SINGLE_FILE_SIZE = 50 * 1024 * 1024; // 50MB
 
-  const removeFile = (index: number) => {
-    setAttachedFiles(prev => prev.filter((_, i) => i !== index));
+  const filterValidFiles = (files: File[]): File[] => {
+    const valid: File[] = [];
+    const rejectedNames: string[] = [];
+
+    files.forEach(file => {
+      const ext = file.name.split('.').pop()?.toLowerCase() || '';
+      if (!ALLOWED_EXTENSIONS.has(ext)) {
+        rejectedNames.push(`${file.name} (unsupported format '.${ext}')`);
+      } else if (file.size > MAX_SINGLE_FILE_SIZE) {
+        rejectedNames.push(`${file.name} (exceeds 50MB size limit)`);
+      } else {
+        valid.push(file);
+      }
+    });
+
+    if (rejectedNames.length > 0) {
+      setErrorMessage(`[File Warning]: Skipped ${rejectedNames.length} invalid file(s):\n• ${rejectedNames.join('\n• ')}`);
+    }
+
+    return valid;
   };
 
   const handleDragOver = (e: React.DragEvent) => {
@@ -82,16 +99,33 @@ export default function IntakeView() {
     e.preventDefault();
     setIsDragging(false);
     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-      handleFilesAdded(e.dataTransfer.files);
+      const incoming = Array.from(e.dataTransfer.files);
+      const validFiles = filterValidFiles(incoming);
+      if (validFiles.length > 0) {
+        setAttachedFiles(prev => [...prev, ...validFiles]);
+      }
     }
+  };
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      const incoming = Array.from(e.target.files);
+      const validFiles = filterValidFiles(incoming);
+      if (validFiles.length > 0) {
+        setAttachedFiles(prev => [...prev, ...validFiles]);
+      }
+    }
+  };
+
+  const removeFile = (index: number) => {
+    setAttachedFiles(prev => prev.filter((_, i) => i !== index));
   };
 
   const getFileIcon = (fileName: string) => {
     const ext = fileName.split('.').pop()?.toLowerCase();
-    if (ext === 'pdf') return <FileSpreadsheet className="h-4 w-4 text-blue-400 shrink-0" />;
-    if (['docx', 'doc', 'txt', 'csv'].includes(ext || '')) return <FileText className="h-4 w-4 text-indigo-400 shrink-0" />;
-    if (['jpg', 'jpeg', 'png', 'bmp', 'webp'].includes(ext || '')) return <ImageIcon className="h-4 w-4 text-amber-400 shrink-0" />;
-    if (['wav', 'mp3', 'm4a', 'ogg', 'flac'].includes(ext || '')) return <Mic className="h-4 w-4 text-emerald-400 shrink-0" />;
+    if (['wav', 'mp3', 'm4a', 'ogg'].includes(ext || '')) return <Mic className="h-4 w-4 text-amber-400 shrink-0" />;
+    if (['png', 'jpg', 'jpeg', 'webp'].includes(ext || '')) return <ImageIcon className="h-4 w-4 text-emerald-400 shrink-0" />;
+    if (['csv', 'xlsx'].includes(ext || '')) return <FileSpreadsheet className="h-4 w-4 text-cyan-400 shrink-0" />;
     return <FileText className="h-4 w-4 text-slate-400 shrink-0" />;
   };
 
@@ -141,24 +175,24 @@ export default function IntakeView() {
         <div>
           <div className="flex items-center gap-3">
             <h1 className="text-base font-extrabold tracking-wide text-white uppercase font-mono flex items-center gap-2">
-              Complaint Intake & Multimodal Analysis
+              {t('intake.title', 'Complaint Intake & Multimodal Analysis')}
             </h1>
             {systemStatus && (
               systemStatus.offline_mode ? (
                 <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-500/40 bg-amber-500/10 px-2.5 py-0.5 text-[11px] font-bold text-amber-300 font-mono">
                   <WifiOff className="h-3 w-3 text-amber-400" />
-                  STANDALONE OFFLINE MODE
+                  {t('header.system_mode', 'STANDALONE OFFLINE MODE')}
                 </span>
               ) : (
                 <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/40 bg-emerald-500/10 px-2.5 py-0.5 text-[11px] font-bold text-emerald-300 font-mono">
                   <Wifi className="h-3 w-3 text-emerald-400" />
-                  HYBRID CLOUD MODE
+                  {t('header.cloud_mode', 'CLOUD LLM MODE ACTIVE')}
                 </span>
               )
             )}
           </div>
-          <p className="text-xs text-slate-400 mt-0.5">
-            Submit complaints in Gujarati, Hindi, or English. Attach PDFs, Word documents (.docx), evidence images, or voice recordings.
+          <p className="text-xs text-slate-400">
+            {t('intake.subtitle', 'Ingest Gujarati voice notes, FIR scanned PDFs, complaint text, or transaction screenshots. Converts Indic digits to ASCII.')}
           </p>
         </div>
 
@@ -264,7 +298,7 @@ export default function IntakeView() {
                     accept=".pdf,.docx,.doc,.txt,.csv,.png,.jpg,.jpeg,.bmp,.webp,.wav,.mp3,.m4a,.ogg,.flac"
                     multiple
                     className="hidden"
-                    onChange={(e) => e.target.files && handleFilesAdded(e.target.files)}
+                    onChange={handleFileSelect}
                   />
                   <button
                     onClick={() => fileInputRef.current?.click()}
