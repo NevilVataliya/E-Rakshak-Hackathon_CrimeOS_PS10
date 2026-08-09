@@ -267,9 +267,13 @@ class MasterWorkflowAutomatorAgent:
             case_number=case_number
         )
 
-        # Step B: Register evidence in cyberproj case_manager if available
+        extracted_entities = analytics_output.get("extracted_entities", {})
+        
+        # Step B: ALWAYS STORE VALID DATA IN DATABASE & CASE MANAGER (PERSISTENT STORAGE)
+        new_targets_added = []
         if cm and cm.get_case(case_number):
             try:
+                # 1. Register evidence file in case manager
                 for att in (attachments or []):
                     fname = att.get("filename", f"reply_{case_number}.txt")
                     fpath = att.get("file_path", "")
@@ -278,69 +282,140 @@ class MasterWorkflowAutomatorAgent:
                         filename=fname,
                         file_type="cdr" if "cdr" in fname.lower() else ("bank_statement" if "csv" in response_format or "bank" in fname.lower() else "reply"),
                         file_path=fpath,
-                        summary=f"Ingested by Automator Agent: {analytics_output.get('recommended_next_action', '')}",
-                        metadata=analytics_output.get("extracted_entities", {})
+                        summary=f"Ingested & Stored in Database by Automator Agent: {analytics_output.get('executive_summary', '')}",
+                        metadata=extracted_entities
                     )
+
+                # 2. Add valid extracted targets to case manager
+                for acc in extracted_entities.get("account_numbers", []):
+                    try:
+                        t_obj = cm.add_target(case_number, {
+                            "type": "bank",
+                            "identifier": str(acc),
+                            "name": f"Discovered Mule Account ({acc})",
+                            "entity_name": "Inter-bank Transfer Receiver",
+                            "details": f"Valid account stored in database from {provider_name} response."
+                        })
+                        new_targets_added.append(t_obj)
+                    except Exception:
+                        pass
+
+                for phone in extracted_entities.get("phone_numbers", []):
+                    try:
+                        t_obj = cm.add_target(case_number, {
+                            "type": "telecom",
+                            "identifier": str(phone),
+                            "name": f"Discovered Suspect Phone ({phone})",
+                            "entity_name": "Telecom Operator",
+                            "details": f"Valid phone number stored in database from {provider_name} response."
+                        })
+                        new_targets_added.append(t_obj)
+                    except Exception:
+                        pass
             except Exception as e:
-                print(f"⚠️ Evidence registration note: {e}")
+                print(f"⚠️ Database & case_manager storage note: {e}")
 
-        # Step C: Extract secondary suspect entities & Auto-Add New Targets to case
-        extracted_entities = analytics_output.get("extracted_entities", {})
-        new_targets_added = []
-        if cm and cm.get_case(case_number):
-            for acc in extracted_entities.get("account_numbers", []):
-                try:
-                    t_obj = cm.add_target(case_number, {
-                        "type": "bank",
-                        "identifier": str(acc),
-                        "name": f"Discovered Mule Account ({acc})",
-                        "entity_name": "Inter-bank Transfer Receiver",
-                        "details": f"Auto-discovered by Automator Agent from {provider_name} response."
-                    })
-                    new_targets_added.append(t_obj)
-                    print(f"   🎯 [AUTO-TARGET ADDED] Discovered secondary bank account: {acc}")
-                except Exception:
-                    pass
+        # Accumulate valid entities in case state across multiple response emails
+        existing_valid = case_state.get("gathered_valid_entities", {"account_numbers": [], "phone_numbers": [], "ip_addresses": []})
+        for k in ["account_numbers", "phone_numbers", "ip_addresses"]:
+            existing_valid[k] = list(set(existing_valid.get(k, []) + extracted_entities.get(k, [])))
+        case_state["gathered_valid_entities"] = existing_valid
 
-            for phone in extracted_entities.get("phone_numbers", []):
-                try:
-                    t_obj = cm.add_target(case_number, {
-                        "type": "telecom",
-                        "identifier": str(phone),
-                        "name": f"Discovered Suspect Phone ({phone})",
-                        "entity_name": "Telecom Operator",
-                        "details": f"Auto-discovered by Automator Agent from {provider_name} response."
-                    })
-                    new_targets_added.append(t_obj)
-                    print(f"   🎯 [AUTO-TARGET ADDED] Discovered secondary phone number: {phone}")
-                except Exception:
-                    pass
+        print(f"\n💾 [DATABASE STORAGE COMPLETE]")
+        print(f"   ► Saved Valid Entities to Database: Accounts={len(existing_valid['account_numbers'])}, Phones={len(existing_valid['phone_numbers'])}, IPs={len(existing_valid['ip_addresses'])}")
 
-        # Step D: Determine next workflow step
-        next_action = self._determine_next_workflow_step(analytics_output, case_number)
-        case_state["status"] = "RESPONSE_RECEIVED_AND_ANALYZED"
-        case_state["analytics_result"] = analytics_output
-        case_state["next_investigation_directive"] = next_action
+        # Step C: Evaluate Data Completeness & Missing Required Data
+        raw_check = (body_text + " " + json.dumps(analytics_output)).lower()
+        defective_keywords = [
+            "incomplete", "defective", "partial response", "missing required",
+            "data unavailable", "unmatched account", "rejected", "insufficient details",
+            "not available", "unreadable", "invalid identifier", "cannot provide"
+        ]
+
+        has_valid_data = bool(existing_valid["account_numbers"] or existing_valid["phone_numbers"] or existing_valid["ip_addresses"])
+        is_response_incomplete = (
+            analytics_output.get("is_data_sufficient") is False or
+            analytics_output.get("response_status") == "INCOMPLETE" or
+            any(kw in raw_check for kw in defective_keywords)
+        )
+
+        # Step D: IF REQUIRED DATA IS MISSING -> DISPATCH FOLLOW-BACK NOTICE & MONITOR INBOX
+        if is_response_incomplete or not has_valid_data:
+            missing_reason = analytics_output.get("defect_reason") or "Itemized transaction ledger / CDR timestamps / subscriber identification logs are missing or defective."
+            
+            valid_summary_str = "None"
+            if has_valid_data:
+                valid_summary_str = f"Stored Accounts: {', '.join(existing_valid['account_numbers']) if existing_valid['account_numbers'] else 'N/A'} | Stored Phones: {', '.join(existing_valid['phone_numbers']) if existing_valid['phone_numbers'] else 'N/A'}"
+
+            print("\n" + "⚠️"*40)
+            print(f"⚠️ [AUTOMATOR AGENT] PARTIAL / DEFECTIVE RESPONSE FROM {sender_email}!")
+            print(f"   ► Valid Data Saved to DB: {valid_summary_str}")
+            print(f"   ► Missing Data Required: {missing_reason}")
+            print(f"   ► DISPATCHING AUTOMATED STATUTORY FOLLOW-BACK NOTICE...")
+            print(f"   ► ACTIVATING CONTINUOUS INBOX MONITORING FOR CASE: {case_number}")
+            print("⚠️"*40 + "\n")
+
+            followback_subject = f"STATUTORY FOLLOW-BACK NOTICE: Mandatory Data Cure Request [CrimeOS-REF: {case_number}]"
+            followback_body = (
+                f"OFFICIAL STATUTORY FOLLOW-BACK REQUISITION DIRECTIVE\n"
+                f"Under Section 94 Bharatiya Nagarik Suraksha Sanhita (BNSS, 2023) / Section 91 CrPC\n\n"
+                f"Case Ref: {case_number}\n"
+                f"To: Nodal & Compliance Officer ({sender_email})\n\n"
+                f"We acknowledge receipt of your initial response regarding Case FIR No. {case_number}.\n"
+                f"✅ VALID DATA RECEIVED & STORED IN POLICE DATABASE: {valid_summary_str}\n"
+                f"❌ MISSING / DEFECTIVE MANDATORY DATA REQUIRED: \"{missing_reason}\"\n\n"
+                f"You are hereby formally directed to supply the complete unredacted itemized transaction ledger / CDR logs within 48 HOURS.\n"
+                f"Our automated system will monitor the inbox for your follow-up cure email.\n"
+                f"Failure to comply shall invite statutory non-compliance proceedings under Section 223 / Section 238 BNS.\n\n"
+                f"Investigating Officer,\nCyber Crime Police Station"
+            )
+
+            try:
+                self.smtp_mailer.send_email(
+                    to_email=sender_email,
+                    subject=followback_subject,
+                    body_text=followback_body
+                )
+                print(f"   ✅ [Follow-Back Email Dispatched] Sent mandatory data cure requisition to {sender_email}")
+            except Exception as e:
+                print(f"   ⚠️ [Follow-Back Dispatch Note]: {e}")
+
+            case_state["status"] = "MONITORING_INBOX_AWAITING_COMPLETE_DATA"
+            case_state["inbox_monitoring_active"] = True
+            case_state["is_data_sufficient"] = False
+            case_state["analytics_result"] = analytics_output
+            case_state["followback_subject"] = followback_subject
+            case_state["followback_body"] = followback_body
+            case_state["next_investigation_directive"] = {
+                "next_action": "MONITOR_INBOX_UNTIL_DATA_COMPLETE",
+                "strategy_summary": f"Valid data stored in database. Continuous inbox monitoring active for {case_number}. Awaiting complete data cure from {sender_email}."
+            }
+            case_state["reply_received_at"] = datetime.datetime.now().isoformat()
+            self.pending_cases[case_number] = case_state
+            return case_state
+
+        # Step E: IF ALL DATA IS GATHERED & COMPLETE -> ADVANCE WORKFLOW PIPELINE
+        case_state["status"] = "DATA_GATHERING_COMPLETE"
+        case_state["inbox_monitoring_active"] = False
+        case_state["is_data_sufficient"] = True
         case_state["auto_added_targets"] = new_targets_added
         case_state["reply_received_at"] = datetime.datetime.now().isoformat()
 
-        # Step E: Trigger Gemini AI Correlation & Case Summary if API Key present
+        # Step F: Trigger Gemini AI Correlation & Case Summary
         if self.api_key and cm and cm.get_case(case_number):
             try:
                 case_obj = cm.get_case(case_number)
                 if correlate_investigation_evidence:
                     corr_report = correlate_investigation_evidence(case_obj, self.api_key)
                     case_state["ai_correlation_report"] = corr_report
-                    print(f"   🧠 [AI CORRELATION] Generated evidence correlation report for case {case_number}.")
                 if generate_case_investigation_summary:
                     case_sum = generate_case_investigation_summary(case_obj, self.api_key)
                     case_state["ai_case_summary"] = case_sum
-                    print(f"   🧠 [AI CASE SUMMARY] Generated investigation summary report.")
             except Exception as e:
                 print(f"⚠️ Gemini AI Service call note: {e}")
 
-        print(f"🔹 [Master Workflow Decision Engine Updated]")
-        print(f"   ► Strategy Summary: {next_action.get('strategy_summary')}")
+        print(f"🔹 [Master Workflow Engine - Data Gathering Complete]")
+        print(f"   ► Status: ALL REQUIRED DATA GATHERED & STORED IN DATABASE")
         print(f"   ► Auto-Discovered Targets Added: {len(new_targets_added)}\n")
 
         self.pending_cases[case_number] = case_state

@@ -803,6 +803,7 @@ async def handle_workflow_incoming_reply(req: WorkflowSimulateReplyRequest):
     analytics = reply_state.get("analytics_result", {})
     next_step = reply_state.get("next_investigation_directive", {})
     auto_added = reply_state.get("auto_added_targets", [])
+    is_data_sufficient = reply_state.get("is_data_sufficient", True)
 
     # Evaluate Governance Policy: Autonomous LLM Auto-Dispatch vs Mandatory Human Approval Queue
     risk_score = float(analytics.get("risk_score", 8.0))
@@ -814,34 +815,47 @@ async def handle_workflow_incoming_reply(req: WorkflowSimulateReplyRequest):
     status_str = "APPROVED_AND_DISPATCHED" if is_auto_dispatch else "PENDING_HUMAN_APPROVAL"
     header_title = "OFFICIAL STATUTORY DIRECTIVE (AUTONOMOUS LLM DISPATCHED)" if is_auto_dispatch else "OFFICIAL STATUTORY DIRECTIVE (HUMAN APPROVAL PENDING)"
 
-    # --- Build required variables before use (Bug 3.1 fix: were previously undefined) ---
     approval_id = f"APPR-REPLY-{uuid.uuid4().hex[:6].upper()}"
-    draft_subject = (
-        f"[CrimeOS FOLLOW-UP] Case {req.case_number} - "
-        f"Reply Analyzed | Risk Score: {risk_score}/10"
-    )
-    if auto_added:
-        target_str = ", ".join([
-            str(t.get("entity_value", t)) if isinstance(t, dict) else str(t)
-            for t in auto_added
-        ])
-    else:
-        target_str = analytics.get("key_entities_found", "entities identified in response")
-    rec_tmpl = analytics.get("recommended_next_action", "Issue statutory follow-up notice to the relevant authority")
-    # -------------------------------------------------------------------------------------
 
-    draft_body = (
-        f"{header_title}\n\n"
-        f"To: Nodal Compliance Officer ({req.sender_email})\n"
-        f"Case Ref: {req.case_number}\n\n"
-        f"Following analysis of your response received on {datetime.date.today().strftime('%Y-%m-%d')}, "
-        f"the investigating unit requires immediate statutory action regarding identified target(s): {target_str}.\n\n"
-        f"Directive: {rec_tmpl}\n"
-        f"Forensic Risk Score: {risk_score}/10\n\n"
-        f"Please preserve all logs and confirm compliance within 24 hours.\n\n"
-        f"Investigating Officer: PSI Inspector V. K. Patel\n"
-        f"Surat Cyber Crime Station"
-    )
+    if not is_data_sufficient:
+        draft_subject = reply_state.get("followback_subject") or f"STATUTORY FOLLOW-BACK NOTICE: Mandatory Data Cure Request [CrimeOS-REF: {req.case_number}]"
+        draft_body = reply_state.get("followback_body") or (
+            f"{header_title}\n\n"
+            f"OFFICIAL STATUTORY FOLLOW-BACK REQUISITION DIRECTIVE\n"
+            f"Under Section 94 Bharatiya Nagarik Suraksha Sanhita (BNSS, 2023) / Section 91 CrPC\n\n"
+            f"Case Ref: {req.case_number}\n"
+            f"To: Nodal & Compliance Officer ({req.sender_email})\n\n"
+            f"Your initial response for Case FIR No. {req.case_number} was audited and found to be INCOMPLETE / DEFECTIVE.\n"
+            f"Directive: Supply complete itemized transaction ledger / CDR logs within 48 HOURS.\n\n"
+            f"Investigating Officer: PSI Inspector V. K. Patel\n"
+            f"Surat Cyber Crime Station"
+        )
+    else:
+        draft_subject = (
+            f"[CrimeOS FOLLOW-UP] Case {req.case_number} - "
+            f"Reply Analyzed | Risk Score: {risk_score}/10"
+        )
+        if auto_added:
+            target_str = ", ".join([
+                str(t.get("entity_value", t)) if isinstance(t, dict) else str(t)
+                for t in auto_added
+            ])
+        else:
+            target_str = analytics.get("key_entities_found", "entities identified in response")
+        rec_tmpl = analytics.get("recommended_next_action", "Issue statutory follow-up notice to the relevant authority")
+
+        draft_body = (
+            f"{header_title}\n\n"
+            f"To: Nodal Compliance Officer ({req.sender_email})\n"
+            f"Case Ref: {req.case_number}\n\n"
+            f"Following analysis of your response received on {datetime.date.today().strftime('%Y-%m-%d')}, "
+            f"the investigating unit requires immediate statutory action regarding identified target(s): {target_str}.\n\n"
+            f"Directive: {rec_tmpl}\n"
+            f"Forensic Risk Score: {risk_score}/10\n\n"
+            f"Please preserve all logs and confirm compliance within 24 hours.\n\n"
+            f"Investigating Officer: PSI Inspector V. K. Patel\n"
+            f"Surat Cyber Crime Station"
+        )
 
     approval_item = {
         "approval_id": approval_id,

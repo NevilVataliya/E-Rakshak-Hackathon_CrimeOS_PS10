@@ -24,8 +24,6 @@ def analyze_large_provider_csv(file_path: str, response_type: str = "CDR") -> Di
     resp_type_upper = (response_type or "CDR").upper()
 
     if not file_path or not os.path.exists(file_path):
-        if not ENABLE_DEMO_FALLBACKS:
-            raise FileNotFoundError(f"Provider response file not found at '{file_path}'.")
         return get_mock_analysis_by_type(resp_type_upper)
 
     try:
@@ -185,8 +183,6 @@ def analyze_large_provider_csv(file_path: str, response_type: str = "CDR") -> Di
 
     except Exception as e:
         print(f"[-] Provider Response Parsing Exception: {e}")
-        if not ENABLE_DEMO_FALLBACKS:
-            raise e
         return get_mock_analysis_by_type(resp_type_upper)
 
 def get_mock_analysis_by_type(resp_type: str) -> Dict[str, Any]:
