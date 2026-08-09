@@ -1,0 +1,35 @@
+Account details
+
+On Mon, 10 Aug, 2026, 12:17 am Cyber Crime Investigation Cell, <
+gcafp2025.parth@gmail.com> wrote:
+
+> POLICE INVESTIGATION WORKFLOW DIRECTIVE
+>
+> Case File Ref: FIR-TEST-1786301269
+>
+> To, The Nodal Officer / Fraud Control & Operations HDFC Bank Nodal
+> Compliance Cell (Bank / Payment Gateway / Exchange)
+>
+> STATUTORY ORDER TO FREEZE SUSPECT FINANCIAL ACCOUNT / BENEFICIARY
+>
+> WHEREAS cyber fraud proceeds in FIR No. FIR-TEST-1786301269 have been
+> traced to the following beneficiary account maintained with your
+> institution:
+>
+> Account / Wallet No: 501004928172 Account Holder Name: Suspect Cyber Mule
+> Account IFSC / Gateway Ref: [IFSC_OR_REF] Disputed Fraud Amount:
+> [FRAUD_AMOUNT]
+>
+> You are hereby commanded under Section 106 BNSS / Section 102 CrPC to
+> IMMEDIATELY FREEZE / DEBIT-FREEZE the aforementioned account and preserve
+> the current balance.
+>
+> Furthermore, provide the complete account statement (CSV format) from
+> [START_DATE] to [END_DATE] along with KYC documentation.
+>
+> Authorizing Officer: PSI Inspector V. K. Patel Surat Cyber Crime Police
+> Station
+>
+> *Official Notice:* This email contains statutory communication from
+> CrimeOS Cyber Investigation System. Retain this notice for legal reference.
+>

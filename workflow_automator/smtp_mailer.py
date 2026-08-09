@@ -29,18 +29,18 @@ class SMTPMailer:
         use_tls: bool = True,
         simulation_mode: bool = False
     ):
-        self.smtp_host = smtp_host or os.environ.get("SMTP_HOST", os.environ.get("EMAIL_HOST", "smtp.gmail.com"))
+        self.smtp_host = smtp_host or os.environ.get("SMTP_HOST", os.environ.get("SMTP_SERVER", os.environ.get("EMAIL_HOST", "smtp.gmail.com")))
         self.smtp_port = int(smtp_port or os.environ.get("SMTP_PORT", os.environ.get("EMAIL_PORT", 587)))
-        self.smtp_username = smtp_username or os.environ.get("SMTP_USERNAME", os.environ.get("SENDER_EMAIL"))
+        self.smtp_username = smtp_username or os.environ.get("SMTP_USER", os.environ.get("SMTP_USERNAME", os.environ.get("SENDER_EMAIL")))
         
-        raw_pwd = smtp_password or os.environ.get("SMTP_PASSWORD") or os.environ.get("EMAIL_PASSWORD")
+        raw_pwd = smtp_password or os.environ.get("SMTP_PASS") or os.environ.get("SMTP_PASSWORD") or os.environ.get("EMAIL_PASSWORD") or os.environ.get("IMAP_PASSWORD")
         self.smtp_password = raw_pwd.strip("'\" \t\r\n") if raw_pwd else None
 
-        self.sender_email = sender_email or os.environ.get("SENDER_EMAIL", self.smtp_username or "crimeos.police@gmail.com")
+        self.sender_email = sender_email or os.environ.get("SMTP_FROM", os.environ.get("SENDER_EMAIL", self.smtp_username or "crimeos.police@gmail.com"))
         self.sender_name = sender_name or os.environ.get("SENDER_NAME", "Cyber Crime Investigation Cell")
         self.use_tls = use_tls
 
-        # Fallback to simulation mode if no password is provided in environment or args
+        # Fallback to simulation mode only if no password is provided in environment or args
         self.simulation_mode = simulation_mode or not bool(self.smtp_password)
 
     def send_email(

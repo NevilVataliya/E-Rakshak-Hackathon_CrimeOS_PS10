@@ -38,10 +38,10 @@ class InboxMonitorAgent:
         password: Optional[str] = None,
         on_reply_received_callback: Optional[Callable[[str, str, str, str, List[Dict[str, Any]]], None]] = None
     ):
-        self.imap_host = imap_host or os.environ.get("IMAP_HOST", "imap.gmail.com")
+        self.imap_host = imap_host or os.environ.get("IMAP_HOST", os.environ.get("SMTP_HOST", "imap.gmail.com"))
         self.imap_port = int(os.environ.get("IMAP_PORT", imap_port))
-        self.username = username or os.environ.get("IMAP_USERNAME", os.environ.get("SENDER_EMAIL"))
-        self.password = password or os.environ.get("IMAP_PASSWORD")
+        self.username = username or os.environ.get("IMAP_USERNAME", os.environ.get("SMTP_USER", os.environ.get("SMTP_USERNAME", os.environ.get("SENDER_EMAIL"))))
+        self.password = password or os.environ.get("IMAP_PASSWORD", os.environ.get("SMTP_PASS", os.environ.get("SMTP_PASSWORD")))
         self.on_reply_received_callback = on_reply_received_callback
         self._simulated_inbox: List[Dict[str, Any]] = []
 

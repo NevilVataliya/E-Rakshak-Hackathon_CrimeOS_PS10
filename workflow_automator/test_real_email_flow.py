@@ -15,6 +15,9 @@ from typing import Dict, Any
 # Ensure parent path imports resolve
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+from dotenv import load_dotenv
+load_dotenv()
+
 from workflow_automator import MasterWorkflowAutomatorAgent, InboxMonitorAgent, SMTPMailer
 
 def test_real_time_email_flow():
