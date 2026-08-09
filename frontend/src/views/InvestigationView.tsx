@@ -22,19 +22,21 @@ import { GroundedSOPStep } from '../types';
 
 export default function InvestigationView() {
   const navigate = useNavigate();
-  const { activeCase, runInvestigationStudio, investigationData, loading, error, setSelectedInspectorItem } = useCaseStore();
+  const { cases, activeCase, runInvestigationStudio, investigationData, loading, error, setSelectedInspectorItem } = useCaseStore();
   const { t } = useLangStore();
   const [pdfModalOpen, setPdfModalOpen] = useState(false);
   const [expandedStep, setExpandedStep] = useState<number | null>(0);
 
+  const currentCase = activeCase || cases[0];
+
   const handleRunAgentStudio = () => {
-    if (activeCase) {
+    if (currentCase) {
       runInvestigationStudio(
-        activeCase.case_number,
-        activeCase.complaint_text,
-        activeCase.crime_category,
-        activeCase.crime_sub_type,
-        activeCase.entities
+        currentCase.case_number,
+        currentCase.complaint_text,
+        currentCase.crime_category,
+        currentCase.crime_sub_type,
+        currentCase.entities
       );
     }
   };
@@ -116,7 +118,7 @@ export default function InvestigationView() {
                 <Play className="h-10 w-10 text-blue-400" />
                 <h3 className="text-xs font-bold text-white uppercase tracking-wider">Ready to Generate Investigation Path</h3>
                 <p className="text-[11px] text-slate-400 max-w-md leading-relaxed">
-                  Click "Generate Investigation Path" above to trigger multi-agent analysis for case <code className="text-cyan-300">{activeCase?.case_number}</code>.
+                  Click "Generate Investigation Path" above to trigger multi-agent analysis for case <code className="text-cyan-300">{currentCase?.case_number}</code>.
                 </p>
                 <button
                   onClick={handleRunAgentStudio}
@@ -207,7 +209,7 @@ export default function InvestigationView() {
 
             <div className="rounded border border-white/10 bg-[#050811] p-2.5 space-y-1">
               <h3 className="text-xs font-bold text-blue-400 font-mono">
-                {activeCase?.sections?.join(' & ') || 'BNS Section 318(4) & IT Act Section 66D'}
+                {currentCase?.sections?.join(' & ') || 'BNS Section 318(4) & IT Act Section 66D'}
               </h3>
               <p className="text-[11px] text-slate-400 leading-relaxed">
                 Punishment for cheating by personation using computer resource. Cognizable & Non-Bailable.
@@ -253,7 +255,7 @@ export default function InvestigationView() {
       <PDFPreviewModal
         open={pdfModalOpen}
         onClose={() => setPdfModalOpen(false)}
-        pdfUrl={`/api/requests/download/Notice_Section_94_BNSS_${activeCase?.case_number || 'CR-2026-9910'}.pdf`}
+        pdfUrl={`/api/requests/download/Notice_Section_94_BNSS_${currentCase?.case_number || 'CR-2026-9910'}.pdf`}
       />
 
     </div>

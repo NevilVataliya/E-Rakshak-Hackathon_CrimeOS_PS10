@@ -660,7 +660,22 @@ export const useCaseStore = create<CaseState>()(
       }
     }),
     {
-      name: 'crime-os-case-storage'
+      name: 'crime-os-case-storage',
+      partialize: (state) => {
+        const { loading, error, linkageLoading, linkageError, approvalLoading, ragLoading, selectedInspectorItem, ...persistedState } = state;
+        return persistedState;
+      },
+      onRehydrateStorage: () => (state) => {
+        if (state) {
+          state.loading = false;
+          state.error = null;
+          state.linkageLoading = false;
+          state.linkageError = null;
+          state.approvalLoading = false;
+          state.ragLoading = false;
+          state.selectedInspectorItem = null;
+        }
+      }
     }
   )
 );
