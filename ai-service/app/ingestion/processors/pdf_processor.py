@@ -1,8 +1,15 @@
 import os
 import io
 from typing import Dict, Any
-import fitz  # PyMuPDF
-from PIL import Image
+try:
+    import fitz  # PyMuPDF
+except ImportError:
+    fitz = None
+
+try:
+    from PIL import Image
+except ImportError:
+    Image = None
 from app.ingestion.base_processor import BaseFileProcessor
 from config import GEMINI_API_KEY
 
@@ -31,22 +38,23 @@ class PDFProcessor(BaseFileProcessor):
 
         try:
             # 1. Try PyMuPDF primary extraction
-            doc = fitz.open(file_path)
-            total_pages = len(doc)
-            page_texts = []
-            scanned_pages = []
+            if fitz is not None:
+                doc = fitz.open(file_path)
+                total_pages = len(doc)
+                page_texts = []
+                scanned_pages = []
 
-            for idx, page in enumerate(doc):
-                text = page.get_text()
-                if not is_text_garbled(text):
-                    page_texts.append(f"--- Page {idx + 1}/{total_pages} ---\n{text.strip()}")
-                else:
-                    scanned_pages.append(idx)
-            
-            doc.close()
+                for idx, page in enumerate(doc):
+                    text = page.get_text()
+                    if not is_text_garbled(text):
+                        page_texts.append(f"--- Page {idx + 1}/{total_pages} ---\n{text.strip()}")
+                    else:
+                        scanned_pages.append(idx)
+                
+                doc.close()
 
-            if page_texts:
-                output_lines.extend(page_texts)
+                if page_texts:
+                    output_lines.extend(page_texts)
 
             # 2. Advanced pdfplumber & table extraction if available
             try:

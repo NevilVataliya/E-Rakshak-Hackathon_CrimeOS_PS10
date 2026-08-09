@@ -5,19 +5,13 @@ import logging
 import datetime
 from typing import Dict, Any, Optional, List
 
-CYBERPROJ_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "cyberproj", "cyberproj")
-if CYBERPROJ_DIR not in sys.path:
-    sys.path.insert(0, CYBERPROJ_DIR)
+from .cyberproj_resolver import get_cyberproj_services
 
-try:
-    import backend.services.case_manager as cm
-    from backend.services.audit_logger import log_action
-    from backend.services.gemini_service import correlate_investigation_evidence, generate_case_investigation_summary
-except ImportError:
-    cm = None
-    log_action = None
-    correlate_investigation_evidence = None
-    generate_case_investigation_summary = None
+_cyberproj_svcs = get_cyberproj_services()
+cm = _cyberproj_svcs.get("cm")
+log_action = _cyberproj_svcs.get("log_action")
+correlate_investigation_evidence = _cyberproj_svcs.get("correlate_investigation_evidence")
+generate_case_investigation_summary = _cyberproj_svcs.get("generate_case_investigation_summary")
 
 from .template_engine import TemplateEngine, EmailCategory
 from .smtp_mailer import SMTPMailer

@@ -1,0 +1,676 @@
+[
+  {
+    "timestamp": "2026-07-28 14:48:38",
+    "officer": "Prankit",
+    "action": "Case Intake Form Completed",
+    "details": {
+      "case_id": "dfg",
+      "fir_number": "24334"
+    }
+  },
+  {
+    "timestamp": "2026-07-28 14:49:03",
+    "officer": "Prankit",
+    "action": "Add Target Identifier",
+    "details": {
+      "case_id": "dfg",
+      "target": {
+        "type": "bank",
+        "identifier": "232342394283",
+        "name": "Rajesh",
+        "entity_name": "State Bank Of India",
+        "details": ""
+      }
+    }
+  },
+  {
+    "timestamp": "2026-07-28 14:58:00",
+    "officer": "Prankit",
+    "action": "Generate Compliance Request Draft",
+    "details": {
+      "case_id": "dfg",
+      "request_id": "9c57d241",
+      "type": "statement"
+    }
+  },
+  {
+    "timestamp": "2026-07-28 15:03:40",
+    "officer": "Prankit",
+    "action": "Update Request Status (APPROVED)",
+    "details": {
+      "case_id": "dfg",
+      "request_id": "9c57d241"
+    }
+  },
+  {
+    "timestamp": "2026-07-28 15:04:43",
+    "officer": "Prankit",
+    "action": "Dispatch Official Email Notice",
+    "details": {
+      "recipient": "gcafp2025.parth@gmail.com",
+      "subject": "Legal Notice under Section Section for bank statement of account 232342394283 - FIR No. 24334",
+      "message_id": "msg_e69e48c3c3981a82@cyberforensics",
+      "case_id": "dfg"
+    }
+  },
+  {
+    "timestamp": "2026-07-28 15:09:56",
+    "officer": "Prankit",
+    "action": "Poll Mailbox Match",
+    "details": {
+      "case_id": "dfg",
+      "fir_number": "24334",
+      "sender": "Parth <gcafp2025.parth@gmail.com>",
+      "subject": "Re: Legal Notice under Section Section for bank statement of account\r\n 232342394283 - FIR No. 24334",
+      "files_downloaded": [
+        "bank_record.csv"
+      ]
+    }
+  },
+  {
+    "timestamp": "2026-07-28 15:23:36",
+    "officer": "Prankit",
+    "action": "Poll Mailbox Match",
+    "details": {
+      "case_id": "dfg",
+      "fir_number": "24334",
+      "sender": "Parth <gcafp2025.parth@gmail.com>",
+      "subject": "Re: Legal Notice under Section Section for bank statement of account\r\n 232342394283 - FIR No. 24334",
+      "files_downloaded": [
+        "bank_record.csv"
+      ]
+    }
+  },
+  {
+    "timestamp": "2026-07-28 15:23:53",
+    "officer": "Prankit",
+    "action": "Run Evidence Correlation Report",
+    "details": {
+      "case_id": "dfg"
+    }
+  },
+  {
+    "timestamp": "2026-07-28 15:23:58",
+    "officer": "Prankit",
+    "action": "Generate Case Investigation Summary",
+    "details": {
+      "case_id": "dfg"
+    }
+  },
+  {
+    "timestamp": "2026-07-28 15:25:34",
+    "officer": "Prankit",
+    "action": "Run Evidence Correlation Report",
+    "details": {
+      "case_id": "dfg"
+    }
+  },
+  {
+    "timestamp": "2026-07-28 15:25:44",
+    "officer": "Prankit",
+    "action": "Generate Case Investigation Summary",
+    "details": {
+      "case_id": "dfg"
+    }
+  },
+  {
+    "timestamp": "2026-07-28 15:28:35",
+    "officer": "Prankit",
+    "action": "Upload Case Evidence File",
+    "details": {
+      "case_id": "dfg",
+      "filename": "9638446994_19798 - Reports.xlsx",
+      "file_type": "cdr"
+    }
+  },
+  {
+    "timestamp": "2026-07-28 15:33:38",
+    "officer": "Prankit",
+    "action": "Poll Mailbox Match",
+    "details": {
+      "case_id": "dfg",
+      "fir_number": "24334",
+      "sender": "Parth <gcafp2025.parth@gmail.com>",
+      "subject": "Re: Legal Notice under Section Section for bank statement of account\r\n 232342394283 - FIR No. 24334",
+      "files_downloaded": [
+        "email_reply_756.txt",
+        "bank_record.csv"
+      ]
+    }
+  },
+  {
+    "timestamp": "2026-07-28 15:35:58",
+    "officer": "Prankit",
+    "action": "Run Evidence Correlation Report",
+    "details": {
+      "case_id": "dfg"
+    }
+  },
+  {
+    "timestamp": "2026-07-28 16:22:40",
+    "officer": "Prankit",
+    "action": "Poll Mailbox Match",
+    "details": {
+      "case_id": "dfg",
+      "fir_number": "24334",
+      "sender": "Parth <gcafp2025.parth@gmail.com>",
+      "subject": "Re: Legal Notice under Section Section for bank statement of account\r\n 232342394283 - FIR No. 24334",
+      "files_downloaded": [
+        "email_reply_757.txt",
+        "bank_record.csv"
+      ]
+    }
+  },
+  {
+    "timestamp": "2026-07-28 16:22:40",
+    "officer": "Prankit",
+    "action": "Poll Mailbox Match",
+    "details": {
+      "case_id": "dfg",
+      "fir_number": "24334",
+      "sender": "Parth <gcafp2025.parth@gmail.com>",
+      "subject": "Re: Legal Notice under Section Section for bank statement of account\r\n 232342394283 - FIR No. 24334",
+      "files_downloaded": [
+        "email_reply_756.txt",
+        "bank_record.csv"
+      ]
+    }
+  },
+  {
+    "timestamp": "2026-07-28 18:58:20",
+    "officer": "Parth",
+    "action": "Case Intake Form Completed",
+    "details": {
+      "case_id": "CR-2026-0050",
+      "fir_number": "FIR-212-2026"
+    }
+  },
+  {
+    "timestamp": "2026-07-28 19:09:44",
+    "officer": "Parth",
+    "action": "Add Target Identifier",
+    "details": {
+      "case_id": "CR-2026-0050",
+      "target": {
+        "type": "bank",
+        "identifier": "ACC987654321",
+        "name": "Rajesh Sharma",
+        "entity_name": "State Bank Of India",
+        "details": ""
+      }
+    }
+  },
+  {
+    "timestamp": "2026-07-28 19:10:28",
+    "officer": "Parth",
+    "action": "Generate Compliance Request Draft",
+    "details": {
+      "case_id": "CR-2026-0050",
+      "request_id": "8d46e92e",
+      "type": "statement"
+    }
+  },
+  {
+    "timestamp": "2026-07-28 19:11:23",
+    "officer": "Parth",
+    "action": "Update Request Status (APPROVED)",
+    "details": {
+      "case_id": "CR-2026-0050",
+      "request_id": "8d46e92e"
+    }
+  },
+  {
+    "timestamp": "2026-07-28 19:12:14",
+    "officer": "Prankit",
+    "action": "Dispatch Official Email Notice",
+    "details": {
+      "recipient": "gcafp2025.parth@gmail.com",
+      "subject": "Legal Notice under Section Section for bank statement of account ACC987654321 - FIR No. FIR-212-2026",
+      "message_id": "msg_612ab1530220f07b@cyberforensics",
+      "case_id": "CR-2026-0050"
+    }
+  },
+  {
+    "timestamp": "2026-07-28 19:13:22",
+    "officer": "Parth",
+    "action": "Poll Mailbox Match",
+    "details": {
+      "case_id": "CR-2026-0050",
+      "fir_number": "FIR-212-2026",
+      "sender": "Parth <gcafp2025.parth@gmail.com>",
+      "subject": "Re: Legal Notice under Section Section for bank statement of account\r\n ACC987654321 - FIR No. FIR-212-2026",
+      "files_downloaded": [
+        "email_reply_759.txt",
+        "bank_record.csv"
+      ]
+    }
+  },
+  {
+    "timestamp": "2026-07-28 19:14:04",
+    "officer": "Parth",
+    "action": "Run Evidence Correlation Report",
+    "details": {
+      "case_id": "CR-2026-0050"
+    }
+  },
+  {
+    "timestamp": "2026-07-28 19:14:57",
+    "officer": "Parth",
+    "action": "Generate Case Investigation Summary",
+    "details": {
+      "case_id": "CR-2026-0050"
+    }
+  },
+  {
+    "timestamp": "2026-07-28 19:16:41",
+    "officer": "Parth",
+    "action": "Run Evidence Correlation Report",
+    "details": {
+      "case_id": "CR-2026-0050"
+    }
+  },
+  {
+    "timestamp": "2026-07-28 19:16:57",
+    "officer": "Parth",
+    "action": "Run Evidence Correlation Report",
+    "details": {
+      "case_id": "CR-2026-0050"
+    }
+  },
+  {
+    "timestamp": "2026-07-28 19:36:35",
+    "officer": "Parth",
+    "action": "Run Evidence Correlation Report",
+    "details": {
+      "case_id": "CR-2026-0050"
+    }
+  },
+  {
+    "timestamp": "2026-07-28 19:38:10",
+    "officer": "Parth",
+    "action": "Run Evidence Correlation Report",
+    "details": {
+      "case_id": "CR-2026-0050"
+    }
+  },
+  {
+    "timestamp": "2026-07-28 19:44:32",
+    "officer": "Parth",
+    "action": "Run Evidence Correlation Report",
+    "details": {
+      "case_id": "CR-2026-0050"
+    }
+  },
+  {
+    "timestamp": "2026-07-28 19:51:47",
+    "officer": "Parth",
+    "action": "Run Evidence Correlation Report",
+    "details": {
+      "case_id": "CR-2026-0050"
+    }
+  },
+  {
+    "timestamp": "2026-07-28 19:52:20",
+    "officer": "Parth",
+    "action": "Generate Case Investigation Summary",
+    "details": {
+      "case_id": "CR-2026-0050"
+    }
+  },
+  {
+    "timestamp": "2026-07-28 22:15:04",
+    "officer": "Inspector Aditi Sharma",
+    "action": "Case Intake Form Completed",
+    "details": {
+      "case_id": "CR-2026-0088",
+      "fir_number": "FIR-119/2026"
+    }
+  },
+  {
+    "timestamp": "2026-07-28 22:17:44",
+    "officer": "Inspector Aditi Sharma",
+    "action": "Add Target Identifier",
+    "details": {
+      "case_id": "CR-2026-0088",
+      "target": {
+        "type": "upi",
+        "identifier": "123456789012",
+        "name": "Rahul Verma",
+        "entity_name": "State Bank of India",
+        "details": ""
+      }
+    }
+  },
+  {
+    "timestamp": "2026-07-28 22:17:53",
+    "officer": "Inspector Aditi Sharma",
+    "action": "Generate Compliance Request Draft",
+    "details": {
+      "case_id": "CR-2026-0088",
+      "request_id": "4df958f6",
+      "type": "freeze"
+    }
+  },
+  {
+    "timestamp": "2026-07-28 22:25:17",
+    "officer": "Inspector Aditi Sharma",
+    "action": "Case Intake Form Completed",
+    "details": {
+      "case_id": "CR-2026-0089",
+      "fir_number": "FIR-119/2026"
+    }
+  },
+  {
+    "timestamp": "2026-07-28 22:27:31",
+    "officer": "Inspector Aditi Sharma",
+    "action": "Case Intake Form Completed",
+    "details": {
+      "case_id": "CR-2026-0090",
+      "fir_number": "FIR-119/2026"
+    }
+  },
+  {
+    "timestamp": "2026-07-28 22:27:38",
+    "officer": "Inspector Aditi Sharma",
+    "action": "Add Target Identifier",
+    "details": {
+      "case_id": "CR-2026-0090",
+      "target": {
+        "type": "telecom",
+        "identifier": "123456789012",
+        "name": "Rahul Verma",
+        "entity_name": "State Bank of India",
+        "details": ""
+      }
+    }
+  },
+  {
+    "timestamp": "2026-07-28 22:28:55",
+    "officer": "Inspector Aditi Sharma",
+    "action": "Case Intake Form Completed",
+    "details": {
+      "case_id": "CR-2026-0000",
+      "fir_number": "FIR-119/2026"
+    }
+  },
+  {
+    "timestamp": "2026-07-28 22:28:57",
+    "officer": "Inspector Aditi Sharma",
+    "action": "Add Target Identifier",
+    "details": {
+      "case_id": "CR-2026-0000",
+      "target": {
+        "type": "ip",
+        "identifier": "192.169.1.1.",
+        "name": "Rahul Verma",
+        "entity_name": "State Bank of India",
+        "details": ""
+      }
+    }
+  },
+  {
+    "timestamp": "2026-07-28 22:29:31",
+    "officer": "Inspector Aditi Sharma",
+    "action": "Case Intake Form Completed",
+    "details": {
+      "case_id": "CR-2026-0078",
+      "fir_number": "FIR-119/2026"
+    }
+  },
+  {
+    "timestamp": "2026-07-28 22:29:38",
+    "officer": "Inspector Aditi Sharma",
+    "action": "Add Target Identifier",
+    "details": {
+      "case_id": "CR-2026-0078",
+      "target": {
+        "type": "bank",
+        "identifier": "987654322",
+        "name": "Rahul Verma",
+        "entity_name": "State Bank of India",
+        "details": ""
+      }
+    }
+  },
+  {
+    "timestamp": "2026-07-28 22:30:28",
+    "officer": "Inspector Aditi Sharma",
+    "action": "Generate Compliance Request Draft",
+    "details": {
+      "case_id": "CR-2026-0078",
+      "request_id": "e00e96f4",
+      "type": "statement"
+    }
+  },
+  {
+    "timestamp": "2026-07-28 22:30:31",
+    "officer": "Inspector Aditi Sharma",
+    "action": "Update Request Status (APPROVED)",
+    "details": {
+      "case_id": "CR-2026-0078",
+      "request_id": "e00e96f4"
+    }
+  },
+  {
+    "timestamp": "2026-07-28 22:30:57",
+    "officer": "Prankit",
+    "action": "Dispatch Official Email Notice",
+    "details": {
+      "recipient": "nevilvataliya84@gmail.com",
+      "subject": "Legal Notice under Section Section for bank statement of account 987654322 - FIR No. FIR-119/2026",
+      "message_id": "msg_3fc68dd204291be6@cyberforensics",
+      "case_id": "CR-2026-0078"
+    }
+  },
+  {
+    "timestamp": "2026-07-28 22:48:56",
+    "officer": "Inspector Parth",
+    "action": "Case Intake Form Completed",
+    "details": {
+      "case_id": "CR-2026-0099",
+      "fir_number": "FIR-119/2026"
+    }
+  },
+  {
+    "timestamp": "2026-07-28 22:50:30",
+    "officer": "Inspector Aditi Sharma",
+    "action": "Case Intake Form Completed",
+    "details": {
+      "case_id": "CR-2026-0100",
+      "fir_number": "FIR-119/2026"
+    }
+  },
+  {
+    "timestamp": "2026-07-28 22:50:42",
+    "officer": "Inspector Aditi Sharma",
+    "action": "Add Target Identifier",
+    "details": {
+      "case_id": "CR-2026-0100",
+      "target": {
+        "type": "bank",
+        "identifier": "ACC987654321",
+        "name": "Rahul Verma",
+        "entity_name": "State Bank of India",
+        "details": ""
+      }
+    }
+  },
+  {
+    "timestamp": "2026-07-28 22:51:09",
+    "officer": "Inspector Aditi Sharma",
+    "action": "Generate Compliance Request Draft",
+    "details": {
+      "case_id": "CR-2026-0100",
+      "request_id": "1aba3a89",
+      "type": "statement"
+    }
+  },
+  {
+    "timestamp": "2026-07-28 22:51:29",
+    "officer": "Inspector Aditi Sharma",
+    "action": "Update Request Status (APPROVED)",
+    "details": {
+      "case_id": "CR-2026-0100",
+      "request_id": "1aba3a89"
+    }
+  },
+  {
+    "timestamp": "2026-07-28 22:52:05",
+    "officer": "Prankit",
+    "action": "Dispatch Official Email Notice",
+    "details": {
+      "recipient": "gcafp2025.parth@gmail.com",
+      "subject": "Legal Notice under Section Section for bank statement of account ACC987654321 - FIR No. FIR-119/2026",
+      "message_id": "msg_b912f29e8bf720e5@cyberforensics",
+      "case_id": "CR-2026-0100"
+    }
+  },
+  {
+    "timestamp": "2026-07-28 22:53:12",
+    "officer": "Inspector Aditi Sharma",
+    "action": "Poll Mailbox Match",
+    "details": {
+      "case_id": "CR-2026-0100",
+      "fir_number": "FIR-119/2026",
+      "sender": "Parth <gcafp2025.parth@gmail.com>",
+      "subject": "Re: Legal Notice under Section Section for bank statement of account\r\n ACC987654321 - FIR No. FIR-119/2026",
+      "files_downloaded": [
+        "email_reply_761.txt",
+        "bank_record.csv"
+      ]
+    }
+  },
+  {
+    "timestamp": "2026-07-28 22:53:40",
+    "officer": "Inspector Aditi Sharma",
+    "action": "Run Evidence Correlation Report",
+    "details": {
+      "case_id": "CR-2026-0100"
+    }
+  },
+  {
+    "timestamp": "2026-07-28 22:54:42",
+    "officer": "Inspector Aditi Sharma",
+    "action": "Generate Case Investigation Summary",
+    "details": {
+      "case_id": "CR-2026-0100"
+    }
+  },
+  {
+    "timestamp": "2026-08-04 19:22:49",
+    "officer": "Inspector V. K. Patel",
+    "action": "Evaluator Agent Data Ingested",
+    "details": {
+      "case_id": "FIR-2026-9901",
+      "targets_count": 2
+    }
+  },
+  {
+    "timestamp": "2026-08-04 19:23:13",
+    "officer": "Inspector V. K. Patel",
+    "action": "Evaluator Agent Data Ingested",
+    "details": {
+      "case_id": "FIR-2026-9901",
+      "targets_count": 2
+    }
+  },
+  {
+    "timestamp": "2026-08-04 19:44:07",
+    "officer": "Inspector V. K. Patel",
+    "action": "Evaluator Agent Data Ingested",
+    "details": {
+      "case_id": "FIR-2026-9901",
+      "targets_count": 2
+    }
+  },
+  {
+    "timestamp": "2026-08-04 19:48:22",
+    "officer": "Inspector V. K. Patel",
+    "action": "Evaluator Agent Data Ingested",
+    "details": {
+      "case_id": "FIR-2026-9901",
+      "targets_count": 2
+    }
+  },
+  {
+    "timestamp": "2026-08-04 20:02:03",
+    "officer": "Inspector V. K. Patel",
+    "action": "Evaluator Agent Data Ingested",
+    "details": {
+      "case_id": "FIR-2026-9901",
+      "targets_count": 2
+    }
+  },
+  {
+    "timestamp": "2026-08-04 20:47:26",
+    "officer": "DSP A. R. Joshi",
+    "action": "Evaluator Agent Data Ingested",
+    "details": {
+      "case_id": "FIR-ML-2026-7701",
+      "targets_count": 3
+    }
+  },
+  {
+    "timestamp": "2026-08-04 21:31:19",
+    "officer": "DSP A. R. Joshi",
+    "action": "Evaluator Agent Data Ingested",
+    "details": {
+      "case_id": "FIR-ML-2026-7701",
+      "targets_count": 3
+    }
+  },
+  {
+    "timestamp": "2026-08-07 20:54:32",
+    "officer": "DSP A. R. Joshi",
+    "action": "Evaluator Agent Data Ingested",
+    "details": {
+      "case_id": "FIR-ML-2026-7701",
+      "targets_count": 3
+    }
+  },
+  {
+    "timestamp": "2026-08-07 21:04:37",
+    "officer": "DSP A. R. Joshi",
+    "action": "Evaluator Agent Data Ingested",
+    "details": {
+      "case_id": "FIR-ML-2026-7701",
+      "targets_count": 3
+    }
+  },
+  {
+    "timestamp": "2026-08-07 21:05:33",
+    "officer": "DSP A. R. Joshi",
+    "action": "Evaluator Agent Data Ingested",
+    "details": {
+      "case_id": "FIR-ML-2026-7701",
+      "targets_count": 3
+    }
+  },
+  {
+    "timestamp": "2026-08-07 21:40:13",
+    "officer": "DSP A. R. Joshi",
+    "action": "Evaluator Agent Data Ingested",
+    "details": {
+      "case_id": "FIR-ML-2026-7701",
+      "targets_count": 3
+    }
+  },
+  {
+    "timestamp": "2026-08-07 21:44:48",
+    "officer": "DSP A. R. Joshi",
+    "action": "Evaluator Agent Data Ingested",
+    "details": {
+      "case_id": "FIR-ML-2026-7701",
+      "targets_count": 3
+    }
+  },
+  {
+    "timestamp": "2026-08-09 21:45:56",
+    "officer": "DSP A. R. Joshi",
+    "action": "Evaluator Agent Data Ingested",
+    "details": {
+      "case_id": "FIR-ML-2026-7701",
+      "targets_count": 3
+    }
+  }
+]

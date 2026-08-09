@@ -1,0 +1,865 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cyber Forensic & Investigation Portal (CFAA)</title>
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;700;800&display=swap" rel="stylesheet">
+    <!-- Stylesheet -->
+    <link rel="stylesheet" href="css/style.css">
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Marked.js for Markdown -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+</head>
+<body>
+    <div class="app-container">
+        
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo-icon">
+                    <i data-lucide="shield-alert" class="neon-glow-icon"></i>
+                </div>
+                <div class="logo-text">
+                    <h2>CFAA PORTAL</h2>
+                    <span class="sub-text">Forensic Agent</span>
+                </div>
+            </div>
+            
+            <nav class="sidebar-nav">
+                <button class="nav-btn active" data-tab="dashboard-tab">
+                    <i data-lucide="layout-dashboard"></i> Dashboard
+                </button>
+                <button class="nav-btn" data-tab="case-tab">
+                    <i data-lucide="briefcase"></i> Case Workspace
+                </button>
+                <button class="nav-btn" data-tab="email-tab">
+                    <i data-lucide="file-signature"></i> Legal Notices
+                </button>
+                <button class="nav-btn" data-tab="evidence-tab">
+                    <i data-lucide="folder-open"></i> Evidence Room
+                </button>
+                <button class="nav-btn" data-tab="forensics-tab">
+                    <i data-lucide="binary"></i> Forensic Reports
+                </button>
+                <button class="nav-btn" data-tab="audit-tab">
+                    <i data-lucide="scroll"></i> Audit Trail
+                </button>
+                <button class="nav-btn" data-tab="settings-tab">
+                    <i data-lucide="settings"></i> Settings
+                </button>
+            </nav>
+            
+            <div class="sidebar-footer">
+                <div class="status-indicator-box">
+                    <div class="status-item">
+                        <span id="gemini-status-dot" class="status-dot red"></span>
+                        <span>Gemini AI Engine</span>
+                    </div>
+                    <div class="status-item">
+                        <span id="smtp-status-dot" class="status-dot red"></span>
+                        <span>Mailing Node</span>
+                    </div>
+                </div>
+                
+                <div class="officer-badge">
+                    <i data-lucide="user-check"></i>
+                    <div class="badge-info">
+                        <span id="sidebar-officer-name" class="badge-name">Guest Officer</span>
+                        <span id="sidebar-officer-dept" class="badge-role">Cyber Cell Division</span>
+                    </div>
+                </div>
+            </div>
+        </aside>
+        
+        <!-- Main Content Area -->
+        <main class="main-content">
+            
+            <!-- Header bar -->
+            <header class="content-header">
+                <div class="header-title">
+                    <h1 id="page-title">Dashboard Overview</h1>
+                    <p id="page-subtitle" class="sub-text">Law enforcement portal for request templates and intelligence analysis.</p>
+                </div>
+                
+                <div class="header-actions">
+                    <div class="form-group" style="margin-bottom: 0; min-width: 200px;" id="global-case-selector-container">
+                        <select id="global-case-selector" style="padding: 6px 12px; background: rgba(10,15,30,0.6);">
+                            <option value="">-- Select Active Case --</option>
+                        </select>
+                    </div>
+                    <div class="datetime-display">
+                        <span id="clock-display">2026-07-28 00:00:00</span>
+                    </div>
+                </div>
+            </header>
+            
+            <!-- Tab Pane Containers -->
+            <div class="tab-content-container">
+                
+                <!-- TAB 1: DASHBOARD -->
+                <div class="tab-pane active" id="dashboard-tab">
+                    <div class="card welcome-card">
+                        <div class="welcome-text">
+                            <h3>Cyber Crime Forensic Intelligence Portal</h3>
+                            <p>This portal is restricted to authorized cyber crime investigation units. It assists investigating officers (IOs) in creating debit freezes, statement requests, and telecom requisitions, tracking responses via IMAP, and executing AI analytical correlation on CDR logs and bank transactions.</p>
+                            <div class="welcome-steps">
+                                <div class="step"><span class="step-num">1</span> Create Case Intake</div>
+                                <div class="step"><span class="step-num">2</span> Add Suspect Targets</div>
+                                <div class="step"><span class="step-num">3</span> Draft & Send Requisitions</div>
+                                <div class="step"><span class="step-num">4</span> Analyze Evidence & Correlate</div>
+                            </div>
+                        </div>
+                        <i data-lucide="shield" class="giant-icon"></i>
+                    </div>
+                    
+                    <div class="stats-grid">
+                        <div class="card stat-card">
+                            <div class="stat-icon blue"><i data-lucide="briefcase"></i></div>
+                            <div class="stat-info">
+                                <span class="stat-label">Total Active Cases</span>
+                                <span id="stat-cases" class="stat-value">0</span>
+                            </div>
+                        </div>
+                        <div class="card stat-card">
+                            <div class="stat-icon purple"><i data-lucide="file-text"></i></div>
+                            <div class="stat-info">
+                                <span class="stat-label">Notice Drafts Created</span>
+                                <span id="stat-drafts" class="stat-value">0</span>
+                            </div>
+                        </div>
+                        <div class="card stat-card">
+                            <div class="stat-icon neon"><i data-lucide="mail"></i></div>
+                            <div class="stat-info">
+                                <span class="stat-label">Dispatched Notices</span>
+                                <span id="stat-dispatches" class="stat-value">0</span>
+                            </div>
+                        </div>
+                        <div class="card stat-card">
+                            <div class="stat-icon green"><i data-lucide="folder-check"></i></div>
+                            <div class="stat-info">
+                                <span class="stat-label">Parsed Evidence Files</span>
+                                <span id="stat-evidence" class="stat-value">0</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="dashboard-details-grid">
+                        <div class="card detail-panel">
+                            <div class="panel-header">
+                                <i data-lucide="terminal"></i>
+                                <h3>Quick Actions & Operations</h3>
+                            </div>
+                            <p class="small-text">Select one of the actions below or use the sidebar to navigate the investigation timeline.</p>
+                            <div style="display: flex; gap: 16px; margin-top: 10px;">
+                                <button class="btn btn-primary" onclick="app.switchTab('case-tab')">
+                                    <i data-lucide="plus-circle"></i> New Case Intake
+                                </button>
+                                <button class="btn btn-secondary" onclick="app.downloadMockTemplate()">
+                                    <i data-lucide="download"></i> Download Mock CDR Log
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="card detail-panel">
+                            <div class="panel-header">
+                                <i data-lucide="book-open"></i>
+                                <h3>Standard Operating Protocol</h3>
+                            </div>
+                            <ul class="guide-list">
+                                <li>Always fill Case ID and FIR details before drafting notices.</li>
+                                <li>Perform legal validation checkbox verification for audit.</li>
+                                <li>Approved notices are logged to the immutable audit database.</li>
+                                <li>Run mail checks to auto-capture replies and parse attachments.</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- TAB 2: CASE WORKSPACE (Phase 1, 2, 3) -->
+                <div class="tab-pane" id="case-tab">
+                    <div class="split-layout">
+                        <!-- Left Panel: Case Details Intake (Phase 1) -->
+                        <div class="card form-panel">
+                            <h3>Phase 1: Case Intake Form</h3>
+                            <p class="section-description">Fill all mandatory legal indices to initiate this cyber crime investigation track.</p>
+                            
+                            <form id="case-intake-form" class="standard-form">
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="case-input-id">Case ID / Reference *</label>
+                                        <input type="text" id="case-input-id" placeholder="e.g. CR-2026-0048" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="case-input-fir">FIR Number *</label>
+                                        <input type="text" id="case-input-fir" placeholder="e.g. FIR-119/2026" required>
+                                    </div>
+                                </div>
+                                
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="case-input-station">Police Station *</label>
+                                        <input type="text" id="case-input-station" placeholder="e.g. Cyber Cell Varanasi" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="case-input-date">Intake Date</label>
+                                        <input type="text" id="case-input-date" placeholder="YYYY-MM-DD">
+                                    </div>
+                                </div>
+                                
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="case-input-officer">Investigating Officer (IO) *</label>
+                                        <input type="text" id="case-input-officer" placeholder="IO Name" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="case-input-rank">Officer Designation *</label>
+                                        <input type="text" id="case-input-rank" placeholder="e.g. Police Inspector" required>
+                                    </div>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="case-input-email">Official Email Address *</label>
+                                    <input type="email" id="case-input-email" placeholder="e.g. io.cyber@up.gov.in" required>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="case-input-authority">Applicable Legal Authority *</label>
+                                    <select id="case-input-authority" required>
+                                        <option value="Section 91 / 102 CrPC (CrPC 1973)">Section 91 / 102 CrPC (Code of Criminal Procedure)</option>
+                                        <option value="Section 94 / 106 BNSS (BNSS 2023)">Section 94 / 106 BNSS (Bharatiya Nagarik Suraksha Sanhita)</option>
+                                        <option value="Information Technology Act, 2000 (Section 91/CrPC)">Information Technology Act, 2000</option>
+                                    </select>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="case-input-purpose">Purpose of Requisition *</label>
+                                    <textarea id="case-input-purpose" rows="2" placeholder="Trace trail of stolen cyber fraud money, identify geographical coordinates, and discover suspect coordinates." required></textarea>
+                                </div>
+                                
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="case-input-suspect">Suspect Details</label>
+                                        <textarea id="case-input-suspect" rows="2" placeholder="e.g. Rohan Singh, age 28, Noida"></textarea>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="case-input-victim">Victim Details</label>
+                                        <textarea id="case-input-victim" rows="2" placeholder="e.g. Amit Kumar, Lost Rs. 1,50,000"></textarea>
+                                    </div>
+                                </div>
+
+                                <div style="display: flex; gap: 10px; margin-bottom: 12px; flex-wrap: wrap;">
+                                    <button type="button" class="btn btn-secondary btn-sm" onclick="app.autofillEditableData()">
+                                        <i data-lucide="wand-sparkles"></i> Autofill Demo Data
+                                    </button>
+                                </div>
+                                
+                                <button type="submit" class="btn btn-primary btn-full">
+                                    <i data-lucide="plus-circle"></i> Create Case File
+                                </button>
+                            </form>
+                        </div>
+                        
+                        <!-- Right Panel: Targets & Legal Validation (Phase 2 & 3) -->
+                        <div class="card preview-panel" id="case-targets-panel">
+                            <div class="panel-title-row">
+                                <h3>Phase 2: Investigation Targets</h3>
+                                <span class="draft-badge">Target Identifiers</span>
+                            </div>
+                            
+                            <!-- Add Target Form -->
+                            <form id="add-target-form" class="standard-form" style="background: rgba(0,0,0,0.15); padding: 14px; border-radius: 8px; border: 1px solid var(--border-color);">
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="target-input-type">Identifier Type</label>
+                                        <select id="target-input-type">
+                                            <option value="bank">Bank Account</option>
+                                            <option value="upi">UPI ID</option>
+                                            <option value="telecom">Mobile Number</option>
+                                            <option value="device">Device IMEI</option>
+                                            <option value="ip">IP Address</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="target-input-val">Identifier Value</label>
+                                        <input type="text" id="target-input-val" placeholder="Account no / phone no" required>
+                                    </div>
+                                </div>
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="target-input-name">Holder Name</label>
+                                        <input type="text" id="target-input-name" placeholder="Name (if known)">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="target-input-entity">Nodal Institution / Operator</label>
+                                        <input type="text" id="target-input-entity" placeholder="e.g. State Bank of India" required>
+                                    </div>
+                                </div>
+                                <button type="submit" class="btn btn-secondary btn-full btn-sm">
+                                    <i data-lucide="plus"></i> Add Identifier
+                                </button>
+                            </form>
+                            
+                            <!-- Targets List -->
+                            <div style="flex-grow: 1; overflow-y: auto; margin-top: 10px;">
+                                <table class="cdr-summary-table" id="case-targets-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Type</th>
+                                            <th>Identifier</th>
+                                            <th>Entity Name</th>
+                                            <th>Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td colspan="4" class="sub-text" style="text-align: center; padding: 20px;">No targets added. Submit the Intake Form first, then add targets.</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                            
+                            <!-- Phase 3: Legal Validation Checkbox Gate -->
+                            <div style="border-top: 1px solid var(--border-color); padding-top: 16px; margin-top: 10px;">
+                                <h4>Phase 3: Legal Validation Verification</h4>
+                                <p class="small-text">Before drafting notices, you must verify the compliance credentials.</p>
+                                <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 8px;">
+                                    <label style="display: flex; align-items: center; gap: 8px; font-weight: normal; cursor: pointer;">
+                                        <input type="checkbox" id="legal-check-authority"> Requisition authority is verified and correct.
+                                    </label>
+                                    <label style="display: flex; align-items: center; gap: 8px; font-weight: normal; cursor: pointer;">
+                                        <input type="checkbox" id="legal-check-approvals"> Internal departmental approvals are in place.
+                                    </label>
+                                    <label style="display: flex; align-items: center; gap: 8px; font-weight: normal; cursor: pointer;">
+                                        <input type="checkbox" id="legal-check-proportionate"> Requested information is relevant and proportionate.
+                                    </label>
+                                </div>
+                                <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 12px; background: rgba(0,0,0,0.15); padding: 8px 12px; border-radius: 6px;">
+                                    <span class="small-text">Legal Verification Status:</span>
+                                    <span id="legal-validation-badge" class="draft-badge" style="background: rgba(239,68,68,0.1); color: var(--danger); border-color: rgba(239,68,68,0.2);">Pending Checks</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- TAB 3: DRAFT NOTICE GENERATOR (Phase 4, 5, 6, 7) -->
+                <div class="tab-pane" id="email-tab">
+                    <div class="split-layout">
+                        <!-- Left Panel: Notice Config -->
+                        <div class="card form-panel">
+                            <h3>Phase 4: Select Requisition Target</h3>
+                            <p class="section-description">Choose a target from the active case to load its compliance parameters.</p>
+                            
+                            <form id="notice-intake-form" class="standard-form">
+                                <div class="form-group">
+                                    <label for="notice-case-id-display">Case ID (Read Only)</label>
+                                    <input type="text" id="notice-case-id-display" readonly style="background: rgba(0,0,0,0.3); color: var(--text-muted);">
+                                </div>
+                                <div class="form-group">
+                                    <label for="notice-target-select">Select Target Identifier *</label>
+                                    <select id="notice-target-select">
+                                        <option value="">-- Select Target --</option>
+                                    </select>
+                                </div>
+                                
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="notice-entity-name">Nodal Institution Name *</label>
+                                        <input type="text" id="notice-entity-name" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="notice-legal-section">Applicable Legal Section *</label>
+                                        <input type="text" id="notice-legal-section" required>
+                                    </div>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="notice-type-select">Request Type *</label>
+                                    <select id="notice-type-select">
+                                        <option value="freeze">Debit Freeze / Account Lock</option>
+                                        <option value="statement">Bank Statement Requisition</option>
+                                        <option value="cdr">CDR / Call Logs / Tower Requisition</option>
+                                    </select>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label id="lbl-notice-additional-details" for="notice-additional-details">Duration / Transaction Details</label>
+                                    <textarea id="notice-additional-details" rows="3" placeholder="Enter transaction IDs, dates, and amounts or CDR query log duration."></textarea>
+                                </div>
+                                
+                                <button type="submit" class="btn btn-primary btn-full">
+                                    <i data-lucide="edit-3"></i> Generate Notice Draft
+                                </button>
+                            </form>
+                            
+                            <!-- Existing drafts linked to case -->
+                            <div style="margin-top: 10px;">
+                                <h4>Case Request Workflows</h4>
+                                <div style="max-height: 150px; overflow-y: auto; margin-top: 8px;">
+                                    <table class="cdr-summary-table" id="case-requests-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Type</th>
+                                                <th>Target</th>
+                                                <th>Institution</th>
+                                                <th>Status</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr>
+                                                <td colspan="4" class="sub-text" style="text-align: center; padding: 10px;">No drafts created.</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Right Panel: Draft Email Preview & Dispatch (Phase 5, 6, 7) -->
+                        <div class="card preview-panel">
+                            <div class="panel-title-row">
+                                <h3>Phase 5 & 6: Notice Draft Review</h3>
+                                <span id="notice-status-badge" class="draft-badge">No Active Draft</span>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="notice-output-subject">Notice Subject</label>
+                                <input type="text" id="notice-output-subject" class="code-font" placeholder="Requisition Subject line...">
+                            </div>
+                            
+                            <div class="form-group" style="flex-grow: 1; display: flex; flex-direction: column;">
+                                <label for="notice-output-body">Notice Body Content</label>
+                                <textarea id="notice-output-body" class="code-font body-textarea" style="flex-grow: 1;" placeholder="Draft notice content..."></textarea>
+                            </div>
+                            
+                            <!-- Phase 6 & 7: Approval and Dispatch actions -->
+                            <div class="action-bar" style="margin-top: 10px;">
+                                <button class="btn btn-secondary" onclick="app.copyActiveNotice()" title="Copy to Clipboard">
+                                    <i data-lucide="copy"></i> Copy
+                                </button>
+                                <button class="btn btn-secondary" onclick="app.launchActiveMailClient()" title="Open in local mail application">
+                                    <i data-lucide="external-link"></i> Mailto
+                                </button>
+                                
+                                <div style="flex-grow: 1;"></div>
+                                
+                                <button id="btn-approve-notice" class="btn btn-secondary" style="border-color: var(--success); color: var(--success);" onclick="app.approveActiveNotice()">
+                                    <i data-lucide="check-circle-2"></i> Approve Notice
+                                </button>
+                                
+                                <button id="btn-send-notice" class="btn btn-primary" style="opacity: 0.5; cursor: not-allowed;" disabled onclick="app.dispatchActiveNotice()">
+                                    <i data-lucide="send"></i> Dispatch (SMTP)
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- TAB 4: EVIDENCE ROOM & MAIL MONITOR (Phase 8, 9, 10, 11) -->
+                <div class="tab-pane" id="evidence-tab">
+                    <div class="split-layout">
+                        <!-- Left Panel: Mail Polling & Classification (Phase 8, 10) -->
+                        <div class="card form-panel">
+                            <h3>Phase 8: Monitor Mailbox for Responses</h3>
+                            <p class="section-description">Trigger an automated IMAP poll to download Nodal Officer replies containing this Case ID/FIR.</p>
+                            
+                            <div style="background: rgba(6,182,212,0.05); border: 1px solid rgba(6,182,212,0.15); padding: 16px; border-radius: 8px; margin-bottom: 12px; display: flex; flex-direction: column; gap: 12px;">
+                                <div>
+                                    <strong class="neon-text">IMAP Mailbox Connector</strong>
+                                    <p class="small-text" style="margin-top: 4px;">Pulls emails containing the active Case ID or FIR number in the subject line from your configured Settings mailbox.</p>
+                                </div>
+                                <button class="btn btn-primary" id="btn-poll-mailbox" onclick="app.pollInboxForActiveCase()">
+                                    <i data-lucide="refresh-cw"></i> Poll IMAP Mailbox
+                                </button>
+                                <div id="poll-mailbox-spinner" class="loading-spinner hidden">
+                                    <span class="spinner"></span>
+                                    <span>Accessing mailbox via SSL (searching inbox)...</span>
+                                </div>
+                            </div>
+                            
+                            <!-- Case Evidence Files list -->
+                            <div>
+                                <h3>Case Evidence Files</h3>
+                                <p class="small-text">Accumulated evidence files for the active case.</p>
+                                <div style="overflow-y: auto; max-height: 250px; margin-top: 10px;">
+                                    <table class="cdr-summary-table" id="case-evidence-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Filename</th>
+                                                <th>Type</th>
+                                                <th>Imported At</th>
+                                                <th>Action</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr>
+                                                <td colspan="4" class="sub-text" style="text-align: center; padding: 20px;">No evidence files uploaded/polled.</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Right Panel: Manual Evidence Upload & Parse (Phase 9, 11) -->
+                        <div class="card preview-panel">
+                            <h3>Phase 9 & 10: Import Evidence File</h3>
+                            <p class="section-description">Upload CDR logsheets, Bank Statements (CSV/XLSX), or KYC profiles to categorize and parse them.</p>
+                            
+                            <!-- File Type manual override -->
+                            <div class="form-group" style="margin-top: 10px;">
+                                <label for="evidence-upload-type">Verify Classification Router *</label>
+                                <select id="evidence-upload-type">
+                                    <option value="cdr">Call Detail Record (CDR)</option>
+                                    <option value="bank_statement">Bank Statement / Ledger (CSV/XLSX)</option>
+                                    <option value="kyc">KYC / Subscriber Details Profile</option>
+                                    <option value="reply">Text Email Reply / Letter</option>
+                                </select>
+                            </div>
+                            
+                            <!-- Upload Box -->
+                            <div class="upload-card" id="evidence-upload-zone">
+                                <i data-lucide="upload-cloud" class="upload-icon"></i>
+                                <div>
+                                    <h4>Drag & Drop Evidence file here</h4>
+                                    <p class="small-text" style="margin-top: 4px;">Supports CSV, XLSX, XLS, and TXT files</p>
+                                </div>
+                                <span class="btn btn-secondary btn-sm">Browse Files</span>
+                                <input type="file" id="evidence-file-input" class="hidden">
+                                
+                                <div id="evidence-upload-spinner" class="loading-spinner hidden">
+                                    <span class="spinner"></span>
+                                    <span>Ingesting and aggregating dataset (mapping columns)...</span>
+                                </div>
+                            </div>
+                            
+                            <!-- Parsed stats preview -->
+                            <div class="hidden" id="evidence-parsed-preview" style="background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); padding: 14px; border-radius: 8px; margin-top: 12px;">
+                                <div style="display: flex; justify-content: space-between; align-items: center;">
+                                    <strong class="neon-text" id="evidence-preview-filename">parsed_file.csv</strong>
+                                    <span id="evidence-preview-type" class="draft-badge">CDR</span>
+                                </div>
+                                <div class="divider"></div>
+                                <div id="evidence-preview-stats-list" class="mock-details" style="font-size: 0.8rem; line-height: 1.5;">
+                                    <!-- Stats list injected here -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- TAB 5: FORENSIC REPORTS (Phase 11, 12, 13, 14) -->
+                <div class="tab-pane" id="forensics-tab">
+                    <div class="split-layout cdr-layout" style="height: auto;">
+                        
+                        <!-- Left Panel: Data Visualizations (Phase 11) -->
+                        <div class="card charts-panel">
+                            <div class="panel-header">
+                                <i data-lucide="bar-chart-3"></i>
+                                <h3>Phase 11: Transaction & Communication Logs</h3>
+                            </div>
+                            
+                            <!-- Selector for loaded evidence data charts -->
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <label for="forensics-chart-source">Select Chart Data Source</label>
+                                <select id="forensics-chart-source">
+                                    <option value="">-- No parsed datasets active --</option>
+                                </select>
+                            </div>
+                            
+                            <div class="chart-container">
+                                <canvas id="forensics-hourly-chart"></canvas>
+                            </div>
+                            <div class="chart-container">
+                                <canvas id="forensics-daily-chart"></canvas>
+                            </div>
+                            
+                            <!-- Accordion detailing aggregates -->
+                            <div class="accordion" id="forensics-data-accordion">
+                                <div class="accordion-item">
+                                    <div class="accordion-header" onclick="app.toggleAccordion(this)">
+                                        <span>Primary Contacts / Counterparties</span>
+                                        <i data-lucide="chevron-down"></i>
+                                    </div>
+                                    <div class="accordion-content">
+                                        <table class="cdr-summary-table" id="forensics-table-contacts">
+                                            <thead>
+                                                <tr>
+                                                    <th>Account / Phone Number</th>
+                                                    <th>Interaction Density</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <tr><td colspan="2">No parsed records.</td></tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                                
+                                <div class="accordion-item">
+                                    <div class="accordion-header" onclick="app.toggleAccordion(this)">
+                                        <span>Device Handset Swaps / Alert Items</span>
+                                        <i data-lucide="chevron-down"></i>
+                                    </div>
+                                    <div class="accordion-content">
+                                        <table class="cdr-summary-table" id="forensics-table-alerts">
+                                            <thead>
+                                                <tr>
+                                                    <th>Target</th>
+                                                    <th>Handsets / Alert description</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <tr><td colspan="2">No parsed records.</td></tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Right Panel: Timelines, AI Correlation, & Phase 14 Summaries -->
+                        <div class="card preview-panel" style="gap: 20px;">
+                            
+                            <!-- Chronological Case Timeline (Phase 13) -->
+                            <div style="background: rgba(0,0,0,0.15); border: 1px solid var(--border-color); padding: 16px; border-radius: 8px; max-height: 250px; overflow-y: auto;">
+                                <div class="panel-header" style="border: none; padding-bottom: 0;">
+                                    <i data-lucide="clock"></i>
+                                    <h3 style="font-size: 1rem;">Phase 13: Case Chronological Timeline</h3>
+                                </div>
+                                <div id="case-timeline-container" style="display: flex; flex-direction: column; gap: 12px; margin-top: 12px; padding-left: 10px; border-left: 2px solid rgba(6,182,212,0.2);">
+                                    <!-- Timeline events injected here -->
+                                    <span class="small-text text-muted">Create case to initiate timeline logs.</span>
+                                </div>
+                            </div>
+                            
+                            <!-- AI Analytics Operations -->
+                            <div class="ai-analysis-section card" style="padding: 16px; background: rgba(139,92,246,0.03);">
+                                <div class="ai-section-header">
+                                    <i data-lucide="sparkles" class="ai-logo-icon"></i>
+                                    <div class="title-with-desc">
+                                        <h3>Phase 12 & 14: Forensic AI Reports</h3>
+                                        <span class="small-text">Query Gemini flash to cross-correlate items or generate case sheets.</span>
+                                    </div>
+                                </div>
+                                
+                                <div style="display: flex; gap: 10px; margin-top: 8px;">
+                                    <button class="btn btn-secondary btn-sm" id="btn-run-correlation" onclick="app.runCaseEvidenceCorrelation()">
+                                        <i data-lucide="git-merge"></i> Phase 12: Correlate Clues
+                                    </button>
+                                    <button class="btn btn-primary btn-sm" id="btn-run-summary" onclick="app.runCaseInvestigationSummary()">
+                                        <i data-lucide="award"></i> Phase 14: Case Summary
+                                    </button>
+                                </div>
+                                
+                                <div id="forensics-ai-loading" class="loading-spinner hidden" style="margin-top: 14px;">
+                                    <span class="spinner" style="border-top-color: var(--secondary);"></span>
+                                    <span>Synthesizing intelligence summary (Gemini 2.5 Flash executing)...</span>
+                                </div>
+                            </div>
+                            
+                            <!-- AI Report Output markdown panel -->
+                            <div class="hidden output-panel card" id="forensics-ai-output-box" style="flex-grow: 1; min-height: 250px; display: flex; flex-direction: column;">
+                                <div class="panel-title-row">
+                                    <h3 id="forensics-ai-title">Forensic Intelligence Report</h3>
+                                    <div style="display: flex; gap: 8px;">
+                                        <button class="icon-btn btn-sm" onclick="app.copyForensicReport()" title="Copy Markdown"><i data-lucide="copy"></i></button>
+                                        <button class="icon-btn btn-sm" onclick="app.downloadForensicReport()" title="Download Report"><i data-lucide="download"></i></button>
+                                    </div>
+                                </div>
+                                <div id="forensics-ai-report-content" class="markdown-output code-font">
+                                    <!-- Markdown content goes here -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- TAB 6: IMMUTABLE AUDIT TRAIL (Phase 15) -->
+                <div class="tab-pane" id="audit-tab">
+                    <div class="card" style="flex-grow: 1; display: flex; flex-direction: column; overflow: hidden; height: calc(100vh - var(--header-height) - 100px);">
+                        <div class="panel-header">
+                            <i data-lucide="scroll"></i>
+                            <div>
+                                <h3>Phase 15: Non-Editable Audit Log Trail</h3>
+                                <span class="small-text">Appends every action taken by the investigator. Security compliance trace.</span>
+                            </div>
+                        </div>
+                        
+                        <div style="flex-grow: 1; overflow-y: auto; margin-top: 16px; border: 1px solid var(--border-color); border-radius: 8px;">
+                            <table class="cdr-summary-table" id="audit-trail-table" style="font-size: 0.85rem;">
+                                <thead style="position: sticky; top: 0; background: var(--bg-main); z-index: 2;">
+                                    <tr>
+                                        <th style="width: 160px;">Timestamp</th>
+                                        <th style="width: 140px;">Officer</th>
+                                        <th style="width: 200px;">Action Conducted</th>
+                                        <th>Details / Parameters</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td colspan="4" class="sub-text" style="text-align: center; padding: 20px;">No audit logs found.</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- TAB 7: SETTINGS -->
+                <div class="tab-pane" id="settings-tab">
+                    <div class="split-layout">
+                        <!-- Left Panel: Profile & Gemini -->
+                        <div class="card form-panel">
+                            <h3>Officer Profile</h3>
+                            <p class="section-description">Enter details to prefill notices and letters.</p>
+                            
+                            <form id="settings-profile-form" class="standard-form">
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="settings-officer-name">Full Officer Name</label>
+                                        <input type="text" id="settings-officer-name" placeholder="e.g. Inspector Prankit">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="settings-officer-rank">Officer Designation / Rank</label>
+                                        <input type="text" id="settings-officer-rank" placeholder="e.g. Police Inspector">
+                                    </div>
+                                </div>
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="settings-officer-badge">Badge/ID Number</label>
+                                        <input type="text" id="settings-officer-badge" placeholder="e.g. B-9338">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="settings-officer-dept">Cyber Cell Department / Location</label>
+                                        <input type="text" id="settings-officer-dept" placeholder="e.g. Cyber Cell Varanasi">
+                                    </div>
+                                </div>
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="settings-officer-contact">Contact Phone Number</label>
+                                        <input type="text" id="settings-officer-contact" placeholder="e.g. 9695732481">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="settings-officer-email">Official Email address</label>
+                                        <input type="email" id="settings-officer-email" placeholder="e.g. sadhnil1998@gmail.com">
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label for="settings-officer-sig">Custom Email Signature Text</label>
+                                    <textarea id="settings-officer-sig" rows="2" placeholder="Cyber Crime Cell, Varanasi Police Division"></textarea>
+                                </div>
+                                
+                                <div class="divider"></div>
+                                
+                                <h3>Gemini API Authentication</h3>
+                                <p class="section-description">Required for evidence analytics and intelligence reporting.</p>
+                                
+                                <div class="form-group">
+                                    <label for="settings-gemini-key">Gemini API Key</label>
+                                    <div class="input-password-wrapper">
+                                        <input type="password" id="settings-gemini-key" placeholder="Enter API Key">
+                                        <button type="button" class="password-toggle-btn" onclick="app.togglePasswordVisibility('settings-gemini-key')">
+                                            <i id="settings-gemini-key-eye" data-lucide="eye"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                <button type="submit" class="btn btn-primary btn-full">
+                                    <i data-lucide="save"></i> Save Configuration
+                                </button>
+                            </form>
+                        </div>
+                        
+                        <!-- Right Panel: SMTP Server -->
+                        <div class="card form-panel">
+                            <h3>SMTP & IMAP Mailbox Settings</h3>
+                            <p class="section-description">Configure the node parameters for direct SMTP notices dispatching and IMAP reply pulling.</p>
+                            
+                            <form id="settings-smtp-form" class="standard-form">
+                                <div class="form-group">
+                                    <label for="settings-smtp-host">SMTP Host (IMAP host is inferred)</label>
+                                    <input type="text" id="settings-smtp-host" placeholder="smtp.gmail.com">
+                                </div>
+                                <div class="form-group">
+                                    <label for="settings-smtp-port">SMTP Port</label>
+                                    <input type="number" id="settings-smtp-port" placeholder="587" value="587">
+                                </div>
+                                <div class="form-group">
+                                    <label for="settings-smtp-user">SMTP Username / Mail Login</label>
+                                    <input type="text" id="settings-smtp-user" placeholder="e.g. sadhnil1998@gmail.com">
+                                </div>
+                                <div class="form-group">
+                                    <label for="settings-smtp-pass">SMTP Password / App Secret</label>
+                                    <div class="input-password-wrapper">
+                                        <input type="password" id="settings-smtp-pass" placeholder="Enter Password">
+                                        <button type="button" class="password-toggle-btn" onclick="app.togglePasswordVisibility('settings-smtp-pass')">
+                                            <i id="settings-smtp-pass-eye" data-lucide="eye"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label for="settings-smtp-sender">Sender Display Name</label>
+                                    <input type="text" id="settings-smtp-sender" placeholder="e.g. CyberCrime Police Station">
+                                </div>
+                                
+                                <div style="background: rgba(245,158,11,0.05); border: 1px solid rgba(245,158,11,0.15); padding: 12px; border-radius: 6px;">
+                                    <span class="small-text" style="color: var(--warning);">
+                                        <strong>Notice on Gmail SMTP/IMAP:</strong> You must create a "Google App Password" with 2-Step Verification enabled. Do not use your primary password.
+                                    </span>
+                                </div>
+                                
+                                <button type="submit" class="btn btn-primary btn-full">
+                                    <i data-lucide="save"></i> Save Mail Credentials
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                
+            </div>
+        </main>
+    </div>
+    
+    <!-- Modal: Send Email Preview -->
+    <div class="modal-overlay hidden" id="smtp-modal">
+        <div class="modal card">
+            <div class="modal-header">
+                <h3>Phase 7: Notice SMTP Dispatch Panel</h3>
+                <button class="close-btn" onclick="app.closeSmtpModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="modal-recipient-email">Recipient Nodal Compliance Email Address *</label>
+                    <input type="email" id="modal-recipient-email" placeholder="e.g. nodal.compliance@institutes.com" required>
+                </div>
+                <div class="modal-preview">
+                    <div class="preview-line"><strong>Subject:</strong> <span id="modal-subject-preview">Requisition Subject...</span></div>
+                    <div class="preview-body-container">
+                        <pre id="modal-body-preview">Email Body...</pre>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="app.closeSmtpModal()">Cancel</button>
+                <button class="btn btn-primary" onclick="app.submitSmtpEmail()">
+                    <i data-lucide="send"></i> Dispatch Official Notice
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Float Alerts Container -->
+    <div id="alert-container" class="alert-container"></div>
+    
+    <!-- App Script -->
+    <script src="js/app.js"></script>
+</body>
+</html>

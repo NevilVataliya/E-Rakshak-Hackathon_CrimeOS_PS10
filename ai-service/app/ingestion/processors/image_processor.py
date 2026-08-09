@@ -1,6 +1,9 @@
 import os
 from typing import Dict, Any
-from PIL import Image
+try:
+    from PIL import Image
+except ImportError:
+    Image = None
 from app.ingestion.base_processor import BaseFileProcessor
 from config import GEMINI_API_KEY
 
