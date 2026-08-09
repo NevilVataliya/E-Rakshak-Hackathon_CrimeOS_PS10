@@ -1,10 +1,25 @@
 import os
 from pathlib import Path
 from dotenv import load_dotenv
-from langchain_openai import ChatOpenAI
-from langchain_anthropic import ChatAnthropic
-from langchain_google_genai import ChatGoogleGenerativeAI
-from langchain_groq import ChatGroq
+try:
+    from langchain_openai import ChatOpenAI
+except ImportError:
+    ChatOpenAI = None
+
+try:
+    from langchain_anthropic import ChatAnthropic
+except ImportError:
+    ChatAnthropic = None
+
+try:
+    from langchain_google_genai import ChatGoogleGenerativeAI
+except ImportError:
+    ChatGoogleGenerativeAI = None
+
+try:
+    from langchain_groq import ChatGroq
+except ImportError:
+    ChatGroq = None
 
 # Load centralized error-handling policy (fallback/abort + retry config)
 from app.utils.error_policy import (
@@ -74,13 +89,13 @@ def get_vision_llm():
     """
     Returns Gemini Flash model for high-accuracy multimodal (Image OCR, Handwriting, Audio) ingestion.
     """
-    if GEMINI_API_KEY:
+    if GEMINI_API_KEY and ChatGoogleGenerativeAI:
         return ChatGoogleGenerativeAI(
             model="gemini-2.0-flash",
             google_api_key=GEMINI_API_KEY,
             temperature=0.1
         )
-    elif OPENAI_API_KEY:
+    elif OPENAI_API_KEY and ChatOpenAI:
         return ChatOpenAI(model="gpt-4o-mini", api_key=OPENAI_API_KEY, temperature=0.1)
     else:
         if not ENABLE_DEMO_FALLBACKS:
@@ -95,33 +110,33 @@ def get_agent_llm(provider: str = "auto", temperature: float = 0.2):
     env_provider = os.getenv("LLM_PROVIDER", "auto").lower()
     target_provider = provider.lower() if provider != "auto" else env_provider
 
-    if target_provider == "gemini" and GEMINI_API_KEY:
+    if target_provider == "gemini" and GEMINI_API_KEY and ChatGoogleGenerativeAI:
         return ChatGoogleGenerativeAI(model="gemini-2.0-flash", google_api_key=GEMINI_API_KEY, temperature=temperature)
 
-    if target_provider == "groq" and GROQ_API_KEY:
+    if target_provider == "groq" and GROQ_API_KEY and ChatGroq:
         return ChatGroq(model_name="llama-3.3-70b-versatile", groq_api_key=GROQ_API_KEY, temperature=temperature)
 
-    if target_provider == "claude" and ANTHROPIC_API_KEY:
+    if target_provider == "claude" and ANTHROPIC_API_KEY and ChatAnthropic:
         return ChatAnthropic(model="claude-3-5-sonnet-20240620", api_key=ANTHROPIC_API_KEY, temperature=temperature)
 
-    if target_provider == "openai" and OPENAI_API_KEY:
+    if target_provider == "openai" and OPENAI_API_KEY and ChatOpenAI:
         return ChatOpenAI(model="gpt-4o", api_key=OPENAI_API_KEY, temperature=temperature)
 
     # AUTO SELECTION
-    if GEMINI_API_KEY and (env_provider == "gemini" or not GROQ_API_KEY):
+    if GEMINI_API_KEY and ChatGoogleGenerativeAI and (env_provider == "gemini" or not GROQ_API_KEY):
         return ChatGoogleGenerativeAI(model="gemini-2.0-flash", google_api_key=GEMINI_API_KEY, temperature=temperature)
-    elif GROQ_API_KEY:
+    elif GROQ_API_KEY and ChatGroq:
         try:
             return ChatGroq(model_name="llama-3.3-70b-versatile", groq_api_key=GROQ_API_KEY, temperature=temperature)
         except Exception:
-            if GEMINI_API_KEY:
+            if GEMINI_API_KEY and ChatGoogleGenerativeAI:
                 return ChatGoogleGenerativeAI(model="gemini-2.0-flash", google_api_key=GEMINI_API_KEY, temperature=temperature)
             return ChatGroq(model_name="llama3-70b-8192", groq_api_key=GROQ_API_KEY, temperature=temperature)
-    elif ANTHROPIC_API_KEY:
+    elif ANTHROPIC_API_KEY and ChatAnthropic:
         return ChatAnthropic(model="claude-3-5-sonnet-20240620", api_key=ANTHROPIC_API_KEY, temperature=temperature)
-    elif OPENAI_API_KEY:
+    elif OPENAI_API_KEY and ChatOpenAI:
         return ChatOpenAI(model="gpt-4o-mini", api_key=OPENAI_API_KEY, temperature=temperature)
-    elif GEMINI_API_KEY:
+    elif GEMINI_API_KEY and ChatGoogleGenerativeAI:
         return ChatGoogleGenerativeAI(model="gemini-2.0-flash", google_api_key=GEMINI_API_KEY, temperature=temperature)
     else:
         if not ENABLE_DEMO_FALLBACKS:

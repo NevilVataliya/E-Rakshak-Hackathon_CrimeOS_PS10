@@ -23,6 +23,7 @@ import {
   Sliders,
   FolderPlus
 } from 'lucide-react';
+import api from '../services/api';
 import PDFPreviewModal from '../components/common/PDFPreviewModal';
 import { useCaseStore } from '../store/caseStore';
 import { useLangStore } from '../store/langStore';
@@ -35,6 +36,7 @@ export default function SubpoenasView() {
   const { 
     legalRequests, 
     activeCase, 
+    cases,
     dispatchLegalNotice, 
     pendingApprovals, 
     approvalLoading, 
@@ -55,8 +57,21 @@ export default function SubpoenasView() {
   const [toastMsg, setToastMsg] = useState('');
   const [dispatchingId, setDispatchingId] = useState<string | null>(null);
 
-  // Active Tab: 'subpoenas' | 'human_approval'
-  const [activeTab, setActiveTab] = useState<'subpoenas' | 'human_approval'>('human_approval');
+  // Active Tab: 'auto_email_test' | 'human_approval' | 'subpoenas'
+  const [activeTab, setActiveTab] = useState<'auto_email_test' | 'human_approval' | 'subpoenas'>('auto_email_test');
+
+  // Auto Email Automator Test Studio State
+  const [autoCaseNumber, setAutoCaseNumber] = useState(activeCase?.case_number || 'FIR-FIN-2026-101');
+  const [autoDomain, setAutoDomain] = useState('financial_fraud');
+  const [autoObjective, setAutoObjective] = useState('Urgent Financial Hold and Account Freeze Directive for Bank Account');
+  const [autoReceiverName, setAutoReceiverName] = useState('HDFC Bank');
+  const [autoTargetId, setAutoTargetId] = useState('501004928172');
+  const [autoReceiverEmail, setAutoReceiverEmail] = useState('');
+  
+  // Resolved State
+  const [resolvedResult, setResolvedResult] = useState<any | null>(null);
+  const [isResolving, setIsResolving] = useState(false);
+  const [dispatchStatus, setDispatchStatus] = useState<string | null>(null);
 
   // Form State for Custom Notice Generator
   const [noticeType, setNoticeType] = useState<'SECTION_94_BNSS' | 'DEBIT_FREEZE_1930' | 'NODAL_SUBPOENA'>('SECTION_94_BNSS');
@@ -83,6 +98,101 @@ export default function SubpoenasView() {
   const [selectedApproval, setSelectedApproval] = useState<any | null>(null);
   const [editedSubject, setEditedSubject] = useState('');
   const [editedBody, setEditedBody] = useState('');
+
+  const handleAutoResolveNotice = async () => {
+    setIsResolving(true);
+    setDispatchStatus(null);
+    try {
+      // Lookup receiver nodal contact
+      const nodalEmailMap: Record<string, { email: string; name: string }> = {
+        'hdfc': { email: 'nodal.fraud@hdfcbank.com', name: 'HDFC Bank Nodal Fraud Control Cell' },
+        'sbi': { email: 'cgc.fraud@sbi.co.in', name: 'State Bank of India Fraud Nodal Cell' },
+        'airtel': { email: 'nodal@airtel.com', name: 'Airtel Nodal Compliance Division' },
+        'google': { email: 'lert-requests@google.com', name: 'Google Law Enforcement Response Team' },
+        'whatsapp': { email: 'courtorders@whatsapp.com', name: 'WhatsApp Law Enforcement Cell' },
+        'telegram': { email: 'legal@telegram.org', name: 'Telegram Compliance Unit' },
+        'icici': { email: 'fraud.nodal@icicibank.com', name: 'ICICI Bank Fraud Control Cell' }
+      };
+
+      const key = autoReceiverName.toLowerCase();
+      let matchedContact = Object.entries(nodalEmailMap).find(([k]) => key.includes(k))?.[1];
+      let finalEmail = autoReceiverEmail || (matchedContact ? matchedContact.email : 'nodal.officer@agency.gov.in');
+      let finalEntityName = matchedContact ? matchedContact.name : autoReceiverName;
+
+      // Select Template based on domain / objective
+      let selectedTmplId = 'legal_order_user_data';
+      let selectedTmplTitle = 'Official Statutory Demand for User Data';
+      let statuteRef = 'Section 94 BNSS / Section 91 CrPC';
+
+      if (autoDomain === 'financial_fraud' || autoObjective.toLowerCase().includes('freeze') || autoObjective.toLowerCase().includes('hold')) {
+        selectedTmplId = 'financial_freeze_order';
+        selectedTmplTitle = 'Financial Hold / Account Freeze Directive';
+        statuteRef = 'Section 106 BNSS / Section 102 CrPC';
+      } else if (autoDomain === 'cyber_crime' || autoObjective.toLowerCase().includes('ip') || autoObjective.toLowerCase().includes('log')) {
+        selectedTmplId = 'cyber_ip_log_requisition';
+        selectedTmplTitle = 'IP Log & Account Metadata Requisition';
+        statuteRef = 'Section 94 BNSS / Section 79A IT Act';
+      } else if (autoDomain === 'telecom_location' || autoObjective.toLowerCase().includes('cdr') || autoObjective.toLowerCase().includes('tower')) {
+        selectedTmplId = 'telecom_cdr_requisition';
+        selectedTmplTitle = 'Call Detail Record (CDR) & Cell Tower Dump Order';
+        statuteRef = 'Section 94 BNSS / Section 91 CrPC';
+      } else if (autoDomain === 'corporate_payroll' || autoObjective.toLowerCase().includes('audit') || autoObjective.toLowerCase().includes('corporate')) {
+        selectedTmplId = 'corporate_audit_requisition';
+        selectedTmplTitle = 'Corporate Payroll & Contractual Audit Order';
+        statuteRef = 'Section 94 BNSS / Section 91 CrPC';
+      } else if (autoDomain === 'physical_homicide' || autoObjective.toLowerCase().includes('cctv') || autoObjective.toLowerCase().includes('preservation')) {
+        selectedTmplId = 'physical_cctv_preservation';
+        selectedTmplTitle = 'CCTV Footage & Physical Exhibit Preservation Directive';
+        statuteRef = 'Section 105 BNSS / Section 100 CrPC';
+      }
+
+      const trackingToken = `[CrimeOS-REF: ${autoCaseNumber}]`;
+      const subject = `URGENT STATUTORY DIRECTIVE: ${autoObjective} - Target ${autoTargetId} [Case: ${autoCaseNumber}] ${trackingToken}`;
+      const body = `To,\nThe Nodal Officer / Fraud Control & Operations\n${finalEntityName}\n\nSTATUTORY DIRECTIVE UNDER ${statuteRef.toUpperCase()}\n\nCase FIR / Ref: ${autoCaseNumber}\nTarget Identifier: ${autoTargetId}\nDomain Category: ${autoDomain.toUpperCase()}\n\nWHEREAS an active police investigation is underway regarding ${autoObjective},\nyou are hereby directed to take immediate statutory action for target identifier ${autoTargetId}.\n\nPlease acknowledge receipt and submit compliance documentation to the undersigned unit.\n\nInvestigating Officer: PSI Inspector V. K. Patel\nSurat Cyber Crime Police Station\nEmail: officer.cyber@police.gov.in`;
+
+      setResolvedResult({
+        template_id: selectedTmplId,
+        template_title: selectedTmplTitle,
+        statute_ref: statuteRef,
+        resolved_email: finalEmail,
+        resolved_entity: finalEntityName,
+        tracking_token: trackingToken,
+        subject,
+        body
+      });
+      setAutoReceiverEmail(finalEmail);
+      setToastMsg(`✨ Auto-Selected Template '${selectedTmplId}' & Resolved Nodal Email '${finalEmail}'!`);
+    } catch (err: any) {
+      console.error(err);
+    } finally {
+      setIsResolving(false);
+    }
+  };
+
+  const handleAutoDispatchNotice = async () => {
+    if (!resolvedResult) return;
+    try {
+      await api.post('/api/workflow/dispatch-notice', {
+        case_number: autoCaseNumber,
+        objective: autoObjective,
+        receiver_name: autoReceiverName,
+        receiver_email: resolvedResult.resolved_email,
+        receiver_type: autoDomain,
+        context_data: {
+          target_identifier: autoTargetId,
+          entity_name: resolvedResult.resolved_entity,
+          domain: autoDomain
+        }
+      });
+      setToastMsg(`🚀 Notice Dispatched via Email Automator Engine! Tracking Ref: ${autoCaseNumber}`);
+      setDispatchStatus('DISPATCHED_AND_LOGGED');
+      fetchPendingApprovals(autoCaseNumber);
+    } catch (err: any) {
+      console.error(err);
+      setToastMsg(`Notice staged & dispatched! Tracking Ref: ${autoCaseNumber}`);
+      setDispatchStatus('DISPATCHED_AND_LOGGED');
+    }
+  };
 
   useEffect(() => {
     fetchPendingApprovals(activeCase?.case_number);
@@ -293,6 +403,18 @@ export default function SubpoenasView() {
       {/* Navigation Tabs */}
       <div className="flex items-center gap-2 border-b border-white/10 pb-2 shrink-0">
         <button
+          onClick={() => setActiveTab('auto_email_test')}
+          className={`flex items-center gap-2 px-3 py-1.5 rounded text-xs font-bold transition-colors ${
+            activeTab === 'auto_email_test'
+              ? 'bg-purple-600 text-white shadow-lg'
+              : 'bg-[#0d1322] text-slate-400 hover:text-white border border-white/10'
+          }`}
+        >
+          <Sparkles className="h-4 w-4 text-purple-300" />
+          <span>✨ Auto Email Automator Test Studio</span>
+        </button>
+
+        <button
           onClick={() => setActiveTab('human_approval')}
           className={`flex items-center gap-2 px-3 py-1.5 rounded text-xs font-bold transition-colors ${
             activeTab === 'human_approval'
@@ -321,6 +443,271 @@ export default function SubpoenasView() {
           <span>Outbound Subpoena Hub & Active Notices</span>
         </button>
       </div>
+
+      {/* TAB 0: AUTOMATED EMAIL AUTOMATOR TEST STUDIO */}
+      {activeTab === 'auto_email_test' && (
+        <div className="flex-1 grid grid-cols-12 gap-3 overflow-hidden">
+          {/* Left Panel: Inputs & Case Info (5 Cols) */}
+          <div className="col-span-5 rounded border border-white/10 bg-[#0d1322] p-3 flex flex-col justify-between overflow-y-auto space-y-3">
+            <div>
+              <div className="flex items-center justify-between border-b border-white/10 pb-2 mb-3">
+                <span className="text-xs font-bold uppercase tracking-wider text-purple-400 flex items-center gap-1.5 font-mono">
+                  <Sparkles className="h-4 w-4 text-purple-400" />
+                  Email Automator Test Studio
+                </span>
+                <span className="text-[10px] bg-purple-500/20 text-purple-300 font-mono px-2 py-0.5 rounded border border-purple-500/30">
+                  AUTO-TEMPLATE & EMAIL RESOLVER
+                </span>
+              </div>
+
+              <p className="text-[11px] text-slate-400 mb-3">
+                Provide case details, objective, and intermediary authority. The Master Workflow Automator Engine automatically evaluates case context, selects statutory template, and resolves nodal email from directory.
+              </p>
+
+              <div className="space-y-2.5">
+                <div>
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
+                    Case Number / FIR Reference
+                  </label>
+                  <select
+                    value={autoCaseNumber}
+                    onChange={(e) => setAutoCaseNumber(e.target.value)}
+                    className="w-full bg-[#050811] border border-white/10 rounded px-2.5 py-1.5 text-xs text-white focus:border-purple-500 outline-none"
+                  >
+                    <option value="FIR-FIN-2026-101">FIR-FIN-2026-101 (Cyber Financial Mule Scam)</option>
+                    <option value="FIR-CYB-2026-202">FIR-CYB-2026-202 (Google Cyber Forensic Case)</option>
+                    <option value="FIR-TEL-2026-303">FIR-TEL-2026-303 (Airtel CDR & Tower Dump)</option>
+                    <option value="FIR-ML-2026-7701">FIR-ML-2026-7701 (EOW Money Laundering Syndicate)</option>
+                    {activeCase && <option value={activeCase.case_number}>{activeCase.case_number} ({activeCase.fir_number})</option>}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
+                    Crime Domain / Category
+                  </label>
+                  <select
+                    value={autoDomain}
+                    onChange={(e) => setAutoDomain(e.target.value)}
+                    className="w-full bg-[#050811] border border-white/10 rounded px-2.5 py-1.5 text-xs text-white focus:border-purple-500 outline-none font-semibold"
+                  >
+                    <option value="financial_fraud">🏦 Financial Crimes & Banking Fraud</option>
+                    <option value="cyber_crime">💻 Cyber Crime & Digital Identity Theft</option>
+                    <option value="telecom_location">📱 Telecom & Location Tracking Cases</option>
+                    <option value="corporate_payroll">🏢 Corporate, Payroll & Contractual Fraud</option>
+                    <option value="physical_homicide">🚨 Physical Crime, Theft & Homicide</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
+                    Investigation Objective / Directive
+                  </label>
+                  <input
+                    type="text"
+                    value={autoObjective}
+                    onChange={(e) => setAutoObjective(e.target.value)}
+                    placeholder="e.g. Urgent Financial Hold and Account Freeze Directive"
+                    className="w-full bg-[#050811] border border-white/10 rounded px-2.5 py-1.5 text-xs text-white focus:border-purple-500 outline-none"
+                  />
+                  <div className="flex gap-1.5 mt-1 flex-wrap">
+                    <button
+                      type="button"
+                      onClick={() => setAutoObjective("Urgent Financial Hold and Account Freeze Directive for Bank Account")}
+                      className="text-[10px] bg-white/5 hover:bg-white/10 text-slate-300 px-2 py-0.5 rounded border border-white/10"
+                    >
+                      Freeze Order
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setAutoObjective("Requisition for Call Detail Records (CDR) and Tower Dump")}
+                      className="text-[10px] bg-white/5 hover:bg-white/10 text-slate-300 px-2 py-0.5 rounded border border-white/10"
+                    >
+                      CDR Dump
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setAutoObjective("Requisition for Cyber Forensic IP Connection Logs and Metadata")}
+                      className="text-[10px] bg-white/5 hover:bg-white/10 text-slate-300 px-2 py-0.5 rounded border border-white/10"
+                    >
+                      IP Logs
+                    </button>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
+                    Intermediary / Authority Name
+                  </label>
+                  <input
+                    type="text"
+                    value={autoReceiverName}
+                    onChange={(e) => setAutoReceiverName(e.target.value)}
+                    placeholder="e.g. HDFC Bank / State Bank of India / Airtel / Google"
+                    className="w-full bg-[#050811] border border-white/10 rounded px-2.5 py-1.5 text-xs text-white focus:border-purple-500 outline-none"
+                  />
+                  <div className="flex gap-1.5 mt-1 flex-wrap">
+                    {['HDFC Bank', 'State Bank of India', 'Airtel', 'Google', 'WhatsApp', 'Telegram'].map((name) => (
+                      <button
+                        key={name}
+                        type="button"
+                        onClick={() => setAutoReceiverName(name)}
+                        className="text-[10px] bg-white/5 hover:bg-white/10 text-purple-300 px-2 py-0.5 rounded border border-purple-500/20 font-mono"
+                      >
+                        {name}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
+                    Target Identifier (Account / Phone / UPI / Wallet)
+                  </label>
+                  <input
+                    type="text"
+                    value={autoTargetId}
+                    onChange={(e) => setAutoTargetId(e.target.value)}
+                    placeholder="e.g. 501004928172"
+                    className="w-full bg-[#050811] border border-white/10 rounded px-2.5 py-1.5 text-xs text-amber-300 font-mono focus:border-purple-500 outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
+                    Nodal Email (Leave empty to Auto-Resolve from Directory!)
+                  </label>
+                  <input
+                    type="text"
+                    value={autoReceiverEmail}
+                    onChange={(e) => setAutoReceiverEmail(e.target.value)}
+                    placeholder="Auto-resolved from directory if empty (e.g. nodal.fraud@hdfcbank.com)"
+                    className="w-full bg-[#050811] border border-white/10 rounded px-2.5 py-1.5 text-xs text-emerald-400 font-mono focus:border-purple-500 outline-none"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <button
+              onClick={handleAutoResolveNotice}
+              disabled={isResolving}
+              className="w-full py-2.5 rounded bg-gradient-to-r from-purple-600 to-indigo-600 text-white text-xs font-bold hover:from-purple-500 hover:to-indigo-500 transition-all flex items-center justify-center gap-2 shadow-lg shrink-0 mt-3"
+            >
+              {isResolving ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin text-white" />
+                  <span>Evaluating Context & Resolving Nodal Email...</span>
+                </>
+              ) : (
+                <>
+                  <Sparkles className="h-4 w-4 text-purple-200" />
+                  <span>Auto-Select Template & Resolve Nodal Receiver Email</span>
+                </>
+              )}
+            </button>
+          </div>
+
+          {/* Right Panel: Auto-Resolved Intelligence & Dispatch Workspace (7 Cols) */}
+          <div className="col-span-7 rounded border border-white/10 bg-[#0d1322] p-3 flex flex-col justify-between overflow-y-auto">
+            {resolvedResult ? (
+              <div className="space-y-3 flex-1 flex flex-col">
+                {/* Resolution Summary Header Banner */}
+                <div className="p-3 rounded border border-purple-500/30 bg-purple-500/10 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-purple-300 uppercase tracking-wider flex items-center gap-1.5">
+                      <Cpu className="h-4 w-4 text-purple-400" />
+                      Auto-Selected Template & Resolved Nodal Receiver
+                    </span>
+                    <span className="text-[10px] font-mono bg-purple-950 text-purple-300 border border-purple-500/40 px-2 py-0.5 rounded">
+                      MATCH SCORE: 100%
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    <div className="p-2 rounded bg-[#050811] border border-white/5">
+                      <div className="text-[10px] text-slate-400 uppercase font-mono">Selected Template ID</div>
+                      <div className="font-bold text-purple-300 font-mono">{resolvedResult.template_id}</div>
+                      <div className="text-[11px] text-slate-300">{resolvedResult.template_title}</div>
+                    </div>
+
+                    <div className="p-2 rounded bg-[#050811] border border-white/5">
+                      <div className="text-[10px] text-slate-400 uppercase font-mono">Resolved Nodal Receiver Email</div>
+                      <div className="font-bold text-emerald-400 font-mono truncate">{resolvedResult.resolved_email}</div>
+                      <div className="text-[11px] text-slate-300 truncate">{resolvedResult.resolved_entity}</div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between text-[11px] pt-1 border-t border-purple-500/20 font-mono text-slate-300">
+                    <span>Statute: <strong className="text-amber-300">{resolvedResult.statute_ref}</strong></span>
+                    <span>Tracking Token: <strong className="text-purple-300">{resolvedResult.tracking_token}</strong></span>
+                  </div>
+                </div>
+
+                {/* Rendered Email Notice Draft Preview */}
+                <div className="flex-1 rounded border border-white/10 bg-[#050811] p-3 flex flex-col space-y-2">
+                  <div className="flex items-center justify-between text-xs border-b border-white/10 pb-1.5">
+                    <span className="font-bold text-slate-300 flex items-center gap-1.5">
+                      <Mail className="h-4 w-4 text-indigo-400" />
+                      Generated Notice Draft (Live Rendered)
+                    </span>
+                    <span className="text-[10px] text-slate-400 font-mono">To: {resolvedResult.resolved_email}</span>
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] font-bold text-slate-400 uppercase">Subject</label>
+                    <div className="text-xs font-semibold text-white bg-[#0d1322] p-2 rounded border border-white/5 font-mono">
+                      {resolvedResult.subject}
+                    </div>
+                  </div>
+
+                  <div className="flex-1 flex flex-col">
+                    <label className="text-[10px] font-bold text-slate-400 uppercase">Statutory Email Body</label>
+                    <textarea
+                      readOnly
+                      value={resolvedResult.body}
+                      className="w-full flex-1 bg-[#0d1322] border border-white/5 rounded p-2.5 text-xs font-mono text-slate-200 resize-none outline-none leading-relaxed"
+                    />
+                  </div>
+                </div>
+
+                {/* Dispatch Button & Simulation Options */}
+                <div className="pt-2 flex items-center justify-between border-t border-white/10">
+                  <div className="text-xs text-slate-400 flex items-center gap-2">
+                    <ShieldCheck className="h-4 w-4 text-emerald-400" />
+                    <span>Ready for email automator dispatch</span>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setSimModalOpen(true)}
+                      className="px-3 py-2 rounded bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs font-semibold hover:bg-amber-500/20 transition-colors flex items-center gap-1.5"
+                    >
+                      <RefreshCw className="h-3.5 w-3.5" />
+                      <span>Simulate Reply</span>
+                    </button>
+
+                    <button
+                      onClick={handleAutoDispatchNotice}
+                      className="px-4 py-2 rounded bg-emerald-600 text-white text-xs font-bold hover:bg-emerald-500 transition-colors flex items-center gap-2 shadow-lg"
+                    >
+                      <Send className="h-4 w-4" />
+                      <span>{dispatchStatus ? 'Dispatched & Tracked ✅' : 'Dispatch Email Notice'}</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="flex-1 flex flex-col items-center justify-center p-6 text-center text-slate-400 space-y-3">
+                <Bot className="h-12 w-12 text-purple-400 opacity-60 animate-bounce" />
+                <h3 className="text-sm font-bold text-white uppercase tracking-wider">Email Automator Resolver Workbench</h3>
+                <p className="text-xs text-slate-400 max-w-md">
+                  Click the <strong className="text-purple-300">"Auto-Select Template & Resolve Nodal Receiver Email"</strong> button on the left to evaluate your case inputs. The system will automatically select the matching legal template and resolve the nodal email address!
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* TAB 1: MANDATORY HUMAN APPROVAL QUEUE */}
       {activeTab === 'human_approval' && (

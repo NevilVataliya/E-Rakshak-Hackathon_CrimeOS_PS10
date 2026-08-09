@@ -99,26 +99,30 @@ class AnalyticsAgent:
                     pass
 
         # Try cyberproj domain-specific parsers
-        CYBERPROJ_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "cyberproj", "cyberproj")
-        if CYBERPROJ_DIR not in sys.path:
-            sys.path.insert(0, CYBERPROJ_DIR)
+        from .cyberproj_resolver import get_cyberproj_services
+        cyberproj_svcs = get_cyberproj_services()
+        parse_cdr_file = cyberproj_svcs.get("parse_cdr_file")
+        parse_bank_statement = cyberproj_svcs.get("parse_bank_statement")
 
         cdr_stats = None
         bank_stats = None
         if os.path.exists(file_input):
             try:
-                from backend.services.cdr_parser import parse_cdr_file
-                from backend.services.bank_parser import parse_bank_statement
                 # Try parsing as bank statement or CDR
-                if "bank" in file_input.lower() or "statement" in file_input.lower() or "hdfc" in file_input.lower():
-                    bank_stats = parse_bank_statement(file_input)
-                elif "cdr" in file_input.lower() or "call" in file_input.lower():
-                    cdr_stats = parse_cdr_file(file_input)
+                if "bank" in file_input.lower() or "statement" in file_input.lower() or "hdfc" in file_input.lower() or "icici" in file_input.lower() or "sbi" in file_input.lower():
+                    if parse_bank_statement:
+                        bank_stats = parse_bank_statement(file_input)
+                elif "cdr" in file_input.lower() or "call" in file_input.lower() or "telecom" in file_input.lower():
+                    if parse_cdr_file:
+                        cdr_stats = parse_cdr_file(file_input)
                 else:
                     # Try both
-                    try:
-                        bank_stats = parse_bank_statement(file_input)
-                    except Exception:
+                    if parse_bank_statement:
+                        try:
+                            bank_stats = parse_bank_statement(file_input)
+                        except Exception:
+                            pass
+                    if not bank_stats and parse_cdr_file:
                         try:
                             cdr_stats = parse_cdr_file(file_input)
                         except Exception:

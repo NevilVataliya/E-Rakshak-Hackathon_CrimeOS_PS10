@@ -129,8 +129,12 @@ class InboxMonitorAgent:
         print(f"   ✅ [Inbox Monitor] Matched Case Reference: '{case_number}'")
         mail_item["processed"] = True
 
-        # Save attachment / body to cyberproj data/evidence directory
-        CYBERPROJ_DATA = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "cyberproj", "cyberproj", "data", "evidence", case_number)
+        # Save attachment / body to cyberproj data/evidence directory using cyberproj_resolver
+        from .cyberproj_resolver import get_cyberproj_services
+        cyberproj_svcs = get_cyberproj_services()
+        cyberproj_path = cyberproj_svcs.get("cyberproj_path") or os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        
+        CYBERPROJ_DATA = os.path.join(cyberproj_path, "data", "evidence", case_number)
         os.makedirs(CYBERPROJ_DATA, exist_ok=True)
 
         if attachments:

@@ -639,6 +639,31 @@ app.post('/api/workflow/policy', authenticateToken, async (req, res) => {
   }
 });
 
+app.get('/api/workflow/templates', authenticateToken, async (req, res) => {
+  try {
+    const response = await axios.get(`${AI_SERVICE_URL}/api/workflow/templates`);
+    res.json(response.data);
+  } catch (err) {
+    if (!ENABLE_DEMO_FALLBACKS) return res.status(500).json({ error: err.message });
+    res.json({
+      templates: [
+        { template_id: 'financial_freeze_order', title: 'Financial Hold / Account Freeze Directive', category: 'third_party_intermediary', legal_statute_ref: 'Section 106 BNSS / Section 102 CrPC' },
+        { template_id: 'cyber_ip_log_requisition', title: 'IP Log & Account Metadata Requisition', category: 'third_party_intermediary', legal_statute_ref: 'Section 94 BNSS / Section 91 CrPC' },
+        { template_id: 'telecom_cdr_requisition', title: 'Call Detail Record (CDR) & Cell Tower Dump Order', category: 'third_party_intermediary', legal_statute_ref: 'Section 94 BNSS / Section 91 CrPC' },
+        { template_id: 'corporate_audit_requisition', title: 'Corporate Payroll & Contractual Audit Order', category: 'third_party_intermediary', legal_statute_ref: 'Section 94 BNSS / Section 91 CrPC' },
+        { template_id: 'physical_cctv_preservation', title: 'CCTV Footage & Physical Exhibit Preservation Directive', category: 'third_party_intermediary', legal_statute_ref: 'Section 105 BNSS / Section 100 CrPC' }
+      ],
+      receiver_directory: {
+        'hdfc': { email: 'nodal.fraud@hdfcbank.com', entity_name: 'HDFC Bank Nodal Fraud Control Cell' },
+        'sbi': { email: 'cgc.fraud@sbi.co.in', entity_name: 'State Bank of India Fraud Nodal Cell' },
+        'airtel': { email: 'nodal@airtel.com', entity_name: 'Airtel Nodal Compliance Division' },
+        'google': { email: 'lert-requests@google.com', entity_name: 'Google Law Enforcement Response Team' },
+        'whatsapp': { email: 'courtorders@whatsapp.com', entity_name: 'WhatsApp Law Enforcement Cell' }
+      }
+    });
+  }
+});
+
 app.post('/api/workflow/templates/custom', authenticateToken, async (req, res) => {
   try {
     const response = await axios.post(`${AI_SERVICE_URL}/api/workflow/templates/custom`, req.body);

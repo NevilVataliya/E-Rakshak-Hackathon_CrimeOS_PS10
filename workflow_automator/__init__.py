@@ -8,6 +8,7 @@ from .smtp_mailer import SMTPMailer
 from .analytics_agent import AnalyticsAgent
 from .inbox_monitor import InboxMonitorAgent
 from .automator_agent import MasterWorkflowAutomatorAgent
+from .cyberproj_resolver import get_cyberproj_services, resolve_cyberproj_dir
 
 __all__ = [
     "TemplateEngine",
@@ -16,5 +17,7 @@ __all__ = [
     "SMTPMailer",
     "AnalyticsAgent",
     "InboxMonitorAgent",
-    "MasterWorkflowAutomatorAgent"
+    "MasterWorkflowAutomatorAgent",
+    "get_cyberproj_services",
+    "resolve_cyberproj_dir"
 ]
