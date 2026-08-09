@@ -1,5 +1,16 @@
 export type CrimeCategory = 'CYBER' | 'CONVENTIONAL' | 'WOMEN_CHILD' | 'FINANCIAL' | 'HYBRID';
 
+export interface NodalAuthority {
+  id?: string;
+  key: string;
+  entity_name: string;
+  email: string;
+  type: 'bank' | 'telecom' | 'tech_platform' | 'corporate_regulator' | 'fsl' | 'other';
+  department?: string;
+  description?: string;
+  is_active?: boolean;
+}
+
 export interface PersonEntity {
   name: string;
   role: 'victim' | 'accused' | 'suspect' | 'witness';
@@ -48,6 +59,11 @@ export interface PoliceCase {
   sections: string[];
   created_at: string;
   activity_timeline?: CaseActivityLog[];
+  linkageMatches?: LinkageMatch[];
+  linkageStats?: LinkageStats | null;
+  investigationData?: InvestigationData | null;
+  legalRequests?: SubpoenaNotice[];
+  completedSteps?: number[];
 }
 
 export interface GroundedSOPStep {

@@ -127,6 +127,51 @@ class TemplateEngine:
         except Exception as e:
             print(f"⚠️ [TemplateEngine] Failed to load JSON directory '{json_path}': {e}")
 
+    def register_authority(self, key: str, entity_name: str, email: str, type_str: str = "bank", department: str = "", description: str = ""):
+        """
+        Dynamically registers or updates a Nodal Authority in the template engine directory.
+        """
+        clean_key = key.lower().strip().replace(" ", "_")
+        self.receiver_directory[clean_key] = {
+            "key": clean_key,
+            "entity_name": entity_name,
+            "email": email,
+            "type": type_str,
+            "department": department or "Compliance Division",
+            "description": description
+        }
+        print(f"✅ [TemplateEngine] Dynamic Authority Registered: '{clean_key}' -> {email} ({entity_name})")
+
+    def load_authorities_from_db(self, db_url: Optional[str] = None):
+        """
+        Loads active Nodal Authorities dynamically from PostgreSQL database table.
+        """
+        url = db_url or os.environ.get("DATABASE_URL")
+        if not url:
+            return
+        try:
+            import psycopg2
+            import psycopg2.extras
+            conn = psycopg2.connect(url)
+            cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+            cur.execute("SELECT * FROM authorities WHERE is_active = true")
+            rows = cur.fetchall()
+            cur.close()
+            conn.close()
+
+            for r in rows:
+                self.register_authority(
+                    key=r["key"],
+                    entity_name=r["entity_name"],
+                    email=r["email"],
+                    type_str=r.get("type", "bank"),
+                    department=r.get("department", ""),
+                    description=r.get("description", "")
+                )
+            print(f"✅ [TemplateEngine] Successfully loaded {len(rows)} dynamic Nodal Authorities from PostgreSQL.")
+        except Exception as e:
+            print(f"ℹ️ [TemplateEngine] DB authorities load note: {e}")
+
     def get_receiver_contact(self, entity_key_or_name: str) -> Optional[Dict[str, str]]:
         """
         Looks up designated Nodal Officer email address from the receiver directory.
@@ -228,39 +273,6 @@ class TemplateEngine:
         print(f"[+] [TemplateEngine] Registered Custom Notice Template: '{template_id}' ('{title}')")
         return tmpl
 
-    def create_custom_template(
-        self,
-        template_id: str,
-        title: str,
-        category_str: str,
-        subject_template: str,
-        body_template: str,
-        required_vars: Optional[List[str]] = None,
-        legal_statute_ref: Optional[str] = None,
-        domain: Optional[str] = None
-    ) -> EmailTemplate:
-        """
-        Dynamically creates and registers a new custom statutory notice template.
-        """
-        cat_enum = EmailCategory.CUSTOM_EXTENDED
-        try:
-            cat_enum = EmailCategory(category_str)
-        except ValueError:
-            pass
-
-        tmpl = EmailTemplate(
-            template_id=template_id,
-            category=cat_enum,
-            title=title,
-            subject_template=subject_template,
-            body_template=body_template,
-            required_vars=required_vars or ["case_number", "receiver_name", "details"],
-            legal_statute_ref=legal_statute_ref or "Bharatiya Nagarik Suraksha Sanhita (BNSS)",
-            domain=domain or "custom"
-        )
-        self.register_template(tmpl)
-        print(f"[+] [TemplateEngine] Registered Custom Notice Template: '{template_id}' ('{title}')")
-        return tmpl
 
     def get_template(self, template_id: str) -> Optional[EmailTemplate]:
         alias_map = {

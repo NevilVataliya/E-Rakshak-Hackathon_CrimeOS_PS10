@@ -5,6 +5,24 @@ import logging
 import datetime
 from typing import Dict, Any, Optional, List
 
+if hasattr(sys.stdout, "reconfigure"):
+    try:
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
+
+def safe_print(*args, **kwargs):
+    try:
+        print(*args, **kwargs)
+    except UnicodeEncodeError:
+        safe_args = []
+        for a in args:
+            if isinstance(a, str):
+                safe_args.append(a.encode("ascii", errors="replace").decode("ascii"))
+            else:
+                safe_args.append(a)
+        print(*safe_args, **kwargs)
+
 CYBERPROJ_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "cyberproj", "cyberproj")
 if CYBERPROJ_DIR not in sys.path:
     sys.path.insert(0, CYBERPROJ_DIR)
@@ -69,9 +87,9 @@ class MasterWorkflowAutomatorAgent:
         Accepts structured case metadata, evaluated targets, and recommended directives from the Evaluator Agent.
         Registers the case in cyberproj case_manager and executes automated notice dispatch & processing.
         """
-        print("\n" + "╔" + "═"*78 + "╗")
-        print("║ 🤖 WORKFLOW AUTOMATOR | INGESTING EVALUATOR AGENT OUTPUT PAYLOAD           ║")
-        print("╚" + "═"*78 + "╝\n")
+        safe_print("\n" + "╔" + "═"*78 + "╗")
+        safe_print("║ 🤖 WORKFLOW AUTOMATOR | INGESTING EVALUATOR AGENT OUTPUT PAYLOAD           ║")
+        safe_print("╚" + "═"*78 + "╝\n")
 
         case_meta = evaluator_payload.get("case_metadata", {})
         case_id = case_meta.get("case_id") or case_meta.get("fir_number") or f"CR-{int(datetime.datetime.now().timestamp())}"
@@ -97,11 +115,11 @@ class MasterWorkflowAutomatorAgent:
             if not existing:
                 try:
                     cm.create_case(case_dict)
-                    print(f"✅ [Evaluator Ingestion] Case '{case_id}' created in persistent case_manager.")
+                    safe_print(f"✅ [Evaluator Ingestion] Case '{case_id}' created in persistent case_manager.")
                 except Exception as e:
-                    print(f"⚠️ [Evaluator Ingestion] Case creation note: {e}")
+                    safe_print(f"⚠️ [Evaluator Ingestion] Case creation note: {e}")
             else:
-                print(f"ℹ️ [Evaluator Ingestion] Case '{case_id}' already exists in persistent storage.")
+                safe_print(f"ℹ️ [Evaluator Ingestion] Case '{case_id}' already exists in persistent storage.")
 
         # 2. Add evaluated targets from Evaluator Agent
         evaluated_targets = evaluator_payload.get("evaluated_targets", [])
@@ -114,13 +132,18 @@ class MasterWorkflowAutomatorAgent:
                 "entity_name": tgt.get("entity_name", "Compliance Division").strip(),
                 "details": tgt.get("details", "").strip()
             }
-            if cm and target_data["identifier"]:
-                try:
-                    t_obj = cm.add_target(case_id, target_data)
-                    added_targets.append(t_obj)
-                    print(f"   🎯 Added Target from Evaluator: {target_data['type'].upper()} - {target_data['identifier']} ({target_data['entity_name']})")
-                except Exception as e:
-                    print(f"   ⚠️ Target addition note: {e}")
+            if target_data["identifier"]:
+                if cm:
+                    try:
+                        t_obj = cm.add_target(case_id, target_data)
+                        added_targets.append(t_obj)
+                        safe_print(f"   🎯 Added Target from Evaluator: {target_data['type'].upper()} - {target_data['identifier']} ({target_data['entity_name']})")
+                    except Exception as e:
+                        added_targets.append(target_data)
+                        safe_print(f"   ⚠️ Target addition note: {e}")
+                else:
+                    added_targets.append(target_data)
+                    safe_print(f"   🎯 Added Target from Evaluator: {target_data['type'].upper()} - {target_data['identifier']} ({target_data['entity_name']})")
 
         # 3. Log audit trail
         if log_action:
@@ -128,6 +151,14 @@ class MasterWorkflowAutomatorAgent:
                 "case_id": case_id,
                 "targets_count": len(evaluated_targets)
             })
+
+        # Store in local case state
+        if case_id not in self.pending_cases:
+            self.pending_cases[case_id] = {
+                "case_id": case_id,
+                "targets": added_targets,
+                "case_metadata": case_meta
+            }
 
         # 4. Trigger automated workflow execution on ingested case
         pipeline_res = self.run_automated_case_pipeline(case_id=case_id)
@@ -151,10 +182,10 @@ class MasterWorkflowAutomatorAgent:
         """
         Email Notice Dispatch with cyberproj case_manager persistence.
         """
-        print("\n" + "╔" + "═"*78 + "╗")
-        print(f"║ 🛡️ MASTER WORKFLOW AUTOMATOR | Case: {case_number:<27} ║")
-        print(f"║ Objective: {investigation_objective[:62]:<62} ║")
-        print("╚" + "═"*78 + "╝\n")
+        safe_print("\n" + "╔" + "═"*78 + "╗")
+        safe_print(f"║ 🛡️ MASTER WORKFLOW AUTOMATOR | Case: {case_number:<27} ║")
+        safe_print(f"║ Objective: {investigation_objective[:62]:<62} ║")
+        safe_print("╚" + "═"*78 + "╝\n")
 
         context = context_data or {}
         context["case_number"] = case_number
@@ -168,18 +199,24 @@ class MasterWorkflowAutomatorAgent:
                 resolved_email = nodal_contact.get("email")
                 if resolved_email:
                     receiver_email = resolved_email
-                    print(f"🔹 [Nodal Receiver Directory Lookup] Auto-Resolved Nodal Email: '{receiver_email}' ({nodal_contact.get('entity_name')})")
+                    safe_print(f"🔹 [Nodal Receiver Directory Lookup] Auto-Resolved Nodal Email: '{receiver_email}' ({nodal_contact.get('entity_name')})")
 
         # Step 1: Select Template
         template_id = self._classify_and_select_template(investigation_objective, receiver_type, context)
-        print(f"🔹 [Step 1: Case Classification & Template Selection]")
-        print(f"   Selected Template ID: '{template_id}'")
+        safe_print(f"🔹 [Step 1: Case Classification & Template Selection]")
+        safe_print(f"   Selected Template ID: '{template_id}'")
 
         # Step 2: Render Template
         rendered_email = self.template_engine.render_email(template_id, context)
-        tracking_subject = f"{rendered_email['subject']} [CrimeOS-REF: {case_number}]"
-        print(f"🔹 [Step 2: Template Rendered]")
-        print(f"   Subject: {tracking_subject}")
+        
+        # Deduplicate tracking token in subject if already present
+        if f"[CrimeOS-REF: {case_number}]" in rendered_email["subject"]:
+            tracking_subject = rendered_email["subject"]
+        else:
+            tracking_subject = f"{rendered_email['subject']} [CrimeOS-REF: {case_number}]"
+
+        safe_print(f"🔹 [Step 2: Template Rendered]")
+        safe_print(f"   Subject: {tracking_subject}")
 
         # Step 3: Dispatch Email via Mailer
         dispatch_result = self.smtp_mailer.send_email(
@@ -209,7 +246,7 @@ class MasterWorkflowAutomatorAgent:
                     "body": rendered_email["body"]
                 })
             except Exception as e:
-                print(f"⚠️ Case manager request recording note: {e}")
+                safe_print(f"⚠️ Case manager request recording note: {e}")
 
         # Step 5: Update pending cases state
         case_state = {
@@ -228,9 +265,9 @@ class MasterWorkflowAutomatorAgent:
             self.case_history[case_number] = []
         self.case_history[case_number].append(case_state)
 
-        print(f"🔹 [Step 4: State & Timeline Persistence]")
-        print(f"   ► Status Registered: 'AWAITING_PROVIDER_REPLY'")
-        print(f"   ► Tracking Token: [CrimeOS-REF: {case_number}]\n")
+        safe_print(f"🔹 [Step 4: State & Timeline Persistence]")
+        safe_print(f"   ► Status Registered: 'AWAITING_PROVIDER_REPLY'")
+        safe_print(f"   ► Tracking Token: [CrimeOS-REF: {case_number}]\n")
 
         return case_state
 
@@ -245,11 +282,11 @@ class MasterWorkflowAutomatorAgent:
         """
         ASYNC CALLBACK HANDLER: Processing incoming replies & attachments using cyberproj parsers.
         """
-        print("\n" + "⚡"*40)
-        print(f"⚡ [MASTER AUTOMATOR AGENT] ASYNC REPLY RECEIVED FOR CASE: {case_number}")
-        print(f"   Sender: {sender_email}")
-        print(f"   Attachments Received: {len(attachments or [])}")
-        print("⚡"*40)
+        safe_print("\n" + "⚡"*40)
+        safe_print(f"⚡ [MASTER AUTOMATOR AGENT] ASYNC REPLY RECEIVED FOR CASE: {case_number}")
+        safe_print(f"   Sender: {sender_email}")
+        safe_print(f"   Attachments Received: {len(attachments or [])}")
+        safe_print("⚡"*40)
 
         case_state = self.pending_cases.get(case_number, {
             "case_number": case_number,
@@ -264,8 +301,29 @@ class MasterWorkflowAutomatorAgent:
             file_input = att.get("file_path") or att.get("content", body_text)
             response_format = att.get("format", "csv" if att.get("filename", "").endswith(".csv") else "text")
 
-        # Step A: Delegate to Analytics Agent (uses cyberproj cdr_parser & bank_parser)
-        provider_name = case_state.get("receiver", {}).get("name", sender_email)
+        # Step A: Resolve Provider Name dynamically from sender email / directory lookup / domain
+        provider_name = sender_email
+        if "@" in sender_email:
+            domain_part = sender_email.split("@")[1].lower()
+            if "hdfc" in domain_part: provider_name = "HDFC Bank"
+            elif "sbi" in domain_part: provider_name = "State Bank of India"
+            elif "icici" in domain_part: provider_name = "ICICI Bank"
+            elif "axis" in domain_part: provider_name = "Axis Bank"
+            elif "airtel" in domain_part: provider_name = "Airtel Telecommunications"
+            elif "jio" in domain_part: provider_name = "Reliance Jio"
+            elif "vodafone" in domain_part or "idea" in domain_part or "vi" in domain_part: provider_name = "Vodafone Idea (Vi)"
+            elif "google" in domain_part: provider_name = "Google LLC"
+            elif "meta" in domain_part or "facebook" in domain_part: provider_name = "Meta Platforms"
+            elif "whatsapp" in domain_part: provider_name = "WhatsApp Inc."
+            elif "mca" in domain_part or "roc" in domain_part: provider_name = "Registrar of Companies (ROC)"
+            elif "fsl" in domain_part or "police" in domain_part: provider_name = "State Forensic Science Lab / Police Unit"
+            else:
+                contact_match = self.template_engine.get_receiver_contact(domain_part.split(".")[0])
+                if contact_match:
+                    provider_name = contact_match.get("entity_name", sender_email)
+                else:
+                    provider_name = domain_part.split(".")[0].title()
+
         analytics_output = self.analytics_agent.analyze_response(
             provider_name=provider_name,
             response_type=response_format,
@@ -288,7 +346,7 @@ class MasterWorkflowAutomatorAgent:
                         metadata=analytics_output.get("extracted_entities", {})
                     )
             except Exception as e:
-                print(f"⚠️ Evidence registration note: {e}")
+                safe_print(f"⚠️ Evidence registration note: {e}")
 
         # Step C: Extract secondary suspect entities & Auto-Add New Targets to case
         extracted_entities = analytics_output.get("extracted_entities", {})
@@ -304,7 +362,7 @@ class MasterWorkflowAutomatorAgent:
                         "details": f"Auto-discovered by Automator Agent from {provider_name} response."
                     })
                     new_targets_added.append(t_obj)
-                    print(f"   🎯 [AUTO-TARGET ADDED] Discovered secondary bank account: {acc}")
+                    safe_print(f"   🎯 [AUTO-TARGET ADDED] Discovered secondary bank account: {acc}")
                 except Exception:
                     pass
 
@@ -318,9 +376,32 @@ class MasterWorkflowAutomatorAgent:
                         "details": f"Auto-discovered by Automator Agent from {provider_name} response."
                     })
                     new_targets_added.append(t_obj)
-                    print(f"   🎯 [AUTO-TARGET ADDED] Discovered secondary phone number: {phone}")
+                    safe_print(f"   🎯 [AUTO-TARGET ADDED] Discovered secondary phone number: {phone}")
                 except Exception:
                     pass
+
+        # Standalone target tracking fallback (guarantees auto_added_targets are tracked)
+        if not new_targets_added:
+            for acc in extracted_entities.get("account_numbers", []):
+                t_obj = {
+                    "type": "bank",
+                    "identifier": str(acc),
+                    "name": f"Discovered Mule Account ({acc})",
+                    "entity_name": "Inter-bank Transfer Receiver",
+                    "details": f"Auto-discovered by Automator Agent from {provider_name} response."
+                }
+                new_targets_added.append(t_obj)
+                safe_print(f"   🎯 [AUTO-TARGET ADDED] Discovered secondary bank account: {acc}")
+            for phone in extracted_entities.get("phone_numbers", []):
+                t_obj = {
+                    "type": "telecom",
+                    "identifier": str(phone),
+                    "name": f"Discovered Suspect Phone ({phone})",
+                    "entity_name": "Telecom Operator",
+                    "details": f"Auto-discovered by Automator Agent from {provider_name} response."
+                }
+                new_targets_added.append(t_obj)
+                safe_print(f"   🎯 [AUTO-TARGET ADDED] Discovered secondary phone number: {phone}")
 
         # Step D: Determine next workflow step
         next_action = self._determine_next_workflow_step(analytics_output, case_number)
@@ -337,17 +418,17 @@ class MasterWorkflowAutomatorAgent:
                 if correlate_investigation_evidence:
                     corr_report = correlate_investigation_evidence(case_obj, self.api_key)
                     case_state["ai_correlation_report"] = corr_report
-                    print(f"   🧠 [AI CORRELATION] Generated evidence correlation report for case {case_number}.")
+                    safe_print(f"   🧠 [AI CORRELATION] Generated evidence correlation report for case {case_number}.")
                 if generate_case_investigation_summary:
                     case_sum = generate_case_investigation_summary(case_obj, self.api_key)
                     case_state["ai_case_summary"] = case_sum
-                    print(f"   🧠 [AI CASE SUMMARY] Generated investigation summary report.")
+                    safe_print(f"   🧠 [AI CASE SUMMARY] Generated investigation summary report.")
             except Exception as e:
-                print(f"⚠️ Gemini AI Service call note: {e}")
+                safe_print(f"⚠️ Gemini AI Service call note: {e}")
 
-        print(f"🔹 [Master Workflow Decision Engine Updated]")
-        print(f"   ► Strategy Summary: {next_action.get('strategy_summary')}")
-        print(f"   ► Auto-Discovered Targets Added: {len(new_targets_added)}\n")
+        safe_print(f"🔹 [Master Workflow Decision Engine Updated]")
+        safe_print(f"   ► Strategy Summary: {next_action.get('strategy_summary')}")
+        safe_print(f"   ► Auto-Discovered Targets Added: {len(new_targets_added)}\n")
 
         self.pending_cases[case_number] = case_state
         if case_number not in self.case_history:
@@ -366,9 +447,9 @@ class MasterWorkflowAutomatorAgent:
         Iterates over all targets in the case, drafts statutory notices, dispatches emails,
         monitors/ingests responses, auto-extracts new targets, and updates case manager.
         """
-        print("\n" + "═"*85)
-        print(f" 🚀 AUTOMATED CASE INVESTIGATION PIPELINE RUNNING FOR CASE: {case_id}")
-        print("═"*85)
+        safe_print("\n" + "═"*85)
+        safe_print(f" 🚀 AUTOMATED CASE INVESTIGATION PIPELINE RUNNING FOR CASE: {case_id}")
+        safe_print("═"*85)
 
         case_obj = cm.get_case(case_id) if cm else None
         if not case_obj:

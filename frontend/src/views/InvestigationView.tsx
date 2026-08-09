@@ -20,6 +20,8 @@ import { useCaseStore } from '../store/caseStore';
 import { useLangStore } from '../store/langStore';
 import { GroundedSOPStep } from '../types';
 
+import NoActiveCaseGuard from '../components/common/NoActiveCaseGuard';
+
 export default function InvestigationView() {
   const navigate = useNavigate();
   const { activeCase, runInvestigationStudio, investigationData, loading, error, setSelectedInspectorItem } = useCaseStore();
@@ -27,16 +29,23 @@ export default function InvestigationView() {
   const [pdfModalOpen, setPdfModalOpen] = useState(false);
   const [expandedStep, setExpandedStep] = useState<number | null>(0);
 
+  if (!activeCase) {
+    return (
+      <NoActiveCaseGuard
+        moduleName="Module 3: Agentic Investigation Studio"
+        description="Select an active case from the dropdown or ingest a new complaint to run BNS 2023 / BSA 2023 multi-agent reasoning, SOP step generation, and Master FIR synthesis."
+      />
+    );
+  }
+
   const handleRunAgentStudio = () => {
-    if (activeCase) {
-      runInvestigationStudio(
-        activeCase.case_number,
-        activeCase.complaint_text,
-        activeCase.crime_category,
-        activeCase.crime_sub_type,
-        activeCase.entities
-      );
-    }
+    runInvestigationStudio(
+      activeCase.case_number,
+      activeCase.complaint_text,
+      activeCase.crime_category,
+      activeCase.crime_sub_type,
+      activeCase.entities
+    );
   };
 
   const steps = investigationData?.investigation_steps || [];

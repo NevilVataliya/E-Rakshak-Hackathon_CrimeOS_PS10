@@ -1,4 +1,5 @@
 import os
+import sys
 import re
 import time
 import json
@@ -7,6 +8,24 @@ import email
 import logging
 from email.header import decode_header
 from typing import Dict, Any, List, Optional, Callable
+
+if hasattr(sys.stdout, "reconfigure"):
+    try:
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
+
+def safe_print(*args, **kwargs):
+    try:
+        print(*args, **kwargs)
+    except UnicodeEncodeError:
+        safe_args = []
+        for a in args:
+            if isinstance(a, str):
+                safe_args.append(a.encode("ascii", errors="replace").decode("ascii"))
+            else:
+                safe_args.append(a)
+        print(*safe_args, **kwargs)
 
 logger = logging.getLogger(__name__)
 
@@ -38,10 +57,28 @@ class InboxMonitorAgent:
         password: Optional[str] = None,
         on_reply_received_callback: Optional[Callable[[str, str, str, str, List[Dict[str, Any]]], None]] = None
     ):
-        self.imap_host = imap_host or os.environ.get("IMAP_HOST", "imap.gmail.com")
+        self.imap_host = imap_host or os.environ.get("IMAP_HOST") or os.environ.get("SMTP_HOST") or "imap.gmail.com"
         self.imap_port = int(os.environ.get("IMAP_PORT", imap_port))
-        self.username = username or os.environ.get("IMAP_USERNAME", os.environ.get("SENDER_EMAIL"))
-        self.password = password or os.environ.get("IMAP_PASSWORD")
+        
+        raw_user = (
+            username or 
+            os.environ.get("IMAP_USERNAME") or 
+            os.environ.get("IMAP_USER") or 
+            os.environ.get("SMTP_USERNAME") or 
+            os.environ.get("SMTP_USER") or 
+            os.environ.get("SENDER_EMAIL")
+        )
+        self.username = raw_user.strip("'\" \t\r\n") if raw_user else None
+
+        raw_pwd = (
+            password or 
+            os.environ.get("IMAP_PASSWORD") or 
+            os.environ.get("IMAP_PASS") or 
+            os.environ.get("SMTP_PASSWORD") or 
+            os.environ.get("SMTP_PASS") or 
+            os.environ.get("EMAIL_PASSWORD")
+        )
+        self.password = raw_pwd.strip("'\" \t\r\n") if raw_pwd else None
         self.on_reply_received_callback = on_reply_received_callback
         self._simulated_inbox: List[Dict[str, Any]] = []
 
@@ -78,11 +115,11 @@ class InboxMonitorAgent:
         }
 
         self._simulated_inbox.append(incoming_mail)
-        print(f"\n📩 [INBOX MONITOR AGENT] New Incoming Email Detected!")
-        print(f"   From: {sender_email}")
-        print(f"   Subject: {subject}")
+        safe_print(f"\n📩 [INBOX MONITOR AGENT] New Incoming Email Detected!")
+        safe_print(f"   From: {sender_email}")
+        safe_print(f"   Subject: {subject}")
         if attachments:
-            print(f"   Attachment: {attachments[0]['filename']} ({len(attachments[0]['content'])} bytes)")
+            safe_print(f"   Attachment: {attachments[0]['filename']} ({len(attachments[0]['content'])} bytes)")
 
         # Process immediately if callback is registered
         self._process_single_mail(incoming_mail)
@@ -122,11 +159,11 @@ class InboxMonitorAgent:
         # Extract Case Ref ID from Subject or Body
         case_number = self.extract_case_reference(subject, body_text)
         if not case_number:
-            print(f"   ⚠️ [Inbox Monitor] Email from {sender_email} has no valid Case Reference tag [CrimeOS-REF: XXX]. Ignoring non-case email.")
+            safe_print(f"   ⚠️ [Inbox Monitor] Email from {sender_email} has no valid Case Reference tag [CrimeOS-REF: XXX]. Ignoring non-case email.")
             mail_item["processed"] = True
             return None
 
-        print(f"   ✅ [Inbox Monitor] Matched Case Reference: '{case_number}'")
+        safe_print(f"   ✅ [Inbox Monitor] Matched Case Reference: '{case_number}'")
         mail_item["processed"] = True
 
         # Save attachment / body to cyberproj data/evidence directory
@@ -175,13 +212,13 @@ class InboxMonitorAgent:
         """
         Extracts `[CrimeOS-REF: <case_number>]` or `FIR-<number>` pattern.
         """
-        # Priority 1: Official CrimeOS Token
-        match = re.search(r'\[CrimeOS-REF:\s*([A-Za-z0-9_\-]+)\]', subject + " " + body, re.IGNORECASE)
+        # Priority 1: Official CrimeOS Token (supports slashes, hyphens, dots)
+        match = re.search(r'\[CrimeOS-REF:\s*([A-Za-z0-9_\-/\.]+)\s*\]', subject + " " + body, re.IGNORECASE)
         if match:
             return match.group(1).strip()
 
-        # Priority 2: Generic FIR Pattern
-        match_fir = re.search(r'\b(FIR-[A-Za-z0-9_\-]+)\b', subject + " " + body)
+        # Priority 2: Generic FIR Pattern (supports slashes, hyphens, dots)
+        match_fir = re.search(r'\b(FIR-[A-Za-z0-9_\-/\.]+)\b', subject + " " + body, re.IGNORECASE)
         if match_fir:
             return match_fir.group(1).strip()
 

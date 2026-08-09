@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Shield, Search, Building2, ChevronDown, LogOut, Command, Globe } from 'lucide-react';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { Shield, Search, Building2, ChevronDown, LogOut, Command, Globe, FileText, Sliders } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
 import { useCaseStore } from '../../store/caseStore';
 import { useLangStore } from '../../store/langStore';
@@ -7,6 +8,8 @@ import { Language } from '../../i18n/translations';
 import CommandPaletteDialog from './CommandPaletteDialog';
 
 export default function CommandHeader() {
+  const navigate = useNavigate();
+  const location = useLocation();
   const { user, logout } = useAuthStore();
   const { cases, activeCase, setActiveCase } = useCaseStore();
   const { language, setLanguage, t } = useLangStore();
@@ -58,25 +61,22 @@ export default function CommandHeader() {
             <Globe className="h-3 w-3 text-amber-400 ml-1 shrink-0" />
             <button
               onClick={() => setLanguage('en')}
-              className={`px-1.5 py-0.5 rounded text-[10px] font-bold transition-colors ${
-                language === 'en' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-white'
-              }`}
+              className={`px-1.5 py-0.5 rounded text-[10px] font-bold transition-colors ${language === 'en' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-white'
+                }`}
             >
               EN
             </button>
             <button
               onClick={() => setLanguage('gu')}
-              className={`px-1.5 py-0.5 rounded text-[10px] font-bold transition-colors ${
-                language === 'gu' ? 'bg-amber-600 text-white' : 'text-slate-400 hover:text-white'
-              }`}
+              className={`px-1.5 py-0.5 rounded text-[10px] font-bold transition-colors ${language === 'gu' ? 'bg-amber-600 text-white' : 'text-slate-400 hover:text-white'
+                }`}
             >
               ગુજ
             </button>
             <button
               onClick={() => setLanguage('hi')}
-              className={`px-1.5 py-0.5 rounded text-[10px] font-bold transition-colors ${
-                language === 'hi' ? 'bg-emerald-600 text-white' : 'text-slate-400 hover:text-white'
-              }`}
+              className={`px-1.5 py-0.5 rounded text-[10px] font-bold transition-colors ${language === 'hi' ? 'bg-emerald-600 text-white' : 'text-slate-400 hover:text-white'
+                }`}
             >
               हिं
             </button>
@@ -85,7 +85,7 @@ export default function CommandHeader() {
           <div className="h-3.5 w-px bg-white/10" />
 
           {/* Active FIR Selector */}
-          <div className="flex items-center gap-1.5">
+          {/* <div className="flex items-center gap-1.5">
             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Active Case:</span>
             <select
               value={activeCase?.case_number || ''}
@@ -102,7 +102,39 @@ export default function CommandHeader() {
                 </option>
               ))}
             </select>
-          </div>
+          </div> */}
+
+          {activeCase && (
+            <>
+              <div className="h-3.5 w-px bg-white/10" />
+
+              {/* Standalone Executive Case Summarizer & Judicial Diary Button */}
+              <button
+                onClick={() => navigate('/case-diary')}
+                className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-semibold transition-colors shrink-0 ${location.pathname === '/case-diary'
+                    ? 'border-emerald-500/50 bg-emerald-500/15 text-emerald-300 font-bold'
+                    : 'border-white/10 bg-[#050811] text-slate-300 hover:text-white hover:border-white/20'
+                  }`}
+                title="Executive Case Summarizer & Section 167 BNSS Charge Sheet Synthesis"
+              >
+                <FileText className="h-3.5 w-3.5 text-emerald-400" />
+                <span className="hidden md:inline text-[11px]">Case Summarizer & Diary</span>
+              </button>
+            </>
+          )}
+
+          {/* Standalone Admin & Nodal Directory Workbench Button */}
+          <button
+            onClick={() => navigate('/admin')}
+            className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-semibold transition-colors shrink-0 ${location.pathname === '/admin'
+                ? 'border-purple-500/50 bg-purple-500/15 text-purple-300 font-bold'
+                : 'border-white/10 bg-[#050811] text-slate-300 hover:text-white hover:border-white/20'
+              }`}
+            title="Admin Workbench & Qdrant RAG / Nodal Directory Management"
+          >
+            <Sliders className="h-3.5 w-3.5 text-purple-400" />
+            <span className="hidden md:inline text-[11px]">Admin Workbench</span>
+          </button>
 
           <div className="h-3.5 w-px bg-white/10" />
 
@@ -120,22 +152,49 @@ export default function CommandHeader() {
             </button>
 
             {dropdownOpen && (
-              <div className="absolute right-0 mt-1.5 w-52 rounded-lg border border-white/10 bg-[#0d1322] p-1.5 shadow-2xl z-50">
+              <div className="absolute right-0 mt-1.5 w-56 rounded-lg border border-white/10 bg-[#0d1322] p-1.5 shadow-2xl z-50 space-y-1">
                 <div className="px-2.5 py-2 border-b border-white/10 text-xs">
                   <p className="font-bold text-white">{user?.full_name || 'PSI V. K. Patel'}</p>
                   <p className="text-[10px] text-blue-400 font-mono mt-0.5">{user?.role || 'Investigating Officer (IO)'}</p>
                   <p className="text-[10px] text-slate-400 mt-0.5">{user?.police_station || t('header.badge_surat', 'Surat Cyber Crime Cell')}</p>
                 </div>
+
+                {activeCase && (
+                  <button
+                    onClick={() => {
+                      navigate('/case-diary');
+                      setDropdownOpen(false);
+                    }}
+                    className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-xs font-semibold text-slate-300 hover:bg-white/10 transition-colors"
+                  >
+                    <FileText className="h-3.5 w-3.5 text-emerald-400" />
+                    <span>Case Summarizer & Diary</span>
+                  </button>
+                )}
+
                 <button
                   onClick={() => {
-                    logout();
+                    navigate('/admin');
                     setDropdownOpen(false);
                   }}
-                  className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-xs font-semibold text-rose-400 hover:bg-rose-500/10 transition-colors mt-1"
+                  className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-xs font-semibold text-slate-300 hover:bg-white/10 transition-colors"
                 >
-                  <LogOut className="h-3.5 w-3.5" />
-                  <span>Sign Out</span>
+                  <Sliders className="h-3.5 w-3.5 text-purple-400" />
+                  <span>Admin Panel & Nodal Directory</span>
                 </button>
+
+                <div className="border-t border-white/10 pt-1">
+                  <button
+                    onClick={() => {
+                      logout();
+                      setDropdownOpen(false);
+                    }}
+                    className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-xs font-semibold text-rose-400 hover:bg-rose-500/10 transition-colors"
+                  >
+                    <LogOut className="h-3.5 w-3.5" />
+                    <span>Sign Out</span>
+                  </button>
+                </div>
               </div>
             )}
           </div>

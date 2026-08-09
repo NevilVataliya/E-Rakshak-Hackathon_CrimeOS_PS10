@@ -3,6 +3,7 @@ import sys
 import uuid
 import datetime
 import tempfile
+import asyncio
 from fastapi import FastAPI, File, UploadFile, Form, HTTPException, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
@@ -19,6 +20,45 @@ app = FastAPI(
     description="Agentic AI Platform for Intelligence-led Police Investigations",
     version="1.0.0"
 )
+
+async def _background_imap_poll_loop():
+    """
+    Continuous background loop that polls configured IMAP server for unread case replies.
+    Runs automatically when IMAP credentials are present in environment.
+    """
+    await asyncio.sleep(5)
+    while True:
+        try:
+            enable_polling = os.environ.get("ENABLE_REAL_IMAP_POLLING", "true").lower() in ["true", "1", "yes"]
+            imap_pass = (
+                os.environ.get("IMAP_PASSWORD") or 
+                os.environ.get("IMAP_PASS") or 
+                os.environ.get("SMTP_PASSWORD") or 
+                os.environ.get("SMTP_PASS") or 
+                os.environ.get("EMAIL_PASSWORD")
+            )
+            if enable_polling and imap_pass and workflow_automator:
+                from workflow_automator.imap_fetcher import IMAPEmailFetcher
+                fetcher = IMAPEmailFetcher()
+                messages = fetcher.fetch_unread_case_replies()
+                for msg in messages:
+                    req = WorkflowSimulateReplyRequest(
+                        case_number=msg["case_number"],
+                        sender_email=msg["sender_email"],
+                        subject=msg["subject"],
+                        body_text=msg["body_text"],
+                        attachments=msg["attachments"]
+                    )
+                    await handle_workflow_incoming_reply(req)
+                    print(f"✅ [REAL IMAP POLLER] Processed live incoming email for Case: {msg['case_number']}")
+        except Exception as e:
+            pass
+        poll_interval = int(os.environ.get("IMAP_POLL_INTERVAL_SECONDS", 30))
+        await asyncio.sleep(poll_interval)
+
+@app.on_event("startup")
+async def startup_event():
+    asyncio.create_task(_background_imap_poll_loop())
 
 app.add_middleware(
     CORSMiddleware,
@@ -50,6 +90,10 @@ try:
     workflow_automator = MasterWorkflowAutomatorAgent()
     template_engine_inst = TemplateEngine()
     smtp_mailer_inst = SMTPMailer()  # Standalone SMTP mailer for autonomous dispatch
+    try:
+        template_engine_inst.load_authorities_from_db()
+    except Exception as _db_auth_err:
+        print(f"[!] DB authorities startup load warning: {_db_auth_err}")
 except Exception as _wa_err:
     print(f"[!] Workflow Automator Agent initialization warning: {_wa_err}")
     workflow_automator = None
@@ -232,12 +276,18 @@ async def run_investigation(req: InvestigationRequest):
             pdf_url = req_item.get("pdf_url", "")
             desc = req_item.get("description", "")
             
-            # Resolve target recipient email from template_engine nodal directory
-            resolved_email = "nodal.officer@institution.com"
+            # Resolve target recipient email from template_engine nodal directory (0-hallucination)
+            resolved_email = ""
+            email_resolved = False
+            contact_info = None
             if template_engine_inst:
-                contact = template_engine_inst.get_receiver_contact(provider_title)
-                if contact and contact.get("email"):
-                    resolved_email = contact.get("email")
+                contact_info = template_engine_inst.get_receiver_contact(provider_title)
+                if contact_info and contact_info.get("email"):
+                    resolved_email = contact_info.get("email")
+                    email_resolved = True
+
+            if not email_resolved:
+                resolved_email = "[SELECTION REQUIRED]"
 
             appr_id = f"APPR-INV-{uuid.uuid4().hex[:6].upper()}"
             draft_subject = f"[ CrimeOS LEGAL NOTICE ] {req_type} - Case {req.case_number} [CrimeOS-REF: {req.case_number}]"
@@ -256,14 +306,16 @@ async def run_investigation(req: InvestigationRequest):
             pending_approval_drafts[appr_id] = {
                 "approval_id": appr_id,
                 "case_number": req.case_number,
-                "sender_email": resolved_email,
+                "sender_email": resolved_email if email_resolved else provider_title,
                 "recommended_action": f"Dispatch {req_type} to {provider_title}",
                 "draft_subject": draft_subject,
                 "draft_body": draft_body,
-                "recipient_email": resolved_email,
+                "recipient_email": resolved_email if email_resolved else "",
                 "recipient_name": provider_title,
                 "pdf_url": pdf_url,
                 "status": "PENDING_HUMAN_APPROVAL",
+                "requires_email_selection": not email_resolved,
+                "email_warning": None if email_resolved else f"Recipient email for '{provider_title}' not found in database. Please select a registered authority from the dropdown.",
                 "created_at": datetime.datetime.now().isoformat()
             }
         # ──────────────────────────────────────────────────────────────────────
@@ -586,6 +638,22 @@ def create_custom_template(req: WorkflowCreateTemplateRequest):
         }
     }
 
+@app.post("/api/authorities/reload")
+def reload_authorities(auth_data: Optional[Dict[str, Any]] = None):
+    if template_engine_inst:
+        if auth_data and auth_data.get("key"):
+            template_engine_inst.register_authority(
+                key=auth_data["key"],
+                entity_name=auth_data.get("entity_name", ""),
+                email=auth_data.get("email", ""),
+                type_str=auth_data.get("type", "bank"),
+                department=auth_data.get("department", ""),
+                description=auth_data.get("description", "")
+            )
+        else:
+            template_engine_inst.load_authorities_from_db()
+    return {"status": "success", "message": "Nodal Authorities reloaded successfully in AI Service."}
+
 # ── DYNAMIC QDRANT RAG KNOWLEDGE BASE ENDPOINTS ───────────────────────
 
 @app.get("/api/rag/documents")
@@ -597,6 +665,26 @@ def get_rag_documents():
     except Exception as e:
         print(f"[⚠️ RAG List Error]: {e}")
         return {"status": "error", "documents": []}
+
+@app.get("/api/rag/collections")
+def get_rag_collections():
+    try:
+        from app.rag.qdrant_client import get_qdrant_collections_info
+        cols = get_qdrant_collections_info()
+        return {"status": "success", "collections": cols}
+    except Exception as e:
+        print(f"[⚠️ RAG Collections Error]: {e}")
+        return {"status": "error", "collections": []}
+
+@app.get("/api/rag/domains")
+def get_rag_domains():
+    try:
+        from app.rag.qdrant_client import get_specialist_domains
+        domains = get_specialist_domains()
+        return {"status": "success", "domains": domains}
+    except Exception as e:
+        print(f"[⚠️ RAG Domains Error]: {e}")
+        return {"status": "error", "domains": []}
 
 @app.post("/api/rag/documents/upload")
 async def upload_rag_document(
@@ -781,6 +869,38 @@ async def dispatch_workflow_notice(req: WorkflowDispatchNoticeRequest):
         context_data=req.context_data or {}
     )
     return {"status": "success", "notice": result}
+
+@app.post("/api/workflow/sync-imap-inbox")
+async def sync_imap_inbox():
+    """
+    Fetches real unread emails from configured IMAP mail server, parses MIME attachments,
+    and runs them through CrimeOS Automator Agent & Evidence Analytics.
+    """
+    try:
+        from workflow_automator.imap_fetcher import IMAPEmailFetcher
+        fetcher = IMAPEmailFetcher()
+        messages = fetcher.fetch_unread_case_replies()
+        processed = []
+
+        for msg in messages:
+            req = WorkflowSimulateReplyRequest(
+                case_number=msg["case_number"],
+                sender_email=msg["sender_email"],
+                subject=msg["subject"],
+                body_text=msg["body_text"],
+                attachments=msg["attachments"]
+            )
+            res = await handle_workflow_incoming_reply(req)
+            processed.append({"case_number": msg["case_number"], "subject": msg["subject"], "result": res})
+
+        return {
+            "status": "success",
+            "messages_fetched": len(messages),
+            "processed": processed
+        }
+    except Exception as e:
+        print(f"[⚠️ IMAP Sync Error]: {e}")
+        return {"status": "error", "message": str(e), "messages_fetched": 0, "processed": []}
 
 @app.post("/api/workflow/incoming-reply")
 async def handle_workflow_incoming_reply(req: WorkflowSimulateReplyRequest):

@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { useCaseStore } from '../store/caseStore';
 import { useLangStore } from '../store/langStore';
+import NoActiveCaseGuard from '../components/common/NoActiveCaseGuard';
 
 export default function CaseDiaryView() {
   const { activeCase, generateCaseSummary } = useCaseStore();
@@ -30,11 +31,20 @@ export default function CaseDiaryView() {
   const [generatingSummary, setGeneratingSummary] = useState(false);
   const [generatedSummaryText, setGeneratedSummaryText] = useState('');
 
+  if (!activeCase) {
+    return (
+      <NoActiveCaseGuard
+        moduleName="Executive Case Summarizer & Judicial Diary"
+        description="Select an active case from the dropdown or ingest a new complaint to generate Section 167 BNSS court briefs, executive summaries, and chronological case diaries."
+      />
+    );
+  }
+
   const handleDownloadDiary = () => {
     setDownloading(true);
     setTimeout(() => {
       setDownloading(false);
-      setToastMsg(`Court-Ready Case Diary & Section 63 BSA Certificate downloaded for ${activeCase?.case_number || 'CR-2026-9910'}!`);
+      setToastMsg(`Court-Ready Case Diary & Section 63 BSA Certificate downloaded for ${activeCase.case_number}!`);
       setTimeout(() => setToastMsg(''), 5000);
     }, 1200);
   };
@@ -42,7 +52,7 @@ export default function CaseDiaryView() {
   const handleGenerateSummary = async () => {
     setGeneratingSummary(true);
     try {
-      const summary = await generateCaseSummary(activeCase?.case_number || 'CR-2026-9910');
+      const summary = await generateCaseSummary(activeCase.case_number);
       setGeneratedSummaryText(summary);
       setSummaryModalOpen(true);
     } catch (err) {
@@ -53,13 +63,7 @@ export default function CaseDiaryView() {
     }
   };
 
-  const timeline = activeCase?.activity_timeline || [
-    { timestamp: '2026-07-24T10:00:00Z', module: 'MODULE_1_INTAKE', step_title: 'Complaint Ingested & Indic Translation', details: 'Ingested Gujarati complaint text; extracted loss ₹2,00,000, suspect account 30910293101.' },
-    { timestamp: '2026-07-24T10:05:12Z', module: 'MODULE_2_LINKAGE', step_title: 'Cross-Case Serial Linkage Search', details: 'Scanned database; linked suspect account 30910293101 to FIR-019/2026.' },
-    { timestamp: '2026-07-24T10:12:45Z', module: 'MODULE_3_INVESTIGATION', step_title: 'Multi-Agent LangGraph Pod Execution', details: 'Grounding complete; identified Section 318(4) BNS 2023 & Section 66D IT Act.' },
-    { timestamp: '2026-07-24T10:20:00Z', module: 'MODULE_4_WORKFLOW', step_title: 'Section 94 BNSS Legal Notice Dispatched', details: 'Generated & dispatched email order to SBI Nodal Officer (cgc.fraud@sbi.co.in).' },
-    { timestamp: '2026-07-24T10:28:30Z', module: 'MODULE_5_ANALYTICS', step_title: 'Provider Reply Ingested & Parsed', details: 'Parsed SBI transaction ledger CSV; 38 midnight calls flagged.' }
-  ];
+  const timeline = activeCase.activity_timeline || [];
 
   return (
     <div className="flex-1 flex flex-col p-4 overflow-hidden gap-3 select-none">
@@ -115,24 +119,36 @@ export default function CaseDiaryView() {
 
             {/* Event Timeline List */}
             <div className="space-y-2 text-xs">
-              {timeline.map((item, idx) => (
-                <div key={idx} className="rounded border border-white/10 bg-[#050811] p-2.5 space-y-1 hover:border-blue-500/30 transition-colors">
-                  <div className="flex items-center justify-between">
-                    <span className="flex items-center gap-1.5 font-bold text-white text-xs">
-                      {item.module === 'MODULE_1_INTAKE' && <FileText className="h-3.5 w-3.5 text-blue-400" />}
-                      {item.module === 'MODULE_2_LINKAGE' && <Network className="h-3.5 w-3.5 text-amber-400" />}
-                      {item.module === 'MODULE_3_INVESTIGATION' && <Cpu className="h-3.5 w-3.5 text-emerald-400" />}
-                      {item.module === 'MODULE_4_WORKFLOW' && <Send className="h-3.5 w-3.5 text-rose-400" />}
-                      {item.module === 'MODULE_5_ANALYTICS' && <BarChart3 className="h-3.5 w-3.5 text-indigo-400" />}
-                      <span>{item.step_title}</span>
-                    </span>
-                    <span className="font-mono text-[10px] text-slate-400">
-                      {new Date(item.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                    </span>
-                  </div>
-                  <p className="text-[11px] text-slate-300 leading-relaxed font-sans">{item.details}</p>
+              {timeline.length === 0 ? (
+                <div className="p-6 rounded border border-white/5 bg-[#050811] text-center space-y-2 text-slate-500">
+                  <Clock className="h-8 w-8 text-slate-600 mx-auto" />
+                  <p className="text-xs font-semibold text-slate-400">
+                    No activity logs recorded for Case {activeCase.case_number} yet.
+                  </p>
+                  <p className="text-[11px] text-slate-500">
+                    Perform actions in Module 1 (Intake), Module 2 (Linkage), Module 3 (Studio), or Module 4 (Workflow Automator) to auto-log entries.
+                  </p>
                 </div>
-              ))}
+              ) : (
+                timeline.map((item, idx) => (
+                  <div key={idx} className="rounded border border-white/10 bg-[#050811] p-2.5 space-y-1 hover:border-blue-500/30 transition-colors">
+                    <div className="flex items-center justify-between">
+                      <span className="flex items-center gap-1.5 font-bold text-white text-xs">
+                        {item.module === 'MODULE_1_INTAKE' && <FileText className="h-3.5 w-3.5 text-blue-400" />}
+                        {item.module === 'MODULE_2_LINKAGE' && <Network className="h-3.5 w-3.5 text-amber-400" />}
+                        {item.module === 'MODULE_3_INVESTIGATION' && <Cpu className="h-3.5 w-3.5 text-emerald-400" />}
+                        {item.module === 'MODULE_4_WORKFLOW' && <Send className="h-3.5 w-3.5 text-rose-400" />}
+                        {item.module === 'MODULE_5_ANALYTICS' && <BarChart3 className="h-3.5 w-3.5 text-indigo-400" />}
+                        <span>{item.step_title}</span>
+                      </span>
+                      <span className="font-mono text-[10px] text-slate-400">
+                        {item.timestamp ? new Date(item.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-slate-300 leading-relaxed font-sans">{item.details}</p>
+                  </div>
+                ))
+              )}
             </div>
           </div>
 

@@ -639,6 +639,16 @@ app.post('/api/workflow/policy', authenticateToken, async (req, res) => {
   }
 });
 
+app.post('/api/workflow/sync-imap-inbox', authenticateToken, async (req, res) => {
+  try {
+    const response = await axios.post(`${AI_SERVICE_URL}/api/workflow/sync-imap-inbox`);
+    res.json(response.data);
+  } catch (err) {
+    if (!ENABLE_DEMO_FALLBACKS) return res.status(500).json({ error: err.message });
+    res.json({ status: 'success', messages_fetched: 0, processed: [], message: 'IMAP inbox synced in fallback mode.' });
+  }
+});
+
 app.post('/api/workflow/templates/custom', authenticateToken, async (req, res) => {
   try {
     const response = await axios.post(`${AI_SERVICE_URL}/api/workflow/templates/custom`, req.body);
@@ -647,6 +657,131 @@ app.post('/api/workflow/templates/custom', authenticateToken, async (req, res) =
     if (!ENABLE_DEMO_FALLBACKS) return res.status(500).json({ error: err.message });
     res.json({ status: 'success', message: `Custom Template '${req.body.template_id}' created` });
   }
+});
+
+// --- NODAL AUTHORITIES DIRECTORY ENDPOINTS (Extensible by Officers) ---
+const INITIAL_DEMO_AUTHORITIES = [
+  { id: 'auth-1', key: 'hdfc', entity_name: 'HDFC Bank Nodal Fraud Control Cell', email: 'nodal.fraud@hdfcbank.com', type: 'bank', department: 'Fraud Risk & Control Unit', description: 'HDFC Bank Debit freeze and transaction statement requisitions', is_active: true },
+  { id: 'auth-2', key: 'sbi', entity_name: 'State Bank of India Compliance Cell', email: 'compliance.nodal@sbi.co.in', type: 'bank', department: 'Cyber Fraud & Anti-Money Laundering Cell', description: 'SBI beneficiary freeze and RTGS statement requisitions', is_active: true },
+  { id: 'auth-3', key: 'icici', entity_name: 'ICICI Bank Nodal Legal Response Cell', email: 'nodal.officer@icicibank.com', type: 'bank', department: 'Financial Crime & Legal Ops', description: 'ICICI Bank account freeze and KYC details', is_active: true },
+  { id: 'auth-4', key: 'axis', entity_name: 'Axis Bank Fraud Operations & Nodal Cell', email: 'nodal.fraud@axisbank.com', type: 'bank', department: 'Fraud Prevention & Detection', description: 'Axis Bank mule account requisitions', is_active: true },
+  { id: 'auth-5', key: 'airtel', entity_name: 'Airtel Nodal Compliance Division', email: 'nodal@airtel.com', type: 'telecom', department: 'Law Enforcement Agency Response Cell', description: 'Airtel Call Detail Records (CDR) and tower dump requisitions', is_active: true },
+  { id: 'auth-6', key: 'jio', entity_name: 'Reliance Jio Infocomm Nodal Response Unit', email: 'nodal.officer@jio.com', type: 'telecom', department: 'LEA Coordination Cell', description: 'Jio IPDR, CDR, and subscriber CAF details', is_active: true },
+  { id: 'auth-7', key: 'vodafone_vi', entity_name: 'Vodafone Idea (Vi) Regulatory Compliance', email: 'nodal.lea@vodafoneidea.com', type: 'telecom', department: 'Nodal Regulatory Operations', description: 'Vi location tracking and subscriber details', is_active: true },
+  { id: 'auth-8', key: 'google', entity_name: 'Google Law Enforcement Response Team', email: 'lert-requests@google.com', type: 'tech_platform', department: 'Global Legal Compliance', description: 'Gmail, Google Drive, and Play Store account requisitions', is_active: true },
+  { id: 'auth-9', key: 'meta', entity_name: 'Meta Law Enforcement Online Request System', email: 'records@meta.com', type: 'tech_platform', department: 'Facebook / Instagram Legal Operations', description: 'Facebook & Instagram account IP logs and profile data', is_active: true },
+  { id: 'auth-10', key: 'whatsapp', entity_name: 'WhatsApp Law Enforcement Response Division', email: 'records@whatsapp.com', type: 'tech_platform', department: 'User Data Requisition Team', description: 'WhatsApp subscriber details and registration IP logs', is_active: true },
+  { id: 'auth-11', key: 'roc_mca', entity_name: 'Registrar of Companies (MCA)', email: 'roc.compliance@mca.gov.in', type: 'corporate_regulator', department: 'Corporate Enforcement Wing', description: 'Shell company audits and DIN/CIN verification', is_active: true },
+  { id: 'auth-12', key: 'fsl_lab', entity_name: 'State Forensic Science Laboratory (FSL)', email: 'fsl.cyber@police.gov.in', type: 'fsl', department: 'Cyber & Forensic Chemical Wing', description: 'CCTV, exhibit seizure, and chemical analysis reports', is_active: true }
+];
+
+let inMemoryAuthorities = [...INITIAL_DEMO_AUTHORITIES];
+
+app.get('/api/authorities', authenticateToken, async (req, res) => {
+  try {
+    const result = await pool.query('SELECT * FROM authorities WHERE is_active = true ORDER BY entity_name ASC');
+    if (result.rows.length > 0) {
+      return res.json({ status: 'success', authorities: result.rows });
+    }
+  } catch (err) {
+    console.warn('DB authorities query warning:', err.message);
+  }
+  res.json({ status: 'success', authorities: inMemoryAuthorities.filter(a => a.is_active) });
+});
+
+app.post('/api/authorities', authenticateToken, async (req, res) => {
+  const { key, entity_name, email, type, department, description } = req.body;
+  if (!key || !entity_name || !email) {
+    return res.status(400).json({ error: 'Authority Key, Entity Name, and Email are required.' });
+  }
+
+  const cleanKey = key.toLowerCase().trim().replace(/[^a-z0-9_]/g, '_');
+  try {
+    const result = await pool.query(
+      `INSERT INTO authorities (key, entity_name, email, type, department, description, is_active)
+       VALUES ($1, $2, $3, $4, $5, $6, true)
+       ON CONFLICT (key) DO UPDATE SET
+         entity_name = EXCLUDED.entity_name,
+         email = EXCLUDED.email,
+         type = EXCLUDED.type,
+         department = EXCLUDED.department,
+         description = EXCLUDED.description,
+         is_active = true,
+         updated_at = CURRENT_TIMESTAMP
+       RETURNING *`,
+      [cleanKey, entity_name, email, type || 'bank', department || 'Compliance Division', description || '']
+    );
+    const newAuth = result.rows[0];
+
+    // Notify AI service of update
+    axios.post(`${AI_SERVICE_URL}/api/authorities/reload`, newAuth).catch(() => {});
+
+    return res.json({ status: 'success', authority: newAuth, message: `Authority '${entity_name}' added successfully.` });
+  } catch (err) {
+    console.warn('DB authority insert error:', err.message);
+  }
+
+  // Fallback in-memory insertion
+  const existingIdx = inMemoryAuthorities.findIndex(a => a.key === cleanKey);
+  const newAuthObj = {
+    id: existingIdx >= 0 ? inMemoryAuthorities[existingIdx].id : `auth-${Date.now()}`,
+    key: cleanKey,
+    entity_name,
+    email,
+    type: type || 'bank',
+    department: department || 'Compliance Division',
+    description: description || '',
+    is_active: true
+  };
+  if (existingIdx >= 0) {
+    inMemoryAuthorities[existingIdx] = newAuthObj;
+  } else {
+    inMemoryAuthorities.push(newAuthObj);
+  }
+  res.json({ status: 'success', authority: newAuthObj, message: `Authority '${entity_name}' added successfully.` });
+});
+
+app.put('/api/authorities/:id', authenticateToken, async (req, res) => {
+  const { id } = req.params;
+  const { entity_name, email, type, department, description, is_active } = req.body;
+  try {
+    const result = await pool.query(
+      `UPDATE authorities SET
+         entity_name = COALESCE($1, entity_name),
+         email = COALESCE($2, email),
+         type = COALESCE($3, type),
+         department = COALESCE($4, department),
+         description = COALESCE($5, description),
+         is_active = COALESCE($6, is_active),
+         updated_at = CURRENT_TIMESTAMP
+       WHERE id::text = $7 OR key = $7
+       RETURNING *`,
+      [entity_name, email, type, department, description, is_active, id]
+    );
+    if (result.rows.length > 0) {
+      return res.json({ status: 'success', authority: result.rows[0] });
+    }
+  } catch (err) {
+    console.warn('DB authority update error:', err.message);
+  }
+
+  const idx = inMemoryAuthorities.findIndex(a => a.id === id || a.key === id);
+  if (idx >= 0) {
+    inMemoryAuthorities[idx] = { ...inMemoryAuthorities[idx], ...req.body };
+    return res.json({ status: 'success', authority: inMemoryAuthorities[idx] });
+  }
+  res.status(404).json({ error: 'Authority not found' });
+});
+
+app.delete('/api/authorities/:id', authenticateToken, async (req, res) => {
+  const { id } = req.params;
+  try {
+    await pool.query('UPDATE authorities SET is_active = false WHERE id::text = $1 OR key = $1', [id]);
+  } catch (err) {
+    console.warn('DB authority delete error:', err.message);
+  }
+  inMemoryAuthorities = inMemoryAuthorities.filter(a => a.id !== id && a.key !== id);
+  res.json({ status: 'success', message: 'Authority deactivated/deleted successfully.' });
 });
 
 // --- RAG KNOWLEDGE BASE DOCUMENT PROXY ROUTES ---
@@ -662,6 +797,40 @@ app.get('/api/rag/documents', authenticateToken, async (req, res) => {
         { document_name: 'Bharatiya_Nagarik_Suraksha_Sanhita_2023.pdf', statute_type: 'bns_specialist', vector_points: 1420, file_size_bytes: 1048576, status: 'ACTIVE_INDEXED' },
         { document_name: 'Bharatiya_Sakshya_Adhiniyam_2023.pdf', statute_type: 'bsa_specialist', vector_points: 980, file_size_bytes: 812048, status: 'ACTIVE_INDEXED' },
         { document_name: 'IT_Act_2000_Amendments.pdf', statute_type: 'cyber_financial_intel_specialist', vector_points: 640, file_size_bytes: 512000, status: 'ACTIVE_INDEXED' }
+      ]
+    });
+  }
+});
+
+app.get('/api/rag/collections', authenticateToken, async (req, res) => {
+  try {
+    const response = await axios.get(`${AI_SERVICE_URL}/api/rag/collections`);
+    res.json(response.data);
+  } catch (err) {
+    if (!ENABLE_DEMO_FALLBACKS) return res.status(500).json({ error: err.message });
+    res.json({
+      status: 'success',
+      collections: [
+        { collection_name: 'police_sops_v2', status: 'GREEN', points_count: 3040, indexed_vectors_count: 3040, vector_size: 1024, distance: 'Cosine' }
+      ]
+    });
+  }
+});
+
+app.get('/api/rag/domains', authenticateToken, async (req, res) => {
+  try {
+    const response = await axios.get(`${AI_SERVICE_URL}/api/rag/domains`);
+    res.json(response.data);
+  } catch (err) {
+    if (!ENABLE_DEMO_FALLBACKS) return res.status(500).json({ error: err.message });
+    res.json({
+      status: 'success',
+      domains: [
+        { domain_key: 'bns_specialist', display_name: 'BNS 2023 Penal Specialist', description: 'Bharatiya Nyaya Sanhita criminal statutes & offences' },
+        { domain_key: 'bsa_specialist', display_name: 'BSA 2023 Evidence Specialist', description: 'Bharatiya Sakshya Adhiniyam digital evidence & certificate SOPs' },
+        { domain_key: 'cyber_financial_intel_specialist', display_name: 'Cyber & Financial Fraud Intel', description: 'I4C CFCFRMS SOPs, bank freeze rules, IT Act, crypto' },
+        { domain_key: 'conventional_field_specialist', display_name: 'Police SOPs & Field Manual', description: 'Gujarat Police Manual, BPRD investigation handbooks' },
+        { domain_key: 'custom_extended', display_name: 'Custom Legal Circular', description: 'Custom law enforcement notices and department circulars' }
       ]
     });
   }

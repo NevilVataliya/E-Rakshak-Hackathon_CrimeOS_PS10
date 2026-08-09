@@ -122,6 +122,20 @@ CREATE TABLE IF NOT EXISTS audit_logs (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
+-- 8. Nodal Authorities Directory Table (Extensible from Frontend & queried by LLM)
+CREATE TABLE IF NOT EXISTS authorities (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    key VARCHAR(50) UNIQUE NOT NULL,
+    entity_name VARCHAR(150) NOT NULL,
+    email VARCHAR(100) NOT NULL,
+    type VARCHAR(50) NOT NULL DEFAULT 'bank', -- bank, telecom, tech_platform, corporate_regulator, fsl
+    department VARCHAR(100),
+    description TEXT,
+    is_active BOOLEAN DEFAULT true,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
 -- SEED INITIAL USERS (Password for all seed users: "police123")
 -- bcrypt hash for 'police123' = '$2a$10$wE4ZlYwJzL.HjKqGf.k.EOuHq.vS0uU.y.2uV5K1V2s1.W.x2.u'
 INSERT INTO users (id, username, email, password_hash, full_name, role, badge_number, police_station)
@@ -131,3 +145,20 @@ VALUES
   ('a0000000-0000-0000-0000-000000000003', 'legal_desai', 'legal.desai@police.gujarat.gov.in', '$2a$10$1P98XJ7h4z9m0L.N3v9V4e0m4R7k2N1P8Q5S2T4U6V8W0X2Y4Z6a', 'Adv. A. M. Desai', 'LEGAL_ADVISOR', 'LEG-1092', 'State CID Legal Cell'),
   ('a0000000-0000-0000-0000-000000000004', 'admin_crimeos', 'admin@crimeos.gov.in', '$2a$10$1P98XJ7h4z9m0L.N3v9V4e0m4R7k2N1P8Q5S2T4U6V8W0X2Y4Z6a', 'System Administrator', 'ADMIN', 'ADM-0001', 'Crime OS Headquarters')
 ON CONFLICT (username) DO NOTHING;
+
+-- SEED INITIAL NODAL AUTHORITIES
+INSERT INTO authorities (key, entity_name, email, type, department, description)
+VALUES
+  ('hdfc', 'HDFC Bank Nodal Fraud Control Cell', 'nodal.fraud@hdfcbank.com', 'bank', 'Fraud Risk & Control Unit', 'HDFC Bank Debit freeze and transaction statement requisitions'),
+  ('sbi', 'State Bank of India Compliance Cell', 'compliance.nodal@sbi.co.in', 'bank', 'Cyber Fraud & Anti-Money Laundering Cell', 'SBI beneficiary freeze and RTGS statement requisitions'),
+  ('icici', 'ICICI Bank Nodal Legal Response Cell', 'nodal.officer@icicibank.com', 'bank', 'Financial Crime & Legal Ops', 'ICICI Bank account freeze and KYC details'),
+  ('axis', 'Axis Bank Fraud Operations & Nodal Cell', 'nodal.fraud@axisbank.com', 'bank', 'Fraud Prevention & Detection', 'Axis Bank mule account requisitions'),
+  ('airtel', 'Airtel Nodal Compliance Division', 'nodal@airtel.com', 'telecom', 'Law Enforcement Agency Response Cell', 'Airtel Call Detail Records (CDR) and tower dump requisitions'),
+  ('jio', 'Reliance Jio Infocomm Nodal Response Unit', 'nodal.officer@jio.com', 'telecom', 'LEA Coordination Cell', 'Jio IPDR, CDR, and subscriber CAF details'),
+  ('vodafone_vi', 'Vodafone Idea (Vi) Regulatory Compliance', 'nodal.lea@vodafoneidea.com', 'telecom', 'Nodal Regulatory Operations', 'Vi location tracking and subscriber details'),
+  ('google', 'Google Law Enforcement Response Team', 'lert-requests@google.com', 'tech_platform', 'Global Legal Compliance', 'Gmail, Google Drive, and Play Store account requisitions'),
+  ('meta', 'Meta Law Enforcement Online Request System', 'records@meta.com', 'tech_platform', 'Facebook / Instagram Legal Operations', 'Facebook & Instagram account IP logs and profile data'),
+  ('whatsapp', 'WhatsApp Law Enforcement Response Division', 'records@whatsapp.com', 'tech_platform', 'User Data Requisition Team', 'WhatsApp subscriber details and registration IP logs'),
+  ('roc_mca', 'Registrar of Companies (MCA)', 'roc.compliance@mca.gov.in', 'corporate_regulator', 'Corporate Enforcement Wing', 'Shell company audits and DIN/CIN verification'),
+  ('fsl_lab', 'State Forensic Science Laboratory (FSL)', 'fsl.cyber@police.gov.in', 'fsl', 'Cyber & Forensic Chemical Wing', 'CCTV, exhibit seizure, and chemical analysis reports')
+ON CONFLICT (key) DO NOTHING;

@@ -15,15 +15,33 @@ import os
 import sys
 import time
 
+if hasattr(sys.stdout, "reconfigure"):
+    try:
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
+
+def safe_print(*args, **kwargs):
+    try:
+        print(*args, **kwargs)
+    except UnicodeEncodeError:
+        safe_args = []
+        for a in args:
+            if isinstance(a, str):
+                safe_args.append(a.encode("ascii", errors="replace").decode("ascii"))
+            else:
+                safe_args.append(a)
+        print(*safe_args, **kwargs)
+
 # Ensure local imports resolve
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from workflow_automator import MasterWorkflowAutomatorAgent, InboxMonitorAgent
 
 def run_evaluator_automated_pipeline_demo():
-    print("\n" + "═"*85)
-    print(" 🚀 CRIME OS / E-RAKSHAK - 5 CRIME DOMAINS DYNAMIC NOTICE & EMAIL AUTOMATION DEMO")
-    print("═"*85)
+    safe_print("\n" + "═"*85)
+    safe_print(" 🚀 CRIME OS / E-RAKSHAK - 5 CRIME DOMAINS DYNAMIC NOTICE & EMAIL AUTOMATION DEMO")
+    safe_print("═"*85)
 
     master_agent = MasterWorkflowAutomatorAgent()
 
@@ -34,11 +52,11 @@ def run_evaluator_automated_pipeline_demo():
     # =========================================================================
     # PHASE 0: DYNAMIC NOTICE GENERATION ACROSS ALL 5 CRIME DOMAINS
     # =========================================================================
-    print("\n" + "▶"*3 + " PHASE 0: DYNAMIC TEMPLATE SELECTION & NODAL EMAIL LOOKUP ACROSS 5 DOMAINS")
+    safe_print("\n" + "▶"*3 + " PHASE 0: DYNAMIC TEMPLATE SELECTION & NODAL EMAIL LOOKUP ACROSS 5 DOMAINS")
     domains = master_agent.template_engine.list_domains()
-    print(f"📌 [Loaded Crime Domains]: {len(domains)} Domains Registered in JSON Directory")
+    safe_print(f"📌 [Loaded Crime Domains]: {len(domains)} Domains Registered in JSON Directory")
     for code, info in domains.items():
-        print(f"   • [{info.get('name')}] ({code})")
+        safe_print(f"   • [{info.get('name')}] ({code})")
 
     # Demonstrate dynamic notice generation for each of the 5 domains
     demo_cases = [
@@ -78,14 +96,14 @@ def run_evaluator_automated_pipeline_demo():
         tmpl = master_agent.template_engine.select_template_for_target(domain=item["domain"], directive_action=item["objective"])
         contact = master_agent.template_engine.get_receiver_contact(item["receiver"])
         receiver_email = contact.get("email") if contact else "nodal@agency.gov.in"
-        print(f"\n🔹 [Domain: {item['domain'].upper()}] Case: {item['case']}")
-        print(f"   ► Selected Template ID: '{tmpl.template_id}' ({tmpl.title})")
-        print(f"   ► Nodal Receiver Email Resolved: '{receiver_email}' ({contact.get('entity_name') if contact else 'Custom Unit'})")
+        safe_print(f"\n🔹 [Domain: {item['domain'].upper()}] Case: {item['case']}")
+        safe_print(f"   ► Selected Template ID: '{tmpl.template_id}' ({tmpl.title})")
+        safe_print(f"   ► Nodal Receiver Email Resolved: '{receiver_email}' ({contact.get('entity_name') if contact else 'Custom Unit'})")
 
     # =========================================================================
     # PHASE 1: INGEST EVALUATOR AGENT OUTPUT PAYLOAD (MONEY LAUNDERING CASE)
     # =========================================================================
-    print("\n" + "▶"*3 + " PHASE 1: RECEIVING EVALUATOR AGENT ANALYSIS OUTPUT (MONEY LAUNDERING)")
+    safe_print("\n" + "▶"*3 + " PHASE 1: RECEIVING EVALUATOR AGENT ANALYSIS OUTPUT (MONEY LAUNDERING)")
 
     evaluator_output_payload = {
         "case_metadata": {
@@ -146,15 +164,15 @@ def run_evaluator_automated_pipeline_demo():
     ingest_result = master_agent.ingest_evaluator_data(evaluator_output_payload)
     case_id = ingest_result["case_id"]
 
-    print(f"\n📌 [Evaluator Agent Ingestion Summary]")
-    print(f"   ► Status: {ingest_result['status'].upper()}")
-    print(f"   ► Ingested Case ID: '{case_id}'")
-    print(f"   ► Ingested Targets Count: {ingest_result['targets_ingested']}")
+    safe_print(f"\n📌 [Evaluator Agent Ingestion Summary]")
+    safe_print(f"   ► Status: {ingest_result['status'].upper()}")
+    safe_print(f"   ► Ingested Case ID: '{case_id}'")
+    safe_print(f"   ► Ingested Targets Count: {ingest_result['targets_ingested']}")
 
     # =========================================================================
     # PHASE 2: ASYNCHRONOUS INBOX MONITORING & EVIDENCE INGESTION
     # =========================================================================
-    print("\n" + "▶"*3 + " PHASE 2: INGESTING EVIDENTIAL RESPONSES (BANK RECORD CSV & CDR)")
+    safe_print("\n" + "▶"*3 + " PHASE 2: INGESTING EVIDENTIAL RESPONSES (BANK RECORD CSV & CDR)")
 
     # Read the created bank_record.csv file content
     bank_csv_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "bank_record.csv")
@@ -192,23 +210,23 @@ CDR7003,2026-07-24T09:40:10,9825012345,9727099887,OUTGOING,210,MUM-TOWER-441,864
     # =========================================================================
     # SUMMARY OF AUTOMATED MONEY LAUNDERING CASE PIPELINE
     # =========================================================================
-    print("\n" + "═"*85)
-    print(" 📋 MONEY LAUNDERING CASE REGISTRY & DISCOVERED MULE TARGETS")
-    print("═"*85)
+    safe_print("\n" + "═"*85)
+    safe_print(" 📋 MONEY LAUNDERING CASE REGISTRY & DISCOVERED MULE TARGETS")
+    safe_print("═"*85)
 
     final_state = master_agent.pending_cases.get(case_id, {})
-    print(f"📂 Case Reference: {case_id}")
-    print(f"   Status: '{final_state.get('status')}'")
-    print(f"   Auto-Added Discovered Targets: {len(final_state.get('auto_added_targets', []))}")
+    safe_print(f"📂 Case Reference: {case_id}")
+    safe_print(f"   Status: '{final_state.get('status')}'")
+    safe_print(f"   Auto-Added Discovered Targets: {len(final_state.get('auto_added_targets', []))}")
     for tgt in final_state.get("auto_added_targets", []):
-        print(f"   • Discovered Target: {tgt.get('name')} ({tgt.get('identifier')})")
+        safe_print(f"   • Discovered Target: {tgt.get('name')} ({tgt.get('identifier')})")
 
     if final_state.get("next_investigation_directive"):
-        print(f"   Next Directive Strategy: {final_state['next_investigation_directive'].get('strategy_summary')}")
+        safe_print(f"   Next Directive Strategy: {final_state['next_investigation_directive'].get('strategy_summary')}")
 
-    print("\n" + "═"*85)
-    print(" ✅ MONEY LAUNDERING WORKFLOW AUTOMATION DEMO COMPLETED CLEANLY")
-    print("═"*85 + "\n")
+    safe_print("\n" + "═"*85)
+    safe_print(" ✅ MONEY LAUNDERING WORKFLOW AUTOMATION DEMO COMPLETED CLEANLY")
+    safe_print("═"*85 + "\n")
 
 if __name__ == "__main__":
     run_evaluator_automated_pipeline_demo()

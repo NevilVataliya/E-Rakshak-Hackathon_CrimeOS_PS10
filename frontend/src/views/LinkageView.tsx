@@ -110,10 +110,21 @@ const matchTypeLabels: Record<string, string> = {
   MANUAL_SEARCH_HIT: 'Manual Search Hit',
 };
 
+import NoActiveCaseGuard from '../components/common/NoActiveCaseGuard';
+
 export default function LinkageView() {
   const navigate = useNavigate();
   const { activeCase, linkageMatches, linkageStats, linkageLoading, linkageError, runLinkageSearch, setSelectedInspectorItem } = useCaseStore();
   const { t } = useLangStore();
+
+  if (!activeCase) {
+    return (
+      <NoActiveCaseGuard
+        moduleName="Module 2: Serial Crime Linkage Graph"
+        description="Select an active case from the dropdown or ingest a new complaint to construct serial offender topologies, mule account recurrence graphs, and cross-case linkages."
+      />
+    );
+  }
 
   const [manualQuery, setManualQuery] = useState('');
   const [searchType, setSearchType] = useState('auto');

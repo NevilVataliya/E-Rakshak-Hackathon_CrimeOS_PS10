@@ -6,6 +6,24 @@ import datetime
 from typing import Dict, Any, Optional, List
 import requests
 
+if hasattr(sys.stdout, "reconfigure"):
+    try:
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
+
+def safe_print(*args, **kwargs):
+    try:
+        print(*args, **kwargs)
+    except UnicodeEncodeError:
+        safe_args = []
+        for a in args:
+            if isinstance(a, str):
+                safe_args.append(a.encode("ascii", errors="replace").decode("ascii"))
+            else:
+                safe_args.append(a)
+        print(*safe_args, **kwargs)
+
 try:
     import pandas as pd
 except ImportError:
@@ -45,12 +63,12 @@ class AnalyticsAgent:
         Analyzes the external provider response and PRINTS important data extracted.
         Returns structured analysis JSON dictionary.
         """
-        print("\n" + "="*80)
-        print(f"📊 [ANALYTICS AGENT] Processing External Provider Response")
-        print(f"   Provider: {provider_name}")
-        print(f"   Response Format: {response_type.upper()}")
-        print(f"   Case Reference: {case_number}")
-        print("="*80)
+        safe_print("\n" + "="*80)
+        safe_print(f"📊 [ANALYTICS AGENT] Processing External Provider Response")
+        safe_print(f"   Provider: {provider_name}")
+        safe_print(f"   Response Format: {response_type.upper()}")
+        safe_print(f"   Case Reference: {case_number}")
+        safe_print("="*80)
 
         raw_text = ""
         structured_data = {}
@@ -78,7 +96,7 @@ class AnalyticsAgent:
         return analysis_result
 
     def _parse_csv_response(self, file_input: str) -> (str, Dict[str, Any]):
-        """Parses CSV file or CSV string using pandas or fallback line parser."""
+        """Parses CSV file or CSV string using pandas or standalone fallback line parser."""
         df = None
         raw_lines = []
         if os.path.exists(file_input):
@@ -98,43 +116,46 @@ class AnalyticsAgent:
                 except Exception:
                     pass
 
-        # Try cyberproj domain-specific parsers
+        cdr_stats = None
+        bank_stats = None
+
+        # Try cyberproj domain-specific parsers if present
         CYBERPROJ_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "cyberproj", "cyberproj")
         if CYBERPROJ_DIR not in sys.path:
             sys.path.insert(0, CYBERPROJ_DIR)
 
-        cdr_stats = None
-        bank_stats = None
         if os.path.exists(file_input):
             try:
                 from backend.services.cdr_parser import parse_cdr_file
                 from backend.services.bank_parser import parse_bank_statement
-                # Try parsing as bank statement or CDR
                 if "bank" in file_input.lower() or "statement" in file_input.lower() or "hdfc" in file_input.lower():
                     bank_stats = parse_bank_statement(file_input)
                 elif "cdr" in file_input.lower() or "call" in file_input.lower():
                     cdr_stats = parse_cdr_file(file_input)
-                else:
-                    # Try both
-                    try:
-                        bank_stats = parse_bank_statement(file_input)
-                    except Exception:
-                        try:
-                            cdr_stats = parse_cdr_file(file_input)
-                        except Exception:
-                            pass
-            except Exception as e:
-                logger.warning(f"Domain parser call error: {e}")
+            except Exception:
+                pass
+
+        # Standalone Fallback CSV Parsers
+        sample_head = "\n".join(raw_lines[:5]).lower()
+        if not bank_stats and not cdr_stats:
+            if any(k in sample_head for k in ["callid", "caller", "receiver", "imei", "cellid", "duration"]):
+                cdr_stats = self._fallback_parse_cdr(raw_lines)
+            elif any(k in sample_head for k in ["debit", "credit", "balance", "txn", "account", "amount"]):
+                bank_stats = self._fallback_parse_bank(raw_lines)
+            elif "cdr" in file_input.lower() or "call" in file_input.lower():
+                cdr_stats = self._fallback_parse_cdr(raw_lines)
+            else:
+                bank_stats = self._fallback_parse_bank(raw_lines)
 
         raw_text_summary = "\n".join(raw_lines[:50])
         metrics = {}
 
         if bank_stats:
             metrics.update(bank_stats)
-            raw_text_summary += f"\n[Cyberproj Bank Parser Stats: {bank_stats.get('total_records', 0)} transactions, Total Debits: {bank_stats.get('total_debits', 0)}, Total Credits: {bank_stats.get('total_credits', 0)}, Suspect Accounts: {bank_stats.get('suspect_accounts', [])}]"
+            raw_text_summary += f"\n[Bank Parser Stats: {bank_stats.get('total_records', 0)} transactions, Total Debits: {bank_stats.get('total_debits', 0)}, Total Credits: {bank_stats.get('total_credits', 0)}, Suspect Accounts: {bank_stats.get('suspect_accounts', [])}]"
         if cdr_stats:
             metrics.update(cdr_stats)
-            raw_text_summary += f"\n[Cyberproj CDR Parser Stats: {cdr_stats.get('total_records', 0)} calls, Unique Contacts: {cdr_stats.get('unique_contacts', 0)}, Night Calls: {cdr_stats.get('night_calls', 0)}, Top Callers: {cdr_stats.get('top_callers', [])}]"
+            raw_text_summary += f"\n[CDR Parser Stats: {cdr_stats.get('total_records', 0)} calls, Unique Contacts: {cdr_stats.get('unique_contacts', 0)}, Night Calls: {cdr_stats.get('night_calls', 0)}, Top Callers: {cdr_stats.get('top_callers', [])}]"
 
         if df is not None:
             metrics["total_rows"] = len(df)
@@ -145,6 +166,60 @@ class AnalyticsAgent:
                 metrics["max_values"] = {col: float(df[col].max()) for col in numeric_cols}
 
         return raw_text_summary, metrics
+
+    def _fallback_parse_bank(self, raw_lines: List[str]) -> Dict[str, Any]:
+        import re
+        total_debits = 0.0
+        total_credits = 0.0
+        suspect_accounts = set()
+        tx_count = 0
+        for line in raw_lines[1:]:
+            if not line.strip(): continue
+            parts = [p.strip() for p in line.split(',')]
+            if len(parts) >= 2:
+                tx_count += 1
+                for part in parts:
+                    nums = re.findall(r'\b[0-9]{9,18}\b', part)
+                    for n in nums:
+                        suspect_accounts.add(n)
+                    try:
+                        clean_num = part.replace(',', '').replace('$', '').replace('Rs', '').replace('INR', '').strip()
+                        val = float(clean_num)
+                        if val > 0:
+                            if 'debit' in line.lower() or 'dr' in line.lower() or 'withdrawal' in line.lower():
+                                total_debits += val
+                            elif 'credit' in line.lower() or 'cr' in line.lower() or 'deposit' in line.lower():
+                                total_credits += val
+                    except ValueError:
+                        pass
+        return {
+            "total_records": tx_count or max(len(raw_lines) - 1, 0),
+            "total_debits": total_debits,
+            "total_credits": total_credits,
+            "suspect_accounts": list(suspect_accounts)[:5]
+        }
+
+    def _fallback_parse_cdr(self, raw_lines: List[str]) -> Dict[str, Any]:
+        import re
+        unique_contacts = set()
+        night_calls = 0
+        call_count = 0
+        top_callers = set()
+        for line in raw_lines[1:]:
+            if not line.strip(): continue
+            call_count += 1
+            phones = re.findall(r'\b(?:\+91[- ]?)?[6-9]\d{9}\b', line)
+            for p in phones:
+                unique_contacts.add(p)
+                top_callers.add(p)
+            if any(t in line for t in ["T00:", "T01:", "T02:", "T03:", "T04:", "T05:", " 00:", " 01:", " 02:", " 03:", " 04:", " 05:"]):
+                night_calls += 1
+        return {
+            "total_records": call_count or max(len(raw_lines) - 1, 0),
+            "unique_contacts": len(unique_contacts),
+            "night_calls": night_calls,
+            "top_callers": list(top_callers)[:5]
+        }
 
     def _parse_pdf_or_file(self, file_path: str) -> str:
         """Parses PDF or text file."""
@@ -213,6 +288,9 @@ Return JSON strictly matching this schema:
                     res_json = res.json()
                     candidate_text = res_json["candidates"][0]["content"]["parts"][0]["text"]
                     parsed = json.loads(candidate_text)
+                    if "visualization_config" not in parsed:
+                        rule_fallback = self._rule_based_analysis(provider_name, raw_text, structured_data)
+                        parsed["visualization_config"] = rule_fallback.get("visualization_config", {})
                     return parsed
             except Exception as e:
                 logger.warning(f"LLM Analytics call failed: {e}. Falling back to Rule-Based Extraction.")
@@ -260,22 +338,15 @@ Return JSON strictly matching this schema:
         text_lower = text.lower()
 
         if columns and len(columns) >= 2:
-            # Dynamic Column Profiling Engine
-            # Inspect column names to automatically select optimal X and Y axes
             col_lower_map = {c.lower(): c for c in columns}
-            
-            # Find candidate X-axis (Categorical / Time)
             x_candidates = [c for c in columns if any(k in c.lower() for k in ['time', 'date', 'hour', 'location', 'tower', 'bank', 'category', 'type', 'party', 'ip', 'user', 'name', 'status'])]
             selected_x = x_candidates[0] if x_candidates else columns[0]
-
-            # Find candidate Y-axis (Numeric / Quantity)
             y_candidates = [c for c in columns if any(k in c.lower() for k in ['amount', 'count', 'frequency', 'duration', 'volume', 'calls', 'loss', 'score', 'total', 'size', 'hits'])]
             selected_y = y_candidates[0] if y_candidates else (columns[1] if len(columns) > 1 else columns[0])
 
             x_axis_key = selected_x
             y_axis_key = selected_y
 
-            # Determine plot type dynamically based on column names
             if any(k in selected_x.lower() for k in ['time', 'date', 'hour']):
                 vis_type = "LINE_TREND"
                 vis_title = f"Dynamic Timeline Analytics: {selected_y} over {selected_x}"
@@ -358,32 +429,32 @@ Return JSON strictly matching this schema:
         """
         Prints the extracted and analyzed data in a clean, high-visibility law enforcement report style.
         """
-        print("\n🔍 [IMPORTANT ANALYZED DATA REPORT]")
-        print(f"► Provider Response Source: {data.get('provider_name', 'External Provider')}")
-        print(f"► Forensic Risk Score: {data.get('risk_score', 'N/A')}/10")
-        print("-" * 65)
+        safe_print("\n🔍 [IMPORTANT ANALYZED DATA REPORT]")
+        safe_print(f"► Provider Response Source: {data.get('provider_name', 'External Provider')}")
+        safe_print(f"► Forensic Risk Score: {data.get('risk_score', 'N/A')}/10")
+        safe_print("-" * 65)
 
-        print("\n📌 KEY FINDINGS:")
+        safe_print("\n📌 KEY FINDINGS:")
         for idx, finding in enumerate(data.get("key_findings", []), 1):
-            print(f"   {idx}. {finding}")
+            safe_print(f"   {idx}. {finding}")
 
         entities = data.get("extracted_entities", {})
-        print("\n🏷️ EXTRACTED CRITICAL ENTITIES:")
+        safe_print("\n🏷️ EXTRACTED CRITICAL ENTITIES:")
         if entities.get("ip_addresses"):
-            print(f"   • IP Addresses: {', '.join(entities['ip_addresses'])}")
+            safe_print(f"   • IP Addresses: {', '.join(entities['ip_addresses'])}")
         if entities.get("account_numbers"):
-            print(f"   • Suspect Accounts: {', '.join(entities['account_numbers'])}")
+            safe_print(f"   • Suspect Accounts: {', '.join(entities['account_numbers'])}")
         if entities.get("amounts"):
-            print(f"   • Flagged Amounts: {', '.join(entities['amounts'])}")
+            safe_print(f"   • Flagged Amounts: {', '.join(entities['amounts'])}")
         if entities.get("phone_numbers"):
-            print(f"   • Phone Numbers: {', '.join(entities['phone_numbers'])}")
+            safe_print(f"   • Phone Numbers: {', '.join(entities['phone_numbers'])}")
 
         indicators = data.get("suspicious_indicators", [])
         if indicators:
-            print("\n⚠️ SUSPICIOUS INDICATORS & ANOMALIES:")
+            safe_print("\n⚠️ SUSPICIOUS INDICATORS & ANOMALIES:")
             for ind in indicators:
-                print(f"   ⚡ {ind}")
+                safe_print(f"   ⚡ {ind}")
 
-        print("\n🚀 RECOMMENDED NEXT ACTION FOR MASTER WORKFLOW AUTOMATOR:")
-        print(f"   ➜ {data.get('recommended_next_action', 'Proceed to next investigation phase.')}")
-        print("="*80 + "\n")
+        safe_print("\n🚀 RECOMMENDED NEXT ACTION FOR MASTER WORKFLOW AUTOMATOR:")
+        safe_print(f"   ➜ {data.get('recommended_next_action', 'Proceed to next investigation phase.')}")
+        safe_print("="*80 + "\n")

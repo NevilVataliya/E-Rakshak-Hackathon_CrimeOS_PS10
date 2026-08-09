@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { PoliceCase, InvestigationData, SubpoenaNotice, LinkageMatch, LinkageStats } from '../types';
+import { PoliceCase, InvestigationData, SubpoenaNotice, LinkageMatch, LinkageStats, NodalAuthority } from '../types';
 import api from '../services/api';
 
 interface CaseState {
@@ -26,7 +26,13 @@ interface CaseState {
 
   // RAG Knowledge Base State (Qdrant Vector DB)
   ragDocuments: any[];
+  ragCollections: any[];
+  ragDomains: any[];
   ragLoading: boolean;
+
+  // Extensible Nodal Authorities Directory State
+  authorities: NodalAuthority[];
+  authoritiesLoading: boolean;
 
   fetchCases: () => Promise<void>;
   setActiveCase: (policeCase: PoliceCase | null) => void;
@@ -51,8 +57,16 @@ interface CaseState {
   
   // Dynamic RAG Knowledge Base Actions (Qdrant)
   fetchRagDocuments: () => Promise<void>;
+  fetchRagCollections: () => Promise<void>;
+  fetchRagDomains: () => Promise<void>;
   uploadRagDocument: (file: File, statuteType?: string) => Promise<void>;
   deleteRagDocument: (filename: string) => Promise<void>;
+
+  // Extensible Nodal Authorities Directory Actions
+  fetchAuthorities: () => Promise<void>;
+  addAuthority: (payload: NodalAuthority) => Promise<void>;
+  updateAuthority: (id: string, payload: Partial<NodalAuthority>) => Promise<void>;
+  deleteAuthority: (id: string) => Promise<void>;
 
   // Automated Case Activity Logging & Court Summary Actions
   addCaseActivityLog: (caseNumber: string, logItem: { module: string; step_title: string; details: string }) => void;
@@ -81,6 +95,29 @@ const initialMockCases: PoliceCase[] = [
     },
     sections: ['BNS Section 318(4)', 'IT Act Section 66D', 'BSA Section 63'],
     created_at: '2026-07-24T10:00:00Z',
+    completedSteps: [1, 2, 3, 4],
+    legalRequests: [
+      {
+        id: 'REQ-BNSS-9910-01',
+        case_no: 'CR-2026-9910',
+        type: 'SECTION_94_BNSS',
+        provider: 'Paytm Payments Bank Nodal Office',
+        email: 'nodal.officer@paytm.com',
+        status: 'APPROVED_SHO',
+        pdf_url: '/api/requests/download/Notice_Section_94_BNSS_CR-2026-9910.pdf',
+        created_at: '2026-07-24T11:00:00Z'
+      },
+      {
+        id: 'REQ-1930-9910-02',
+        case_no: 'CR-2026-9910',
+        type: 'DEBIT_FREEZE_1930',
+        provider: 'State Bank of India Fraud Nodal Cell',
+        email: 'cgc.fraud@sbi.co.in',
+        status: 'DISPATCHED',
+        pdf_url: '/api/requests/download/Notice_Section_94_BNSS_CR-2026-9910.pdf',
+        created_at: '2026-07-24T11:15:00Z'
+      }
+    ],
     activity_timeline: [
       { timestamp: '2026-07-24T10:00:00Z', module: 'MODULE_1_INTAKE', step_title: 'Complaint Ingested & Indic Translation', details: 'Ingested Gujarati complaint text; extracted loss ₹2,00,000, suspect account 30910293101.' },
       { timestamp: '2026-07-24T10:05:12Z', module: 'MODULE_2_LINKAGE', step_title: 'Cross-Case Serial Linkage Search', details: 'Scanned database; linked suspect account 30910293101 to FIR-019/2026.' },
@@ -108,30 +145,9 @@ const initialMockCases: PoliceCase[] = [
       monetary_loss: 50000
     },
     sections: ['BNS Section 308(2)', 'IT Act Section 66E'],
-    created_at: '2026-07-23T14:30:00Z'
-  }
-];
-
-const initialSubpoenas: SubpoenaNotice[] = [
-  {
-    id: 'REQ-BNSS-9910-01',
-    case_no: 'CR-2026-9910',
-    type: 'SECTION_94_BNSS',
-    provider: 'Paytm Payments Bank Nodal Office',
-    email: 'nodal.officer@paytm.com',
-    status: 'APPROVED_SHO',
-    pdf_url: '/api/requests/download/Notice_Section_94_BNSS_CR-2026-9910.pdf',
-    created_at: '2026-07-24T11:00:00Z'
-  },
-  {
-    id: 'REQ-1930-9910-02',
-    case_no: 'CR-2026-9910',
-    type: 'DEBIT_FREEZE_1930',
-    provider: 'State Bank of India Fraud Nodal Cell',
-    email: 'cgc.fraud@sbi.co.in',
-    status: 'DISPATCHED',
-    pdf_url: '/api/requests/download/Notice_Section_94_BNSS_CR-2026-9910.pdf',
-    created_at: '2026-07-24T11:15:00Z'
+    created_at: '2026-07-23T14:30:00Z',
+    completedSteps: [1],
+    legalRequests: []
   }
 ];
 
@@ -141,7 +157,7 @@ export const useCaseStore = create<CaseState>()(
       cases: initialMockCases,
       activeCase: null,
       investigationData: null,
-      legalRequests: initialSubpoenas,
+      legalRequests: [],
       loading: false,
       error: null,
       selectedInspectorItem: null,
@@ -160,7 +176,13 @@ export const useCaseStore = create<CaseState>()(
 
       // RAG Knowledge Base initial state
       ragDocuments: [],
+      ragCollections: [],
+      ragDomains: [],
       ragLoading: false,
+
+      // Nodal Authorities initial state
+      authorities: [],
+      authoritiesLoading: false,
 
       clearError: () => set({ error: null }),
 
@@ -182,7 +204,27 @@ export const useCaseStore = create<CaseState>()(
       },
 
       setActiveCase: (policeCase: PoliceCase | null) => {
-        set({ activeCase: policeCase, investigationData: null });
+        if (!policeCase) {
+          set({
+            activeCase: null,
+            investigationData: null,
+            linkageMatches: [],
+            linkageStats: null,
+            legalRequests: []
+          });
+          return;
+        }
+
+        const currentCases = get().cases;
+        const existing = currentCases.find(c => c.case_number === policeCase.case_number) || policeCase;
+
+        set({
+          activeCase: existing,
+          investigationData: existing.investigationData || null,
+          linkageMatches: existing.linkageMatches || [],
+          linkageStats: existing.linkageStats || null,
+          legalRequests: existing.legalRequests || []
+        });
       },
 
       addCaseFromComplaint: (complaintData: any) => {
@@ -210,11 +252,23 @@ export const useCaseStore = create<CaseState>()(
             monetary_loss: 0
           },
           sections: ['BNS Section 318(4)', 'IT Act Section 66D', 'BSA Section 63'],
-          created_at: new Date().toISOString()
+          created_at: new Date().toISOString(),
+          completedSteps: [1],
+          linkageMatches: [],
+          linkageStats: null,
+          investigationData: null,
+          legalRequests: []
         };
 
         const updatedCases = [newCase, ...get().cases];
-        set({ cases: updatedCases, activeCase: newCase, investigationData: null });
+        set({
+          cases: updatedCases,
+          activeCase: newCase,
+          investigationData: null,
+          linkageMatches: [],
+          linkageStats: null,
+          legalRequests: []
+        });
 
         // Bug 4.1 fix: Log Module 1 intake event to activity timeline
         get().addCaseActivityLog(newCaseNumber, {
@@ -235,7 +289,16 @@ export const useCaseStore = create<CaseState>()(
             crime_sub_type: subType,
             entities
           });
-          set({ investigationData: res.data, error: null });
+          const data = res.data;
+          set({ investigationData: data, error: null });
+
+          const active = get().activeCase;
+          if (active && active.case_number === caseNumber) {
+            const completed = Array.from(new Set([...(active.completedSteps || [1]), 3]));
+            const updatedActive = { ...active, investigationData: data, completedSteps: completed };
+            const updatedCases = get().cases.map(c => c.case_number === caseNumber ? updatedActive : c);
+            set({ activeCase: updatedActive, cases: updatedCases });
+          }
 
           // Bug 4.1 fix: Log Module 3 investigation event to activity timeline
           const steps = res.data?.investigation_steps || [];
@@ -270,65 +333,75 @@ export const useCaseStore = create<CaseState>()(
             const accusedAcctObj = entities?.bank_accounts?.find((b: any) => typeof b === 'object' && (!b.is_victim_account || b.account_role === 'accused'));
             const accusedAcct = accusedAcctObj ? accusedAcctObj.account_number : (entities?.bank_accounts?.[0]?.account_number || entities?.bank_accounts?.[0] || '257735040901');
 
+            const fallbackData: InvestigationData = {
+              case_number: caseNumber,
+              evaluator_status: 'APPROVED',
+              sections: ['BNS Section 318(4)', 'IT Act Section 66D', 'BSA Section 63'],
+              cross_case_matches: [
+                {
+                  match_type: 'PHONE_RECURRENCE',
+                  matched_value: phone,
+                  previous_case_no: 'CR-2026-0812',
+                  police_station: 'Surat Cyber Cell',
+                  confidence: 0.94
+                }
+              ],
+              investigation_steps: [
+                {
+                  step_number: 1,
+                  title: 'Issue 1930 / CFCFRMS Bank Account Debit Freeze Notice',
+                  description: `Dispatch Section 94 BNSS Legal Notice to Bank Nodal Officer to freeze accused beneficiary account ${accusedAcct}.`,
+                  sop_reference: 'I4C CFCFRMS SOP p.11',
+                  document_name: 'I4C_CFCFRMS_Financial_Fraud_SOP.pdf',
+                  page_number: '11',
+                  section_path: 'Chapter 2 > Emergency Financial Freeze',
+                  raw_citation_text: 'Nodal Officer shall freeze beneficiary bank account within 2 hours of complaint registration.'
+                },
+                ...(victimAcct ? [{
+                  step_number: 2,
+                  title: 'Requisition Certified Outward RTGS Statement for Victim Account',
+                  description: `Issue Section 94 BNSS Notice to Union Bank Nodal Officer for certified remittance statement of victim account ${victimAcct}. DO NOT DEBIT FREEZE VICTIM ACCOUNT.`,
+                  sop_reference: 'RBI Master Direction KYC p.37',
+                  document_name: 'RBI_Master_Direction_KYC.pdf',
+                  page_number: '37',
+                  section_path: 'Section 12 > Outward Wire Remittance Verification',
+                  raw_citation_text: 'Certified bank account statement shall be issued to law enforcement investigating officer.'
+                }] : []),
+                {
+                  step_number: 3,
+                  title: 'Extract WhatsApp Telecom IPDR & Subscriber Details',
+                  description: `Requisition B-party CDR logs and IPDR session history for suspect line ${phone} from Telecom Service Provider.`,
+                  sop_reference: 'BPRD First Responder Handbook p.16',
+                  document_name: 'BPRD_First_Responder_Handbook.pdf',
+                  page_number: '16',
+                  section_path: 'Section 4 > Digital Forensics Acquisition',
+                  raw_citation_text: 'Preserve tower CDR and IPDR logs under Section 94 BNSS notice.'
+                },
+                {
+                  step_number: 4,
+                  title: 'Compile Section 63 BSA Electronic Evidence Certificate',
+                  description: 'Generate mandatory electronic evidence admissibility certificate for digital transaction receipts.',
+                  sop_reference: 'BSA Evidence Act 2023 Section 63',
+                  document_name: 'BSA_Evidence_Act_2023.pdf',
+                  page_number: '22',
+                  section_path: 'Section 63 > Admissibility of Electronic Records',
+                  raw_citation_text: 'Any information contained in an electronic record shall be admissible in court with valid SHA-256 certificate.'
+                }
+              ]
+            };
+
             set({
               error: null,
-              investigationData: {
-                case_number: caseNumber,
-                evaluator_status: 'APPROVED',
-                sections: ['BNS Section 318(4)', 'IT Act Section 66D', 'BSA Section 63'],
-                cross_case_matches: [
-                  {
-                    match_type: 'PHONE_RECURRENCE',
-                    matched_value: phone,
-                    previous_case_no: 'CR-2026-0812',
-                    police_station: 'Surat Cyber Cell',
-                    confidence: 0.94
-                  }
-                ],
-                investigation_steps: [
-                  {
-                    step_number: 1,
-                    title: 'Issue 1930 / CFCFRMS Bank Account Debit Freeze Notice',
-                    description: `Dispatch Section 94 BNSS Legal Notice to Bank Nodal Officer to freeze accused beneficiary account ${accusedAcct}.`,
-                    sop_reference: 'I4C CFCFRMS SOP p.11',
-                    document_name: 'I4C_CFCFRMS_Financial_Fraud_SOP.pdf',
-                    page_number: '11',
-                    section_path: 'Chapter 2 > Emergency Financial Freeze',
-                    raw_citation_text: 'Nodal Officer shall freeze beneficiary bank account within 2 hours of complaint registration.'
-                  },
-                  ...(victimAcct ? [{
-                    step_number: 2,
-                    title: 'Requisition Certified Outward RTGS Statement for Victim Account',
-                    description: `Issue Section 94 BNSS Notice to Union Bank Nodal Officer for certified remittance statement of victim account ${victimAcct}. DO NOT DEBIT FREEZE VICTIM ACCOUNT.`,
-                    sop_reference: 'RBI Master Direction KYC p.37',
-                    document_name: 'RBI_Master_Direction_KYC.pdf',
-                    page_number: '37',
-                    section_path: 'Section 12 > Outward Wire Remittance Verification',
-                    raw_citation_text: 'Certified bank account statement shall be issued to law enforcement investigating officer.'
-                  }] : []),
-                  {
-                    step_number: 3,
-                    title: 'Extract WhatsApp Telecom IPDR & Subscriber Details',
-                    description: `Requisition B-party CDR logs and IPDR session history for suspect line ${phone} from Telecom Service Provider.`,
-                    sop_reference: 'BPRD First Responder Handbook p.16',
-                    document_name: 'BPRD_First_Responder_Handbook.pdf',
-                    page_number: '16',
-                    section_path: 'Section 4 > Digital Forensics Acquisition',
-                    raw_citation_text: 'Preserve tower CDR and IPDR logs under Section 94 BNSS notice.'
-                  },
-                  {
-                    step_number: 4,
-                    title: 'Compile Section 63 BSA Electronic Evidence Certificate',
-                    description: 'Generate mandatory electronic evidence admissibility certificate for digital transaction receipts.',
-                    sop_reference: 'BSA Evidence Act 2023 Section 63',
-                    document_name: 'BSA_Evidence_Act_2023.pdf',
-                    page_number: '22',
-                    section_path: 'Section 63 > Admissibility of Electronic Records',
-                    raw_citation_text: 'Any information contained in an electronic record shall be admissible in court with valid SHA-256 certificate.'
-                  }
-                ]
-              }
+              investigationData: fallbackData
             });
+
+            const active = get().activeCase;
+            if (active && active.case_number === caseNumber) {
+              const completed = Array.from(new Set([...(active.completedSteps || [1]), 3]));
+              const updatedActive = { ...active, investigationData: fallbackData, completedSteps: completed };
+              const updatedCases = get().cases.map(c => c.case_number === caseNumber ? updatedActive : c);
+              set({ activeCase: updatedActive, cases: updatedCases });
+            }
           } else {
             set({
               investigationData: null,
@@ -341,17 +414,26 @@ export const useCaseStore = create<CaseState>()(
       },
 
       dispatchLegalNotice: async (id: string, payload: any) => {
+        let updated: SubpoenaNotice[] = [];
         try {
           await api.post(`/api/requests/${id}/dispatch`, payload);
-          const updated = get().legalRequests.map((r) =>
+          updated = get().legalRequests.map((r) =>
             r.id === id ? { ...r, status: 'DISPATCHED' as const } : r
           );
           set({ legalRequests: updated });
         } catch (err) {
-          const updated = get().legalRequests.map((r) =>
+          updated = get().legalRequests.map((r) =>
             r.id === id ? { ...r, status: 'DISPATCHED' as const } : r
           );
           set({ legalRequests: updated });
+        }
+
+        const active = get().activeCase;
+        if (active) {
+          const completed = Array.from(new Set([...(active.completedSteps || [1]), 4]));
+          const updatedActive = { ...active, legalRequests: updated, completedSteps: completed };
+          const updatedCases = get().cases.map(c => c.case_number === active.case_number ? updatedActive : c);
+          set({ activeCase: updatedActive, cases: updatedCases });
         }
       },
 
@@ -387,6 +469,14 @@ export const useCaseStore = create<CaseState>()(
             linkageStats:   computedStats,
             linkageError: null
           });
+
+          const active = get().activeCase;
+          if (active && active.case_number === caseNumber) {
+            const completed = Array.from(new Set([...(active.completedSteps || [1]), 2]));
+            const updatedActive = { ...active, linkageMatches: rawMatches, linkageStats: computedStats, completedSteps: completed };
+            const updatedCases = get().cases.map(c => c.case_number === caseNumber ? updatedActive : c);
+            set({ activeCase: updatedActive, cases: updatedCases });
+          }
 
           // Bug 4.1 fix: Log Module 2 linkage event to activity timeline
           get().addCaseActivityLog(caseNumber, {
@@ -580,6 +670,28 @@ export const useCaseStore = create<CaseState>()(
         }
       },
 
+      fetchRagCollections: async () => {
+        try {
+          const res = await api.get('/api/rag/collections');
+          if (res.data && Array.isArray(res.data.collections)) {
+            set({ ragCollections: res.data.collections });
+          }
+        } catch (err) {
+          console.warn('[⚠️ RAG Collections Fetch Fallback]');
+        }
+      },
+
+      fetchRagDomains: async () => {
+        try {
+          const res = await api.get('/api/rag/domains');
+          if (res.data && Array.isArray(res.data.domains)) {
+            set({ ragDomains: res.data.domains });
+          }
+        } catch (err) {
+          console.warn('[⚠️ RAG Domains Fetch Fallback]');
+        }
+      },
+
       uploadRagDocument: async (file: File, statuteType = 'custom_extended') => {
         set({ ragLoading: true });
         try {
@@ -611,6 +723,67 @@ export const useCaseStore = create<CaseState>()(
           throw err;
         } finally {
           set({ ragLoading: false });
+        }
+      },
+
+      fetchAuthorities: async () => {
+        set({ authoritiesLoading: true });
+        try {
+          const res = await api.get('/api/authorities');
+          if (res.data && Array.isArray(res.data.authorities)) {
+            set({ authorities: res.data.authorities });
+          }
+        } catch (err) {
+          console.warn('[⚠️ Authorities Fetch Warning]');
+        } finally {
+          set({ authoritiesLoading: false });
+        }
+      },
+
+      addAuthority: async (payload: NodalAuthority) => {
+        set({ authoritiesLoading: true });
+        try {
+          const res = await api.post('/api/authorities', payload);
+          if (res.data && res.data.authority) {
+            const current = get().authorities;
+            const updated = [res.data.authority, ...current.filter(a => a.key !== res.data.authority.key)];
+            set({ authorities: updated });
+          }
+        } catch (err) {
+          console.error('Add authority error:', err);
+          throw err;
+        } finally {
+          set({ authoritiesLoading: false });
+        }
+      },
+
+      updateAuthority: async (id: string, payload: Partial<NodalAuthority>) => {
+        set({ authoritiesLoading: true });
+        try {
+          const res = await api.put(`/api/authorities/${id}`, payload);
+          if (res.data && res.data.authority) {
+            const updated = get().authorities.map(a => a.id === id || a.key === id ? { ...a, ...res.data.authority } : a);
+            set({ authorities: updated });
+          }
+        } catch (err) {
+          console.error('Update authority error:', err);
+          throw err;
+        } finally {
+          set({ authoritiesLoading: false });
+        }
+      },
+
+      deleteAuthority: async (id: string) => {
+        set({ authoritiesLoading: true });
+        try {
+          await api.delete(`/api/authorities/${id}`);
+          const updated = get().authorities.filter(a => a.id !== id && a.key !== id);
+          set({ authorities: updated });
+        } catch (err) {
+          console.error('Delete authority error:', err);
+          throw err;
+        } finally {
+          set({ authoritiesLoading: false });
         }
       },
 

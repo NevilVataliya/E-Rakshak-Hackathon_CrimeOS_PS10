@@ -1,4 +1,5 @@
 import os
+import sys
 import smtplib
 import logging
 import datetime
@@ -8,6 +9,24 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.base import MIMEBase
 from email import encoders
 from typing import Dict, Any, Optional, List
+
+if hasattr(sys.stdout, "reconfigure"):
+    try:
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
+
+def safe_print(*args, **kwargs):
+    try:
+        print(*args, **kwargs)
+    except UnicodeEncodeError:
+        safe_args = []
+        for a in args:
+            if isinstance(a, str):
+                safe_args.append(a.encode("ascii", errors="replace").decode("ascii"))
+            else:
+                safe_args.append(a)
+        print(*safe_args, **kwargs)
 
 logger = logging.getLogger(__name__)
 
@@ -31,17 +50,41 @@ class SMTPMailer:
     ):
         self.smtp_host = smtp_host or os.environ.get("SMTP_HOST", os.environ.get("EMAIL_HOST", "smtp.gmail.com"))
         self.smtp_port = int(smtp_port or os.environ.get("SMTP_PORT", os.environ.get("EMAIL_PORT", 587)))
-        self.smtp_username = smtp_username or os.environ.get("SMTP_USERNAME", os.environ.get("SENDER_EMAIL"))
         
-        raw_pwd = smtp_password or os.environ.get("SMTP_PASSWORD") or os.environ.get("EMAIL_PASSWORD")
+        raw_user = (
+            smtp_username or 
+            os.environ.get("SMTP_USERNAME") or 
+            os.environ.get("SMTP_USER") or 
+            os.environ.get("SENDER_EMAIL") or 
+            os.environ.get("IMAP_USERNAME") or 
+            os.environ.get("IMAP_USER")
+        )
+        self.smtp_username = raw_user.strip("'\" \t\r\n") if raw_user else None
+
+        raw_pwd = (
+            smtp_password or 
+            os.environ.get("SMTP_PASSWORD") or 
+            os.environ.get("SMTP_PASS") or 
+            os.environ.get("EMAIL_PASSWORD") or 
+            os.environ.get("IMAP_PASSWORD") or 
+            os.environ.get("IMAP_PASS")
+        )
         self.smtp_password = raw_pwd.strip("'\" \t\r\n") if raw_pwd else None
 
-        self.sender_email = sender_email or os.environ.get("SENDER_EMAIL", self.smtp_username or "crimeos.police@gmail.com")
+        raw_sender = (
+            sender_email or 
+            os.environ.get("SENDER_EMAIL") or 
+            os.environ.get("SMTP_FROM") or 
+            os.environ.get("SMTP_USER") or 
+            self.smtp_username or 
+            "crimeos.police@gmail.com"
+        )
+        self.sender_email = raw_sender.strip("'\" \t\r\n")
         self.sender_name = sender_name or os.environ.get("SENDER_NAME", "Cyber Crime Investigation Cell")
         self.use_tls = use_tls
 
-        # Fallback to simulation mode if no password is provided in environment or args
-        self.simulation_mode = simulation_mode or not bool(self.smtp_password)
+        # Fallback to simulation mode only if no password is provided in environment or args
+        self.simulation_mode = simulation_mode if simulation_mode else not bool(self.smtp_password)
 
     def send_email(
         self,
@@ -70,16 +113,16 @@ class SMTPMailer:
 
         if self.simulation_mode or not self.smtp_password:
             logger.info(f"[SMTPMailer - SIMULATION MODE] Email prepared for {actual_to_email} (Case: {case_number})")
-            print("\n" + "="*70)
-            print(f"📧 [SMTP DISPATCH SIMULATION] Sending Email via smtplib to: {to_name} <{actual_to_email}> (Intended Target: {to_email})")
-            print(f"   SMTP Server: {self.smtp_host}:{self.smtp_port}")
-            print(f"   Subject: {subject}")
-            print(f"   Case Ref: {case_number}")
-            print(f"   Message ID: {message_id}")
-            print("-" * 70)
-            print("--- EMAIL BODY SNIPPET ---")
-            print(body_text[:400] + ("\n..." if len(body_text) > 400 else ""))
-            print("="*70 + "\n")
+            safe_print("\n" + "="*70)
+            safe_print(f"📧 [SMTP DISPATCH SIMULATION] Sending Email via smtplib to: {to_name} <{actual_to_email}> (Intended Target: {to_email})")
+            safe_print(f"   SMTP Server: {self.smtp_host}:{self.smtp_port}")
+            safe_print(f"   Subject: {subject}")
+            safe_print(f"   Case Ref: {case_number}")
+            safe_print(f"   Message ID: {message_id}")
+            safe_print("-" * 70)
+            safe_print("--- EMAIL BODY SNIPPET ---")
+            safe_print(body_text[:400] + ("\n..." if len(body_text) > 400 else ""))
+            safe_print("="*70 + "\n")
 
             return {
                 "success": True,
@@ -108,6 +151,13 @@ class SMTPMailer:
             for att in attachments:
                 filename = att.get("filename", "attachment.bin")
                 content = att.get("content", b"")
+                file_path = att.get("file_path")
+                if not content and file_path and os.path.exists(file_path):
+                    try:
+                        with open(file_path, "rb") as f:
+                            content = f.read()
+                    except Exception as e:
+                        logger.warning(f"Could not read attachment file {file_path}: {e}")
                 if isinstance(content, str):
                     content = content.encode("utf-8")
                 
@@ -132,7 +182,7 @@ class SMTPMailer:
             server.quit()
 
             logger.info(f"[SMTPMailer] Successfully sent email to {actual_to_email}. Message ID: {message_id}")
-            print(f"✅ [SMTP SUCCESS] Email delivered via smtplib to {actual_to_email} (Intended: {to_email}, Case: {case_number})")
+            safe_print(f"✅ [SMTP SUCCESS] Email delivered via smtplib to {actual_to_email} (Intended: {to_email}, Case: {case_number})")
 
             return {
                 "success": True,
@@ -147,7 +197,7 @@ class SMTPMailer:
         except Exception as e:
             err_msg = f"smtplib Dispatch Error: {str(e)}"
             logger.exception(err_msg)
-            print(f"⚠️ [SMTP ERROR] {err_msg}. Falling back to simulation record.")
+            safe_print(f"⚠️ [SMTP ERROR] {err_msg}. Falling back to simulation record.")
 
             return {
                 "success": False,
