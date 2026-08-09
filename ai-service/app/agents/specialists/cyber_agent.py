@@ -37,6 +37,8 @@ def cyber_agent_node(state: AgentState) -> dict:
     rag_context = "\n\n---\n\n".join(formatted_chunks) if formatted_chunks else "[SOURCE: CYBER_FRAUD_SOP.pdf | PAGE: 1]: Issue Sec 94 BNSS notice for CDR & Bank Debit Freeze."
 
     llm = get_agent_llm("auto", temperature=0.1)
+    if llm is None:
+        return {"cyber_draft": CyberDraftSchema().model_dump()}
 
     # Build retry instruction block — injected only on re-runs
     retry_block = ""

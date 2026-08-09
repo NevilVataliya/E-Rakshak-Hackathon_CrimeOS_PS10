@@ -64,6 +64,10 @@ export interface PoliceCase {
   investigationData?: InvestigationData | null;
   legalRequests?: SubpoenaNotice[];
   completedSteps?: number[];
+  currentStep?: number;
+  intakeLocked?: boolean;
+  ingestedFiles?: { name: string; size: number; type: string }[];
+  analyticsData?: CDRAnalysisResult | null;
 }
 
 export interface GroundedSOPStep {

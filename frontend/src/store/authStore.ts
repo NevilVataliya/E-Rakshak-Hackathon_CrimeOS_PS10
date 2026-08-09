@@ -10,6 +10,7 @@ interface AuthState {
   isAuthenticated: boolean;
   login: (username: string, password?: string) => Promise<void>;
   logout: () => void;
+  switchRole: (role: 'IO' | 'SHO' | 'LEGAL_ADVISOR' | 'ADMIN') => void;
 }
 
 const mockUsers: Record<string, User> = {
@@ -41,7 +42,7 @@ const mockUsers: Record<string, User> = {
 
 export const useAuthStore = create<AuthState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       user: mockUsers['io_patel'],
       token: 'mock-jwt-token-io-patel',
       isAuthenticated: true,
@@ -63,6 +64,16 @@ export const useAuthStore = create<AuthState>()(
           police_station: 'Surat Cyber Crime HQ'
         };
         set({ token: 'mock-jwt-token-io-patel', user: found, isAuthenticated: true });
+      },
+
+      switchRole: (role: 'IO' | 'SHO' | 'LEGAL_ADVISOR' | 'ADMIN') => {
+        const userMap = {
+          'IO': mockUsers['io_patel'],
+          'SHO': mockUsers['sho_sharma'],
+          'LEGAL_ADVISOR': mockUsers['legal_desai'],
+          'ADMIN': mockUsers['admin_crimeos']
+        };
+        set({ user: userMap[role] || mockUsers['io_patel'] });
       },
 
       logout: () => {

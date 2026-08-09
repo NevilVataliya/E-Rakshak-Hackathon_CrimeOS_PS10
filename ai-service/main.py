@@ -235,10 +235,12 @@ async def ingest_complaint(
     return result
 
 @app.post("/api/investigate")
-async def run_investigation(req: InvestigationRequest):
+@app.post("/api/cases/{case_id}/investigate")
+async def run_investigation(req: InvestigationRequest, case_id: Optional[str] = None):
+    c_num = case_id or req.case_number
     initial_state = {
-        "case_id": req.case_number,
-        "case_number": req.case_number,
+        "case_id": c_num,
+        "case_number": c_num,
         "complaint_text": req.complaint_text,
         "translated_text": req.complaint_text,
         "original_language": "en",

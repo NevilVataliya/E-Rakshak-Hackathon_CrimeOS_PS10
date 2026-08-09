@@ -28,7 +28,6 @@ function ProtectedLayout() {
   return (
     <div className="h-screen w-screen bg-[#050811] text-slate-100 flex flex-col font-sans overflow-hidden select-none">
       <CommandHeader />
-      <TacticalStepperHeader />
       <div className="flex flex-1 overflow-hidden">
         <main className="flex-1 flex flex-col bg-[#050811] overflow-hidden">
           <Routes>
@@ -38,6 +37,7 @@ function ProtectedLayout() {
             <Route path="/investigation" element={<InvestigationView />} />
             <Route path="/subpoenas" element={<SubpoenasView />} />
             <Route path="/analytics" element={<AnalyticsView />} />
+            <Route path="/casediary" element={<CaseDiaryView />} />
             <Route path="/case-diary" element={<CaseDiaryView />} />
             <Route path="/admin" element={<AdminView />} />
             <Route path="*" element={<Navigate to="/" replace />} />

@@ -71,6 +71,11 @@ interface CaseState {
   // Automated Case Activity Logging & Court Summary Actions
   addCaseActivityLog: (caseNumber: string, logItem: { module: string; step_title: string; details: string }) => void;
   generateCaseSummary: (caseNumber: string) => Promise<string>;
+
+  // Per-Case Session State Actions
+  updateCaseStep: (caseNumber: string, step: number) => void;
+  unlockCaseIntake: (caseNumber: string) => void;
+  saveCaseAnalytics: (caseNumber: string, analytics: any) => void;
 }
 
 const initialMockCases: PoliceCase[] = [
@@ -254,6 +259,9 @@ export const useCaseStore = create<CaseState>()(
           sections: ['BNS Section 318(4)', 'IT Act Section 66D', 'BSA Section 63'],
           created_at: new Date().toISOString(),
           completedSteps: [1],
+          currentStep: 1,
+          intakeLocked: true,
+          ingestedFiles: complaintData.files || [{ name: 'complaint_audio.wav', size: 1048576, type: 'audio/wav' }],
           linkageMatches: [],
           linkageStats: null,
           investigationData: null,
@@ -278,6 +286,53 @@ export const useCaseStore = create<CaseState>()(
         });
 
         return newCase;
+      },
+
+      updateCaseStep: (caseNumber: string, step: number) => {
+        const cases = get().cases;
+        const target = cases.find(c => c.case_number === caseNumber);
+        if (!target) return;
+
+        const completed = Array.from(new Set([...(target.completedSteps || [1]), step]));
+        const updated = { ...target, currentStep: step, completedSteps: completed };
+        const updatedCases = cases.map(c => c.case_number === caseNumber ? updated : c);
+
+        const active = get().activeCase;
+        set({
+          cases: updatedCases,
+          activeCase: active && active.case_number === caseNumber ? updated : active
+        });
+      },
+
+      unlockCaseIntake: (caseNumber: string) => {
+        const cases = get().cases;
+        const target = cases.find(c => c.case_number === caseNumber);
+        if (!target) return;
+
+        const updated = { ...target, intakeLocked: false };
+        const updatedCases = cases.map(c => c.case_number === caseNumber ? updated : c);
+
+        const active = get().activeCase;
+        set({
+          cases: updatedCases,
+          activeCase: active && active.case_number === caseNumber ? updated : active
+        });
+      },
+
+      saveCaseAnalytics: (caseNumber: string, analyticsData: any) => {
+        const cases = get().cases;
+        const target = cases.find(c => c.case_number === caseNumber);
+        if (!target) return;
+
+        const completed = Array.from(new Set([...(target.completedSteps || [1]), 5]));
+        const updated = { ...target, analyticsData, completedSteps: completed, currentStep: 5 };
+        const updatedCases = cases.map(c => c.case_number === caseNumber ? updated : c);
+
+        const active = get().activeCase;
+        set({
+          cases: updatedCases,
+          activeCase: active && active.case_number === caseNumber ? updated : active
+        });
       },
 
       runInvestigationStudio: async (caseNumber, complaintText, category, subType, entities) => {

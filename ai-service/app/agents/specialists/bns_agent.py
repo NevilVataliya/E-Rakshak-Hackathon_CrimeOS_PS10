@@ -28,6 +28,8 @@ def bns_agent_node(state: AgentState) -> dict:
     rag_context = "\n\n---\n\n".join(formatted_chunks) if formatted_chunks else "No specific text chunks retrieved. Base recommendations strictly on standard statutory provisions of Bharatiya Nyaya Sanhita (BNS), 2023 and IT Act, 2000."
 
     llm = get_agent_llm("auto", temperature=0.1)
+    if llm is None:
+        return {"bns_draft": BNSDraftSchema().model_dump()}
     
     # Build retry instruction block — injected only on re-runs
     retry_block = ""

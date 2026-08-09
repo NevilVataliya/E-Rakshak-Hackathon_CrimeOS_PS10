@@ -1,10 +1,25 @@
 import os
 from pathlib import Path
 from dotenv import load_dotenv
-from langchain_openai import ChatOpenAI
-from langchain_anthropic import ChatAnthropic
-from langchain_google_genai import ChatGoogleGenerativeAI
-from langchain_groq import ChatGroq
+try:
+    from langchain_openai import ChatOpenAI
+except ImportError:
+    ChatOpenAI = None
+
+try:
+    from langchain_anthropic import ChatAnthropic
+except ImportError:
+    ChatAnthropic = None
+
+try:
+    from langchain_google_genai import ChatGoogleGenerativeAI
+except ImportError:
+    ChatGoogleGenerativeAI = None
+
+try:
+    from langchain_groq import ChatGroq
+except ImportError:
+    ChatGroq = None
 
 # Load centralized error-handling policy (fallback/abort + retry config)
 from app.utils.error_policy import (
