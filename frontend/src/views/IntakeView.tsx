@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCaseStore } from '../store/caseStore';
-import { 
-  FileText, 
-  Upload, 
-  Languages, 
-  Sparkles, 
+import {
+  FileText,
+  Upload,
+  Languages,
+  Sparkles,
   ArrowRight,
   CreditCard,
   Phone,
@@ -144,39 +144,37 @@ export default function IntakeView() {
       formData.append('input_type', 'multimodal');
       formData.append('raw_text', complaintText || '');
 
+      // Always append raw_text and any attached files, then call the backend
+      // extraction pipeline — even for plain-text-only complaints (no files).
       if (attachedFiles.length > 0) {
         attachedFiles.forEach(f => {
           formData.append('files', f);
         });
+      }
 
-        setProgressStep(2);
-        const res = await api.post('/api/ingest', formData, {
-          headers: { 'Content-Type': 'multipart/form-data' },
-          signal: abortControllerRef.current.signal
-        });
+      setProgressStep(2);
+      const res = await api.post('/api/ingest', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+        signal: abortControllerRef.current.signal
+      });
 
-        if (res.data) {
-          resultText = res.data.extracted_text || res.data.raw_text || complaintText;
-          if (res.data.entities) {
-            setExtractedEntities({
-              case_number: extractedEntities.case_number,
-              fir_number: extractedEntities.fir_number || `FIR-${Math.floor(100 + Math.random() * 900)}/${new Date().getFullYear()}`,
-              crime_category: res.data.crime_category || 'CYBER',
-              crime_sub_type: res.data.crime_sub_type || 'Financial Cyber Fraud',
-              severity_score: res.data.severity_score || 8.5,
-              persons: res.data.entities.persons || [],
-              phone_numbers: res.data.entities.phone_numbers || [],
-              vpas_upis: res.data.entities.vpas_upis || [],
-              bank_accounts: res.data.entities.bank_accounts || [],
-              monetary_loss: res.data.entities.monetary_loss || 0,
-              sections: res.data.sections || ['BNS Section 318(4)', 'IT Act Section 66D']
-            });
-          }
+      if (res.data) {
+        resultText = res.data.extracted_text || res.data.raw_text || complaintText;
+        if (res.data.entities) {
+          setExtractedEntities({
+            case_number: extractedEntities.case_number,
+            fir_number: extractedEntities.fir_number || `FIR-${Math.floor(100 + Math.random() * 900)}/${new Date().getFullYear()}`,
+            crime_category: res.data.crime_category || 'CYBER',
+            crime_sub_type: res.data.crime_sub_type || 'Financial Cyber Fraud',
+            severity_score: res.data.severity_score || 8.5,
+            persons: res.data.entities.persons || [],
+            phone_numbers: res.data.entities.phone_numbers || [],
+            vpas_upis: res.data.entities.vpas_upis || [],
+            bank_accounts: res.data.entities.bank_accounts || [],
+            monetary_loss: res.data.entities.monetary_loss || 0,
+            sections: res.data.sections || ['BNS Section 318(4)', 'IT Act Section 66D']
+          });
         }
-      } else {
-        await new Promise(r => setTimeout(r, 600));
-        setProgressStep(2);
-        await new Promise(r => setTimeout(r, 600));
       }
 
       setProgressStep(3);
@@ -297,11 +295,10 @@ export default function IntakeView() {
               key={lang}
               disabled={isLocked}
               onClick={() => setSourceLanguage(lang)}
-              className={`px-3 py-1 text-xs font-bold rounded-lg transition-all ${
-                sourceLanguage === lang
+              className={`px-3 py-1 text-xs font-bold rounded-lg transition-all ${sourceLanguage === lang
                   ? 'bg-cyan-500 text-black shadow-md font-mono'
                   : 'text-slate-400 hover:text-slate-200'
-              } ${isLocked ? 'cursor-not-allowed opacity-80' : ''}`}
+                } ${isLocked ? 'cursor-not-allowed opacity-80' : ''}`}
             >
               {lang === 'gu' ? 'ગુજરાતી' : lang === 'hi' ? 'हिंदी' : 'ENGLISH'}
             </button>
@@ -362,7 +359,7 @@ export default function IntakeView() {
 
           {/* Multimodal Unified Input Box */}
           <div className="bg-[#0c1220] border border-slate-800 rounded-2xl p-5 space-y-4">
-            
+
             {/* Display Ingested Files List (If loaded case) */}
             {activeCase?.ingestedFiles && activeCase.ingestedFiles.length > 0 && isLocked && (
               <div className="bg-[#050811] p-3 rounded-xl border border-slate-800 space-y-2">
@@ -407,9 +404,8 @@ export default function IntakeView() {
                 onChange={(e) => setComplaintText(e.target.value)}
                 placeholder="Type or paste police complaint statement in Gujarati (ગુજરાતી), Hindi (हिंदी), or English...&#10;&#10;Example:&#10;Complainant Ramesh Patel reported that on 12/07/2026, he received a phone call from suspect (+91 98250 12345) offering work-from-home tasks. He transferred INR 2,50,000 to HDFC Bank A/C 501004928172..."
                 rows={14}
-                className={`w-full bg-[#050811] border border-slate-700/80 rounded-xl p-4 text-sm font-medium text-slate-100 placeholder-slate-500 leading-relaxed ${
-                  isLocked ? 'cursor-not-allowed opacity-90 border-slate-800' : 'focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400'
-                }`}
+                className={`w-full bg-[#050811] border border-slate-700/80 rounded-xl p-4 text-sm font-medium text-slate-100 placeholder-slate-500 leading-relaxed ${isLocked ? 'cursor-not-allowed opacity-90 border-slate-800' : 'focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400'
+                  }`}
               />
             </div>
 
@@ -421,13 +417,12 @@ export default function IntakeView() {
                   onDragLeave={handleDrag}
                   onDragOver={handleDrag}
                   onDrop={handleDrop}
-                  className={`border border-dashed rounded-xl px-4 py-3 flex items-center justify-between transition-all cursor-pointer ${
-                    dragActive
+                  className={`border border-dashed rounded-xl px-4 py-3 flex items-center justify-between transition-all cursor-pointer ${dragActive
                       ? 'border-cyan-400 bg-cyan-950/30'
                       : attachedFiles.length > 0
-                      ? 'border-emerald-500/60 bg-emerald-950/10'
-                      : 'border-slate-800 bg-[#050811] hover:border-slate-700'
-                  }`}
+                        ? 'border-emerald-500/60 bg-emerald-950/10'
+                        : 'border-slate-800 bg-[#050811] hover:border-slate-700'
+                    }`}
                 >
                   <div className="flex items-center space-x-2.5 text-xs text-slate-300">
                     <Paperclip className="w-4 h-4 text-cyan-400 shrink-0" />

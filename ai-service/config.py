@@ -88,15 +88,19 @@ print(f"[*] Configuration Loaded: DEBUG={DEBUG} | ENABLE_DEMO_FALLBACKS={ENABLE_
 def get_vision_llm():
     """
     Returns Gemini Flash model for high-accuracy multimodal (Image OCR, Handwriting, Audio) ingestion.
+    NOTE: max_retries=0 disables langchain's internal 429/rate-limit retry loop,
+    which otherwise blocks the request thread for 60s+ and hangs ingestion.
+    The CrimeOS error policy (with_retry + heuristic fallback) handles retries.
     """
     if GEMINI_API_KEY:
         return ChatGoogleGenerativeAI(
             model="gemini-2.0-flash",
             google_api_key=GEMINI_API_KEY,
-            temperature=0.1
+            temperature=0.1,
+            max_retries=0
         )
     elif OPENAI_API_KEY:
-        return ChatOpenAI(model="gpt-4o-mini", api_key=OPENAI_API_KEY, temperature=0.1)
+        return ChatOpenAI(model="gpt-4o-mini", api_key=OPENAI_API_KEY, temperature=0.1, max_retries=0)
     else:
         if not ENABLE_DEMO_FALLBACKS:
             raise ValueError("No Vision LLM API Key configured (GEMINI_API_KEY or OPENAI_API_KEY required).")
@@ -111,33 +115,36 @@ def get_agent_llm(provider: str = "auto", temperature: float = 0.2):
     target_provider = provider.lower() if provider != "auto" else env_provider
 
     if target_provider == "gemini" and GEMINI_API_KEY:
-        return ChatGoogleGenerativeAI(model="gemini-2.0-flash", google_api_key=GEMINI_API_KEY, temperature=temperature)
+        return ChatGoogleGenerativeAI(model="gemini-2.0-flash", google_api_key=GEMINI_API_KEY, temperature=temperature, max_retries=0)
 
     if target_provider == "groq" and GROQ_API_KEY:
-        return ChatGroq(model_name="llama-3.3-70b-versatile", groq_api_key=GROQ_API_KEY, temperature=temperature)
+        return ChatGroq(model_name="llama-3.3-70b-versatile", groq_api_key=GROQ_API_KEY, temperature=temperature, max_retries=0)
 
     if target_provider == "claude" and ANTHROPIC_API_KEY:
-        return ChatAnthropic(model="claude-3-5-sonnet-20240620", api_key=ANTHROPIC_API_KEY, temperature=temperature)
+        return ChatAnthropic(model="claude-3-5-sonnet-20240620", api_key=ANTHROPIC_API_KEY, temperature=temperature, max_retries=0)
 
     if target_provider == "openai" and OPENAI_API_KEY:
-        return ChatOpenAI(model="gpt-4o", api_key=OPENAI_API_KEY, temperature=temperature)
+        return ChatOpenAI(model="gpt-4o", api_key=OPENAI_API_KEY, temperature=temperature, max_retries=0)
 
     # AUTO SELECTION
-    if GEMINI_API_KEY and (env_provider == "gemini" or not GROQ_API_KEY):
-        return ChatGoogleGenerativeAI(model="gemini-2.0-flash", google_api_key=GEMINI_API_KEY, temperature=temperature)
+    # Prefer Gemini when available: Gemini 2.0 Flash has significantly better
+    # multilingual (Gujarati/Hindi/Devanagari) text and Indic-numeral extraction
+    # than Groq's Llama. It also avoids the hanging/unreachable Groq connection
+    # that caused ingestion requests to block indefinitely.
+    # NOTE: max_retries=0 disables langchain's internal 429/rate-limit retry loop,
+    # which otherwise blocks the request thread for 60s+ and hangs ingestion.
+    # The CrimeOS error policy (with_retry + heuristic fallback) handles retries.
+    if GEMINI_API_KEY:
+        return ChatGoogleGenerativeAI(model="gemini-2.0-flash", google_api_key=GEMINI_API_KEY, temperature=temperature, max_retries=0)
     elif GROQ_API_KEY:
         try:
-            return ChatGroq(model_name="llama-3.3-70b-versatile", groq_api_key=GROQ_API_KEY, temperature=temperature)
+            return ChatGroq(model_name="llama-3.3-70b-versatile", groq_api_key=GROQ_API_KEY, temperature=temperature, max_retries=0)
         except Exception:
-            if GEMINI_API_KEY:
-                return ChatGoogleGenerativeAI(model="gemini-2.0-flash", google_api_key=GEMINI_API_KEY, temperature=temperature)
-            return ChatGroq(model_name="llama3-70b-8192", groq_api_key=GROQ_API_KEY, temperature=temperature)
+            return ChatGroq(model_name="llama3-70b-8192", groq_api_key=GROQ_API_KEY, temperature=temperature, max_retries=0)
     elif ANTHROPIC_API_KEY:
-        return ChatAnthropic(model="claude-3-5-sonnet-20240620", api_key=ANTHROPIC_API_KEY, temperature=temperature)
+        return ChatAnthropic(model="claude-3-5-sonnet-20240620", api_key=ANTHROPIC_API_KEY, temperature=temperature, max_retries=0)
     elif OPENAI_API_KEY:
-        return ChatOpenAI(model="gpt-4o-mini", api_key=OPENAI_API_KEY, temperature=temperature)
-    elif GEMINI_API_KEY:
-        return ChatGoogleGenerativeAI(model="gemini-2.0-flash", google_api_key=GEMINI_API_KEY, temperature=temperature)
+        return ChatOpenAI(model="gpt-4o-mini", api_key=OPENAI_API_KEY, temperature=temperature, max_retries=0)
     else:
         if not ENABLE_DEMO_FALLBACKS:
             raise ValueError("No Agent LLM API Keys found in .env (GROQ_API_KEY, OPENAI_API_KEY, ANTHROPIC_API_KEY, or GEMINI_API_KEY required).")

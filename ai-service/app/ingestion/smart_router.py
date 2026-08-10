@@ -1,4 +1,5 @@
 import os
+import concurrent.futures
 from typing import Union, List, Dict, Any, Optional
 from config import GEMINI_API_KEY, get_agent_llm, is_offline_mode
 from app.utils.json_helper import parse_llm_json
@@ -20,6 +21,45 @@ from app.utils.error_policy import (
     ERROR_POLICY,
     MAX_RETRIES,
 )
+
+# Hard timeout (seconds) for a single cloud LLM call. Prevents indefinite hangs
+# when the provider API is unreachable/slow. When exceeded, the request fails
+# fast and triggers the heuristic fallback instead of blocking forever.
+LLM_CALL_TIMEOUT_SEC = float(os.getenv("LLM_CALL_TIMEOUT_SEC", "60"))
+
+
+def _invoke_llm_with_timeout(llm, prompt_text: str):
+    """
+    Invoke the LLM with a hard wall-clock timeout.
+    Runs the (blocking) invoke in a worker thread and waits up to
+    LLM_CALL_TIMEOUT_SEC. If it doesn't finish in time, raises TimeoutError
+    immediately so the caller's error policy (heuristic fallback) kicks in.
+
+    CRITICAL: We do NOT use a `with ThreadPoolExecutor(...)` context manager
+    here. The context manager's __exit__ calls `shutdown(wait=True)`, which
+    BLOCKS until the worker thread completes. If langchain is stuck in its
+    internal retry sleep (e.g. Gemini 429 rate-limit), that shutdown blocks
+    indefinitely — defeating the entire purpose of the timeout. Instead we
+    create the executor, submit, wait with a timeout, and on timeout raise
+    TimeoutError WITHOUT waiting for the worker thread. (The orphaned thread
+    finishes on its own eventually and is harmless.) We also set the thread
+    as daemon so it never blocks process exit.
+    """
+    executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
+    try:
+        future = executor.submit(llm.invoke, prompt_text)
+        try:
+            return future.result(timeout=LLM_CALL_TIMEOUT_SEC)
+        except concurrent.futures.TimeoutError:
+            future.cancel()
+            raise TimeoutError(
+                f"LLM call exceeded timeout of {LLM_CALL_TIMEOUT_SEC}s "
+                f"({type(llm).__name__})."
+            )
+    finally:
+        # Do NOT block waiting for the worker. shutdown(wait=False) lets the
+        # orphaned thread finish on its own.
+        executor.shutdown(wait=False)
 
 class IntakeAgent:
     """
@@ -253,11 +293,11 @@ Respond ONLY in valid JSON matching this exact structure:
             raise ValueError("No Cloud LLM API key available.")
 
         # Invoke the LLM with centralized retry logic (exponential backoff on
-        # rate limits / transient errors). The retry policy is configured via
-        # MAX_RETRIES, RETRY_BASE_DELAY, RETRY_MAX_DELAY, RETRY_BACKOFF_FACTOR.
+        # rate limits / transient errors) AND a hard wall-clock timeout so a
+        # hung/unreachable provider fails fast and triggers the heuristic
+        # fallback instead of blocking the request indefinitely.
         resp = with_retry(
-            llm.invoke,
-            prompt_text,
+            lambda: _invoke_llm_with_timeout(llm, prompt_text),
             on_retry=lambda e, attempt: print(
                 f"  [!] LLM transient error ({type(e).__name__}: {e}). "
                 f"Retrying (attempt {attempt}/{MAX_RETRIES})..."

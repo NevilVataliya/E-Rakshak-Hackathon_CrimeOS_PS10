@@ -4,6 +4,7 @@ from app.rag.qdrant_client import search_legal_sops
 from app.utils.json_helper import parse_llm_json
 from app.models.schemas import BNSDraftSchema
 from config import get_agent_llm, ENABLE_DEMO_FALLBACKS
+from app.ingestion.smart_router import _invoke_llm_with_timeout
 
 def bns_agent_node(state: AgentState) -> dict:
     """
@@ -91,7 +92,7 @@ Respond ONLY in valid JSON matching this exact structure:
 }}
 """
     try:
-        resp = llm.invoke(prompt)
+        resp = _invoke_llm_with_timeout(llm, prompt)
         text = resp.content if hasattr(resp, 'content') else str(resp)
         data = parse_llm_json(text, schema_model=BNSDraftSchema)
         return {"bns_draft": data}

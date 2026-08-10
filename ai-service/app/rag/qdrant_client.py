@@ -41,24 +41,62 @@ def get_qdrant_client():
                 _qdrant_client = QdrantClient(host=QDRANT_HOST, port=QDRANT_PORT, timeout=60.0)
     return _qdrant_client
 
-def get_query_embedding(query: str):
-    global _st_model
+import concurrent.futures
+
+# Hard timeout (seconds) for a single embedding computation / model load.
+# The bge-m3 model is ~5GB and on first run (or when cache is incomplete) it
+# downloads from HuggingFace, which can take many minutes or hang. We never
+# want the investigation to block forever on this, so we fail fast to the
+# dummy-vector fallback (which lets Qdrant search continue with degraded RAG).
+EMBED_TIMEOUT_SEC = float(os.getenv("EMBED_TIMEOUT_SEC", "120"))
+
+def _embed_with_timeout(query: str):
+    """
+    Run the (potentially blocking) model-load + encode inside a worker thread
+    with a hard wall-clock timeout. On timeout, raises TimeoutError so the
+    caller's fallback (dummy vector) kicks in instead of blocking forever.
+    CRITICAL: We do NOT use `with ThreadPoolExecutor(...)` — its __exit__ calls
+    shutdown(wait=True) which would block until the download/encode finishes.
+    """
+    executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
     try:
-        if _st_model is None:
-            with _model_lock:
-                if _st_model is None:
-                    print(f"[*] Thread Safe Initialization: Loading SentenceTransformer ('BAAI/bge-m3') into cache '{MODEL_CACHE_DIR}'...")
-                    from sentence_transformers import SentenceTransformer
-                    st_kwargs = {'cache_folder': MODEL_CACHE_DIR}
-                    if HF_TOKEN:
-                        st_kwargs['token'] = HF_TOKEN
-                    _st_model = SentenceTransformer("BAAI/bge-m3", **st_kwargs)
-        vector = _st_model.encode(query).tolist()
-        return vector
+        future = executor.submit(_encode_inner, query)
+        try:
+            return future.result(timeout=EMBED_TIMEOUT_SEC)
+        except concurrent.futures.TimeoutError:
+            future.cancel()
+            raise TimeoutError(
+                f"Embedding computation exceeded timeout of {EMBED_TIMEOUT_SEC}s "
+                f"while loading/encoding '{query[:80]}...' (bge-m3 model may still be downloading)."
+            )
+    finally:
+        # Do NOT block waiting for the worker thread.
+        executor.shutdown(wait=False)
+
+
+def _encode_inner(query: str):
+    global _st_model
+    if _st_model is None:
+        with _model_lock:
+            if _st_model is None:
+                print(f"[*] Thread Safe Initialization: Loading SentenceTransformer ('BAAI/bge-m3') into cache '{MODEL_CACHE_DIR}'...")
+                from sentence_transformers import SentenceTransformer
+                st_kwargs = {'cache_folder': MODEL_CACHE_DIR}
+                if HF_TOKEN:
+                    st_kwargs['token'] = HF_TOKEN
+                _st_model = SentenceTransformer("BAAI/bge-m3", **st_kwargs)
+    return _st_model.encode(query).tolist()
+
+
+def get_query_embedding(query: str):
+    try:
+        return _embed_with_timeout(query)
     except Exception as e:
         print(f"[-] SentenceTransformer Embedding Exception: {e}")
-        if not ENABLE_DEMO_FALLBACKS:
-            raise e
+        # ALWAYS degrade to a dummy vector on embedding failure (timeout / download
+        # hang). The embedding is a query-side concern — if the model is unavailable
+        # we let Qdrant search proceed with degraded RAG rather than breaking the
+        # entire investigation. Specialist agents already handle empty RAG context.
         return [0.001] * 1024
 
 def tokenize_text(text: str) -> List[str]:

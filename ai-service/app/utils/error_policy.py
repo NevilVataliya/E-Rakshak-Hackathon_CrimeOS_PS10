@@ -18,6 +18,7 @@ Retry Configuration (controlled via env vars):
 """
 
 import os
+import re
 import time
 import random
 from typing import Any, Callable, Dict, Optional, TypeVar
@@ -36,25 +37,92 @@ RETRY_BACKOFF_FACTOR = float(os.getenv("RETRY_BACKOFF_FACTOR", "2.0"))
 # cap, we skip the retry and go straight to fallback/abort. This implements the
 # "retry only if the retry time is small" requirement — don't waste minutes
 # sleeping when a fallback is available. Set to 0 to disable retries entirely.
-MAX_RETRY_WAIT_SEC = float(os.getenv("MAX_RETRY_WAIT_SEC", "30"))
+MAX_RETRY_WAIT_SEC = float(os.getenv("MAX_RETRY_WAIT_SEC", "300"))
+# If a rate-limit response tells us to retry after some time, only retry if that
+# wait is <= this threshold (seconds). Groq/OpenAI/Anthropic return retry-after
+# hints in the error message (e.g. "Please try again in 2h9m16.128s"). If the
+# provider needs us to wait longer than this, we fail fast instead of sleeping.
+MAX_RATE_LIMIT_WAIT_SEC = float(os.getenv("MAX_RATE_LIMIT_WAIT_SEC", "300"))  # 5 minutes
 
 
 # ─── Rate-Limit / Retryable Error Detection ─────────────────────────────────
+
+def parse_rate_limit_retry_after(exc: BaseException) -> float:
+    """
+    Parse the retry-after hint from a rate-limit exception message.
+
+    Groq (and OpenAI/Anthropic) return messages like:
+      "Please try again in 2h9m16.128s ..."
+      "Rate limit reached ... try again in 1h5m11.328s ..."
+      "Please try again in 29.392s ..."
+
+    Returns:
+        The retry delay in seconds, or 0.0 if no explicit retry time is present.
+    """
+    err_str = str(exc)
+    # Match patterns like "2h9m16.128s", "1h5m11s", "29.392s", "5m", "2h"
+    m = re.search(r"in\s+(\d+(?:\.\d+)?)\s*(h|m|s)?(?:\s*(\d+(?:\.\d+)?)\s*(m|s))?(?:\s*(\d+(?:\.\d+)?)\s*s)?", err_str, re.IGNORECASE)
+    if not m:
+        return 0.0
+    total = 0.0
+    # First component
+    val1 = float(m.group(1))
+    unit1 = (m.group(2) or 's').lower()
+    if unit1 == 'h':
+        total += val1 * 3600
+    elif unit1 == 'm':
+        total += val1 * 60
+    else:
+        total += val1
+    # Second component (minutes or seconds)
+    if m.group(3):
+        val2 = float(m.group(3))
+        unit2 = (m.group(4) or 's').lower()
+        if unit2 == 'm':
+            total += val2 * 60
+        else:
+            total += val2
+    # Third component (seconds)
+    if m.group(5):
+        total += float(m.group(5))
+    return total
+
 
 def is_retryable_error(exc: BaseException) -> bool:
     """
     Determine whether an exception is retryable (rate limit, transient network,
     or server error). Returns True if the error is transient and a retry may help.
+
+    IMPORTANT: A hard `TimeoutError` raised by our own LLM call wrapper
+    (`_invoke_llm_with_timeout`) is NOT retryable. The timeout means the provider
+    is unreachable/slow and retrying would only compound the wait. We must fail
+    fast and trigger the heuristic fallback instead. (Langchain's own transient
+    exceptions are caught separately — this only applies to the hard timeout.)
+
+    RATE-LIMIT TIME-AWARENESS:
+    For rate-limit errors (429), we parse the provider's retry-after hint. If the
+    provider explicitly tells us to wait longer than MAX_RATE_LIMIT_WAIT_SEC
+    (default 300s / 5 min), we treat it as NON-retryable so the caller fails fast
+    rather than sleeping for minutes. This implements the "retry only if the wait
+    is small" requirement.
     """
+    if isinstance(exc, TimeoutError):
+        return False
     err_str = str(exc).lower()
     # Rate limiting (Groq/OpenAI/Anthropic/Gemini all use 429)
     if "rate_limit" in err_str or "429" in err_str:
+        retry_after = parse_rate_limit_retry_after(exc)
+        if retry_after > MAX_RATE_LIMIT_WAIT_SEC:
+            print(f"  [!] Rate limit retry-after {retry_after:.0f}s exceeds "
+                  f"MAX_RATE_LIMIT_WAIT_SEC={MAX_RATE_LIMIT_WAIT_SEC:.0f}s. "
+                  f"NOT retrying — failing fast.")
+            return False
         return True
     # Token/length limits that are transient
     if "tokens" in err_str or "token" in err_str:
         return True
-    # Transient network / server errors
-    if "timeout" in err_str or "timed out" in err_str:
+    # Transient network / server errors (but NOT our hard TimeoutError above)
+    if "timed out" in err_str:
         return True
     if "connection" in err_str or "network" in err_str:
         return True
@@ -151,12 +219,23 @@ def with_retry(
             attempt += 1
             if attempt > max_retries or not retryable(e):
                 raise
-            delay = get_retry_delay(attempt)
-            # Only retry if the wait budget allows it. If the next backoff delay
+            # Prefer the provider's explicit retry-after hint (e.g. Groq's
+            # "Please try again in 2h9m16.128s") as the delay. This honors the
+            # "retry only if the wait is small" requirement: if the provider
+            # says wait > MAX_RATE_LIMIT_WAIT_SEC, is_retryable_error already
+            # returned False, so we never reach here. If the provider gives a
+            # short retry-after (<= 5 min), we wait exactly that long.
+            retry_after = parse_rate_limit_retry_after(e)
+            if retry_after > 0:
+                delay = min(retry_after, MAX_RETRY_WAIT_SEC)
+            else:
+                delay = get_retry_delay(attempt)
+            # Only retry if the wait budget allows it. If the next delay
             # would push the cumulative retry wait beyond MAX_RETRY_WAIT_SEC,
             # skip the retry and surface the error so the caller's policy
             # (fallback/abort) takes over. This implements the "retry only if
-            # the retry time is small" requirement.
+            # the retry time is small" requirement and prevents sleeping
+            # indefinitely on a long provider-cooldown.
             if MAX_RETRY_WAIT_SEC > 0 and (total_wait + delay) > MAX_RETRY_WAIT_SEC:
                 print(f"  [!] Transient error ({type(e).__name__}: {e}). "
                       f"Skipping retry: next delay {delay}s would exceed "

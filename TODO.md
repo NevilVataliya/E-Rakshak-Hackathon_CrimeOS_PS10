@@ -1,20 +1,30 @@
-# Fix Agentic RAG System Response Issues
+# CrimeOS Intake Flow Bug Fixes
 
-## Steps
-- [x] Add `money_trail` field to `ai-service/app/models/schemas.py`
-- [x] Fix Gujarati/Hindi numeral parsing in `ai-service/app/ingestion/heuristic_extractor.py`
-- [x] Enhance ingestion prompt in `ai-service/app/ingestion/smart_router.py`
-- [x] Enhance BNS agent prompt in `ai-service/app/agents/specialists/bns_agent.py`
-- [x] Enhance cyber agent prompt in `ai-service/app/agents/specialists/cyber_agent.py`
-- [x] Add money-trail tracing step in `ai-service/app/agents/nodes/synthesis.py`
-- [x] Verify Gujarati numeral parsing fix (₹9,00,000 correctly parsed)
-- [x] Add deterministic monetary loss override in `ai-service/app/ingestion/smart_router.py` (picks largest amount from raw text)
-- [x] Add money-trail keyword requirement in `ai-service/app/agents/specialists/cyber_agent.py`
-- [x] End-to-end verification passed (money loss ₹9,00,000, BNS 318/351 ✅, money-trail tracing ✅, synthesis step ✅)
+## Approved Plan
+1. [x] Fix `frontend/src/views/IntakeView.tsx` — Move `/api/ingest` POST outside `if (attachedFiles.length > 0)` so plain-text complaints always hit backend extraction pipeline
+2. [x] Fix `ai-service/app/ingestion/smart_router.py` — Add timeout to LLM invocation so it fails fast and triggers heuristic fallback instead of hanging
+3. [x] Fix `ai-service/config.py` — Prefer Gemini over Groq in auto-selection for better Gujarati/Indic extraction
+4. [x] Test — Re-run curl against `/api/ingest` with full Gujarati text to verify extraction works
 
-## Root Causes Identified
-1. **Monetary loss ₹90,000 vs ₹9,00,000** - Gujarati numeral regex only matches ASCII digits
-2. **Missing BNS 318 (Cheating) & BNS 351 (Criminal Intimidation)** - prompts don't infer implied sections
-3. **Section inconsistency between stages** - no reconciliation between ingestion and BNS agent
-4. **Key facts too generic** - prompt doesn't require specific amounts/trail/findings
-5. **Missing money-trail tracing step** - cyber agent doesn't trace full transfer chain
+## Status
+- Root cause identified: 
+  - Bug 1: Plain-text intake never calls `/api/ingest` (frontend fakes progress, creates empty case)
+  - Bug 2: Backend LLM call has no timeout, hangs indefinitely on Groq API request
+
+## Fixes Applied
+1. **`frontend/src/views/IntakeView.tsx`** — `/api/ingest` POST moved outside `if (attachedFiles.length > 0)` so plain-text always hits backend.
+2. **`ai-service/app/ingestion/smart_router.py`** — `_invoke_llm_with_timeout()` helper (ThreadPoolExecutor, 60s `LLM_CALL_TIMEOUT_SEC`) wired into `with_retry` call. Removed `with ThreadPoolExecutor(...)` context manager (its `shutdown(wait=True)` blocked on orphaned thread, defeating the timeout). Now uses `executor.shutdown(wait=False)` so the timeout fires immediately.
+3. **`ai-service/config.py`** — Added `max_retries=0` to ALL LLM factory calls to disable langchain's internal 429/rate-limit retry loop that blocked for 60s+.
+4. **`ai-service/app/utils/error_policy.py`** — `is_retryable_error()` returns `False` for `isinstance(exc, TimeoutError)` so hard timeout goes straight to heuristic fallback.
+5. **`docker-compose.yml`** — Added `LLM_PROVIDER=${LLM_PROVIDER:-groq}` env var. **Gemini API key is exhausted (429 quota, limit: 0)** — auto-selection preferred Gemini, which failed. Now forced to Groq.
+
+## Test Result (Groq)
+- **Status Code: 200**
+- **processing_mode: HYBRID_ONLINE** (Groq LLM call succeeded, NOT fallback)
+- **fallback_used: False**
+- **monetary_loss: 900000** (₹9,00,000 correctly extracted from Gujarati numerals)
+- **bank_accounts**: Union Bank (victim, is_victim_account=true), Indusind Bank (INDB0000184), IDBI Bank (IBKL0001006)
+- **persons**: Indrajitsinh (investigator), Zahir Husen (accused, questioned), Monish urfe Monu (absconding), Vithal (absconding)
+- **phone_numbers**: +6612336761, +2223755264
+- **crime_sub_type**: Online Scam
+- **severity_score**: 8.5
