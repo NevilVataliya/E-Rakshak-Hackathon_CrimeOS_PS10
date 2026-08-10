@@ -47,28 +47,14 @@ export default function CommandHeader() {
           </kbd>
         </button>
 
-        {/* Right: Active FIR Selector & IO Officer Profile */}
+        {/* Right: IO Officer Profile */}
         <div className="flex items-center gap-3">
-
-          {/* Active FIR Selector */}
-          <div className="flex items-center gap-1.5">
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Active Case:</span>
-            <select
-              value={activeCase?.case_number || ''}
-              onChange={(e) => {
-                const found = cases.find((c: any) => c.case_number === e.target.value);
-                setActiveCase(found || null);
-              }}
-              className="h-7 rounded-lg border border-blue-500/30 bg-[#050811] px-2 text-xs font-mono font-bold text-cyan-300 outline-none hover:border-blue-500/50"
-            >
-              <option value="">Select Active Case...</option>
-              {cases.map((c: any) => (
-                <option key={c.case_number} value={c.case_number}>
-                  {c.case_number} {c.fir_number ? `(${c.fir_number})` : ''}
-                </option>
-              ))}
-            </select>
-          </div>
+          {activeCase && (
+            <div className="flex items-center gap-1.5 rounded-lg border border-blue-500/30 bg-[#050811] px-2.5 py-1 text-xs font-mono">
+              <span className="text-[10px] font-bold text-slate-400 uppercase">Active:</span>
+              <span className="font-bold text-cyan-300">{activeCase.case_number}</span>
+            </div>
+          )}
 
           <div className="h-3.5 w-px bg-white/10" />
 

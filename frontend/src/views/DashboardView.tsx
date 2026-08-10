@@ -1,20 +1,24 @@
-import React, { useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Layers, FileCheck2, AlertTriangle, Cpu, Play, FileUp, ShieldCheck, ArrowRight } from 'lucide-react';
+import { Layers, FileCheck2, AlertTriangle, Cpu, FileUp, ShieldCheck, ListTree, Activity, Zap, CheckCircle2 } from 'lucide-react';
 import { useCaseStore } from '../store/caseStore';
 import { PoliceCase } from '../types';
+import CasePipelineModal from '../components/common/CasePipelineModal';
 
 export default function DashboardView() {
   const navigate = useNavigate();
-  const { cases, setActiveCase, fetchCases } = useCaseStore();
+  const { cases, activeCase, setActiveCase, fetchCases } = useCaseStore();
+  const [modalOpen, setModalOpen] = useState(false);
+  const [selectedCaseForModal, setSelectedCaseForModal] = useState<PoliceCase | null>(null);
 
   useEffect(() => {
     fetchCases();
   }, []);
 
-  const handleLaunchCase = (c: PoliceCase) => {
+  const handleOpenPipelineModal = (c: PoliceCase) => {
     setActiveCase(c);
-    navigate('/investigation');
+    setSelectedCaseForModal(c);
+    setModalOpen(true);
   };
 
   return (
@@ -82,7 +86,7 @@ export default function DashboardView() {
         </div>
       </div>
 
-      {/* Main Grid Layout: Active Cases Table & Action Launchpad */}
+      {/* Main Grid Layout: Active Cases Table & Station Intelligence */}
       <div className="flex-1 grid grid-cols-3 gap-3 overflow-hidden">
 
         {/* Left: Active Cases Table */}
@@ -91,9 +95,9 @@ export default function DashboardView() {
             <span className="text-xs font-bold uppercase tracking-wider text-slate-300">
               Active Police Case Register
             </span>
-            <button onClick={() => navigate('/investigation')} className="text-[10px] text-blue-400 hover:underline flex items-center gap-1">
-              <span>Investigation Studio</span> <ArrowRight className="h-3 w-3" />
-            </button>
+            <span className="text-[10px] text-slate-400 font-mono">
+              Click 'Pipeline Steps' on any case to open guided workflow popup
+            </span>
           </div>
 
           <div className="flex-1 overflow-y-auto">
@@ -104,91 +108,106 @@ export default function DashboardView() {
                   <th className="py-2 px-3">Category</th>
                   <th className="py-2 px-3">Sub-Type</th>
                   <th className="py-2 px-3">Assigned IO</th>
-                  <th className="py-2 px-3 text-right">Action</th>
+                  <th className="py-2 px-3 text-right">Investigation Action</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5">
-                {cases.map((c: any) => (
-                  <tr key={c.case_number} className="hover:bg-slate-900/60 transition-colors">
-                    <td className="py-2 px-3 font-mono font-bold text-white">
-                      <div>{c.case_number}</div>
-                      <div className="text-[10px] text-slate-500 font-normal">{c.fir_number}</div>
-                    </td>
-                    <td className="py-2 px-3">
-                      <span className="rounded border border-blue-500/30 bg-blue-500/10 px-1.5 py-0.5 text-[10px] font-mono text-blue-300 font-bold">
-                        {c.crime_category}
-                      </span>
-                    </td>
-                    <td className="py-2 px-3 text-slate-300 font-medium">{c.crime_sub_type}</td>
-                    <td className="py-2 px-3 text-slate-400">{c.assigned_io}</td>
-                    <td className="py-2 px-3 text-right">
-                      <button
-                        onClick={() => handleLaunchCase(c)}
-                        className="inline-flex items-center gap-1 rounded border border-white/10 bg-[#050811] px-2 py-1 text-[10px] font-mono text-blue-400 hover:border-white/20 transition-colors"
-                      >
-                        <Play className="h-3 w-3" /> Launch
-                      </button>
-                    </td>
-                  </tr>
-                ))}
+                {cases.map((c: PoliceCase) => {
+                  const isActive = activeCase?.case_number === c.case_number;
+
+                  return (
+                    <tr 
+                      key={c.case_number} 
+                      className={`transition-colors ${isActive ? 'bg-blue-500/10 hover:bg-blue-500/15' : 'hover:bg-slate-900/60'}`}
+                    >
+                      <td className="py-2 px-3 font-mono font-bold text-white">
+                        <div className="flex items-center gap-1.5">
+                          <span>{c.case_number}</span>
+                          {isActive && (
+                            <span className="text-[9px] font-mono text-emerald-400 bg-emerald-500/10 px-1 py-0.2 rounded border border-emerald-500/30">
+                              Active
+                            </span>
+                          )}
+                        </div>
+                        <div className="text-[10px] text-slate-500 font-normal">{c.fir_number}</div>
+                      </td>
+                      <td className="py-2 px-3">
+                        <span className="rounded border border-blue-500/30 bg-blue-500/10 px-1.5 py-0.5 text-[10px] font-mono text-blue-300 font-bold">
+                          {c.crime_category}
+                        </span>
+                      </td>
+                      <td className="py-2 px-3 text-slate-300 font-medium">{c.crime_sub_type}</td>
+                      <td className="py-2 px-3 text-slate-400">{c.assigned_io}</td>
+                      <td className="py-2 px-3 text-right">
+                        <button
+                          onClick={() => handleOpenPipelineModal(c)}
+                          className="inline-flex items-center gap-1.5 rounded-lg border border-blue-500/40 bg-blue-500/10 px-2.5 py-1 text-[11px] font-mono text-blue-300 font-bold hover:bg-blue-500/20 transition-all shadow-sm"
+                        >
+                          <ListTree className="h-3.5 w-3.5 text-blue-400" />
+                          <span>Pipeline Steps</span>
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
         </div>
 
-        {/* Right: Tactical Action Launchpad */}
+        {/* Right: Station Intelligence & Rapid Actions */}
         <div className="col-span-1 rounded border border-white/10 bg-[#0d1322] flex flex-col p-3 gap-3 overflow-y-auto">
-          <span className="text-xs font-bold uppercase tracking-wider text-slate-300 border-b border-white/10 pb-2">
-            Guided Pipeline Shortcuts
-          </span>
-
-          <div className="space-y-2">
-            <button
-              onClick={() => navigate('/intake')}
-              className="flex w-full items-center justify-between rounded border border-white/10 bg-[#050811] p-2.5 text-left hover:border-blue-500/40 transition-all group"
-            >
-              <div>
-                <span className="text-xs font-bold text-white group-hover:text-blue-400">Step 1: Complaint Intake</span>
-                <p className="text-[10px] text-slate-400">Gujarati/Hindi Voice & Document Processing</p>
-              </div>
-              <ArrowRight className="h-4 w-4 text-slate-500 group-hover:text-blue-400" />
-            </button>
-
-            <button
-              onClick={() => navigate('/linkage')}
-              className="flex w-full items-center justify-between rounded border border-white/10 bg-[#050811] p-2.5 text-left hover:border-amber-500/40 transition-all group"
-            >
-              <div>
-                <span className="text-xs font-bold text-white group-hover:text-amber-400">Step 2: Serial Offender Linkage</span>
-                <p className="text-[10px] text-slate-400">Cross-case match graph for mule VPAs & phones</p>
-              </div>
-              <ArrowRight className="h-4 w-4 text-slate-500 group-hover:text-amber-400" />
-            </button>
-
-            <button
-              onClick={() => navigate('/investigation')}
-              className="flex w-full items-center justify-between rounded border border-white/10 bg-[#050811] p-2.5 text-left hover:border-blue-500/40 transition-all group"
-            >
-              <div>
-                <span className="text-xs font-bold text-white group-hover:text-blue-400">Step 3: Investigation Studio</span>
-                <p className="text-[10px] text-slate-400">AI-powered SOP analysis with legal citations</p>
-              </div>
-              <ArrowRight className="h-4 w-4 text-slate-500 group-hover:text-blue-400" />
-            </button>
-
-            <button
-              onClick={() => navigate('/subpoenas')}
-              className="flex w-full items-center justify-between rounded border border-white/10 bg-[#050811] p-2.5 text-left hover:border-emerald-500/40 transition-all group"
-            >
-              <div>
-                <span className="text-xs font-bold text-white group-hover:text-emerald-400">Step 4: Subpoena Generator</span>
-                <p className="text-[10px] text-slate-400">Section 94 BNSS & 1930 Bank Freezes</p>
-              </div>
-              <ArrowRight className="h-4 w-4 text-slate-500 group-hover:text-emerald-400" />
-            </button>
+          <div className="flex items-center justify-between border-b border-white/10 pb-2">
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
+              <Activity className="h-4 w-4 text-blue-400" />
+              Station Intelligence
+            </span>
+            <span className="text-[9px] font-mono text-emerald-400 font-bold">System Online</span>
           </div>
 
-          <div className="mt-auto rounded border border-emerald-500/30 bg-emerald-500/10 p-2.5 space-y-1">
+          <div className="space-y-2.5 flex-1">
+            {/* Quick Action Button for Registering New Complaint */}
+            <button
+              onClick={() => navigate('/intake')}
+              className="flex w-full items-center justify-between rounded-xl border border-blue-500/40 bg-gradient-to-r from-blue-600/20 to-indigo-600/10 p-3 text-left hover:border-blue-400 transition-all group shadow-md"
+            >
+              <div className="space-y-0.5">
+                <span className="text-xs font-extrabold text-white flex items-center gap-1.5 group-hover:text-blue-300">
+                  <Zap className="h-3.5 w-3.5 text-blue-400" />
+                  Register New Complaint
+                </span>
+                <p className="text-[10px] text-slate-300 leading-normal">
+                  Ingest raw statements, attached PDFs, evidence images, or audio recordings.
+                </p>
+              </div>
+              <ListTree className="h-4 w-4 text-blue-400 group-hover:scale-110 transition-transform" />
+            </button>
+
+            {/* High-Severity Alerts List */}
+            <div className="rounded-lg border border-white/10 bg-[#050811] p-2.5 space-y-2">
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block border-b border-white/5 pb-1">
+                Priority Station Alerts
+              </span>
+              
+              <div className="space-y-1.5 text-xs font-mono">
+                <div className="flex items-start gap-2 text-rose-300">
+                  <AlertTriangle className="h-3.5 w-3.5 text-rose-400 shrink-0 mt-0.5" />
+                  <div>
+                    <span className="font-bold">CR-2026-9910:</span> UPI Fraud & Rs. 2 Lakh Loss. Accused A/C 30910293101 flagged.
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-2 text-amber-300 pt-1 border-t border-white/5">
+                  <AlertTriangle className="h-3.5 w-3.5 text-amber-400 shrink-0 mt-0.5" />
+                  <div>
+                    <span className="font-bold">Serial Link Match:</span> Suspect Line +91 98765 43210 matched across 3 Surat Cyber cases.
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="rounded border border-emerald-500/30 bg-emerald-500/10 p-2.5 space-y-1">
             <span className="text-xs font-bold text-emerald-300 flex items-center gap-1">
               <ShieldCheck className="h-3.5 w-3.5 text-emerald-400" />
               Statutory Citation Guarantee
@@ -201,6 +220,14 @@ export default function DashboardView() {
 
       </div>
 
+      {/* Case Pipeline Popup Modal */}
+      <CasePipelineModal
+        open={modalOpen}
+        onClose={() => setModalOpen(false)}
+        policeCase={selectedCaseForModal}
+      />
+
     </div>
   );
 }
+

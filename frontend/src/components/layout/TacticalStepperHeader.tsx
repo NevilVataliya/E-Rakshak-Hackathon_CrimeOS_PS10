@@ -10,7 +10,8 @@ import {
   CheckCircle2, 
   ChevronRight,
   LayoutDashboard,
-  ShieldCheck
+  ShieldCheck,
+  Lock
 } from 'lucide-react';
 import { useCaseStore } from '../../store/caseStore';
 
@@ -26,22 +27,13 @@ const guidedSteps = [
 export default function TacticalStepperHeader() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { activeCase, linkageMatches, investigationData, legalRequests } = useCaseStore();
+  const { activeCase, completedStepByCase } = useCaseStore();
 
   const currentPath = location.pathname;
-
-  // Determine current active step index (0-indexed)
   const currentStepIndex = guidedSteps.findIndex(s => s.path === currentPath);
 
-  // Dynamically check completion status based on case data
-  const isStepCompleted = (stepIndex: number) => {
-    if (currentStepIndex > stepIndex) return true;
-    if (stepIndex === 0 && activeCase) return true;
-    if (stepIndex === 1 && linkageMatches.length > 0) return true;
-    if (stepIndex === 2 && (investigationData?.investigation_steps?.length || 0) > 0) return true;
-    if (stepIndex === 3 && legalRequests.length > 0) return true;
-    return false;
-  };
+  const caseNo = activeCase?.case_number;
+  const completedStep = caseNo ? (completedStepByCase[caseNo] ?? activeCase?.completed_step ?? 1) : 1;
 
   return (
     <div className="w-full bg-[#080d1a] border-b border-white/10 px-3 py-1.5 flex items-center justify-between shrink-0 select-none overflow-x-auto">
@@ -66,21 +58,27 @@ export default function TacticalStepperHeader() {
       <div className="flex-1 flex items-center justify-between gap-1 max-w-5xl mx-auto min-w-max">
         {guidedSteps.map((item, idx) => {
           const isActive = currentPath === item.path;
-          const completed = isStepCompleted(idx);
-          const Icon = item.icon;
+          const stepNum = item.step;
+          const completed = stepNum <= completedStep;
+          const unlocked = stepNum <= (completedStep + 1);
+          const isLocked = !unlocked;
 
           return (
             <React.Fragment key={item.id}>
               {/* Step Pill */}
               <button
-                onClick={() => navigate(item.path)}
+                disabled={isLocked}
+                onClick={() => !isLocked && navigate(item.path)}
                 className={`group relative flex items-center gap-2 rounded-xl border px-3 py-1.5 text-xs transition-all ${
                   isActive
                     ? 'border-blue-500 bg-blue-500/15 text-white ring-1 ring-blue-500/40 shadow-md scale-[1.02]'
                     : completed
                     ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-200 hover:bg-emerald-500/20'
-                    : 'border-white/10 bg-[#0d1322] text-slate-400 hover:border-white/20 hover:text-slate-200'
+                    : unlocked
+                    ? 'border-blue-500/30 bg-blue-500/10 text-blue-300 hover:border-blue-400'
+                    : 'border-white/5 bg-[#050811] text-slate-500 opacity-50 cursor-not-allowed'
                 }`}
+                title={isLocked ? `Complete Step ${stepNum - 1} first` : item.title}
               >
                 {/* Step Badge / Number */}
                 <span
@@ -89,11 +87,15 @@ export default function TacticalStepperHeader() {
                       ? 'bg-blue-600 text-white'
                       : completed
                       ? 'bg-emerald-600 text-white'
-                      : 'bg-slate-800 text-slate-400 group-hover:bg-slate-700'
+                      : unlocked
+                      ? 'bg-blue-600/30 text-blue-300 border border-blue-500/40'
+                      : 'bg-slate-800 text-slate-500'
                   }`}
                 >
                   {completed && !isActive ? (
                     <CheckCircle2 className="h-3.5 w-3.5" />
+                  ) : isLocked ? (
+                    <Lock className="h-3 w-3 text-slate-500" />
                   ) : (
                     item.step
                   )}
@@ -101,10 +103,10 @@ export default function TacticalStepperHeader() {
 
                 {/* Step Label */}
                 <div className="flex flex-col items-start text-left">
-                  <span className={`text-[11px] font-bold leading-tight ${isActive ? 'text-white' : completed ? 'text-emerald-300' : 'text-slate-300'}`}>
+                  <span className={`text-[11px] font-bold leading-tight ${isActive ? 'text-white' : completed ? 'text-emerald-300' : unlocked ? 'text-slate-200' : 'text-slate-500'}`}>
                     {item.title}
                   </span>
-                  <span className={`text-[9px] font-mono leading-tight ${isActive ? 'text-blue-300' : completed ? 'text-emerald-400/80' : 'text-slate-500'}`}>
+                  <span className={`text-[9px] font-mono leading-tight ${isActive ? 'text-blue-300' : completed ? 'text-emerald-400/80' : unlocked ? 'text-blue-400/80' : 'text-slate-600'}`}>
                     {item.subtitle}
                   </span>
                 </div>
@@ -148,3 +150,4 @@ export default function TacticalStepperHeader() {
     </div>
   );
 }
+

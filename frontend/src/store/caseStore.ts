@@ -23,6 +23,7 @@ interface CaseState {
   loadingByCase: Record<string, boolean>;
   errorByCase: Record<string, string | null>;
   intakeDataByCase: Record<string, CaseIntakeRecord>;
+  completedStepByCase: Record<string, number>;
 
   // Linkage Module 2 State
   linkageMatches: LinkageMatch[];
@@ -37,11 +38,17 @@ interface CaseState {
   dispatchLegalNotice: (id: string, payload: any) => Promise<void>;
   setSelectedInspectorItem: (item: any | null) => void;
   clearError: () => void;
+  updateCompletedStep: (caseNumber: string, stepNumber: number) => void;
+  updateCaseIntakeData: (caseNumber: string, manualText: string, attachedFiles: AttachedFileMeta[]) => void;
 
   // Linkage Module 2 Actions
   runLinkageSearch: (caseNumber: string, entities: any, searchQuery?: string, searchType?: string) => Promise<void>;
   clearLinkage: () => void;
 }
+
+const sampleImgDataUrl = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
+const samplePdfDataUrl = 'data:application/pdf;base64,JVBERi0xLjQKJcOkw7zDtsOfCjEgMCBvYmoKPDwvVHlwZSAvQ2F0YWxvZyAvUGFnZXMgMiAwIFI+PgplbmRvYmoKMiAwIG9iago8PC9UeXBlIC9QYWdlcyAvQ291bnQgMCAvS2lkcyBbXSA+PgplbmRvYmoKdHJhaWxlcgo8PC9Sb290IDEgMCBSPj4KJSVFT0Y=';
+const sampleTxtDataUrl = 'data:text/plain;charset=utf-8,CrimeOS%20Evidence%20Log';
 
 const initialMockCases: PoliceCase[] = [
   {
@@ -67,9 +74,10 @@ const initialMockCases: PoliceCase[] = [
     created_at: '2026-07-24T10:00:00Z',
     manual_text: 'Victim reported Rs. 2,00,000 lost via fraudulent UPI link scammer@paytm and transfer to SBI A/C 30910293101 (IFSC: SBIN0001234). Suspect phone: +91 98765 43210.',
     attached_files: [
-      { name: 'UPI_Payment_Screenshot_Paytm.png', size: 482100, type: 'image/png' },
-      { name: 'Bank_Statement_RTGS_Extract.pdf', size: 1240500, type: 'application/pdf' }
-    ]
+      { name: 'UPI_Payment_Screenshot_Paytm.png', size: 482100, type: 'image/png', dataUrl: sampleImgDataUrl },
+      { name: 'Bank_Statement_RTGS_Extract.pdf', size: 1240500, type: 'application/pdf', dataUrl: samplePdfDataUrl }
+    ],
+    completed_step: 3
   },
   {
     case_number: 'CR-2026-8814',
@@ -94,8 +102,9 @@ const initialMockCases: PoliceCase[] = [
     created_at: '2026-07-23T14:30:00Z',
     manual_text: 'Victim threatened via WhatsApp messages demanding Rs. 50,000. Suspect phone: +91 94260 11223.',
     attached_files: [
-      { name: 'WhatsApp_Chat_Export_Evidence.txt', size: 52400, type: 'text/plain' }
-    ]
+      { name: 'WhatsApp_Chat_Export_Evidence.txt', size: 52400, type: 'text/plain', dataUrl: sampleTxtDataUrl }
+    ],
+    completed_step: 4
   }
 ];
 
@@ -141,18 +150,22 @@ export const useCaseStore = create<CaseState>()(
         'CR-2026-9910': {
           manual_text: 'Victim reported Rs. 2,00,000 lost via fraudulent UPI link scammer@paytm and transfer to SBI A/C 30910293101 (IFSC: SBIN0001234). Suspect phone: +91 98765 43210.',
           attached_files: [
-            { name: 'UPI_Payment_Screenshot_Paytm.png', size: 482100, type: 'image/png' },
-            { name: 'Bank_Statement_RTGS_Extract.pdf', size: 1240500, type: 'application/pdf' }
+            { name: 'UPI_Payment_Screenshot_Paytm.png', size: 482100, type: 'image/png', dataUrl: sampleImgDataUrl },
+            { name: 'Bank_Statement_RTGS_Extract.pdf', size: 1240500, type: 'application/pdf', dataUrl: samplePdfDataUrl }
           ],
           extracted_result: null
         },
         'CR-2026-8814': {
           manual_text: 'Victim threatened via WhatsApp messages demanding Rs. 50,000. Suspect phone: +91 94260 11223.',
           attached_files: [
-            { name: 'WhatsApp_Chat_Export_Evidence.txt', size: 52400, type: 'text/plain' }
+            { name: 'WhatsApp_Chat_Export_Evidence.txt', size: 52400, type: 'text/plain', dataUrl: sampleTxtDataUrl }
           ],
           extracted_result: null
         }
+      },
+      completedStepByCase: {
+        'CR-2026-9910': 3,
+        'CR-2026-8814': 4
       },
 
       // Linkage Module 2 initial state
@@ -162,6 +175,57 @@ export const useCaseStore = create<CaseState>()(
       linkageError: null,
 
       clearError: () => set({ error: null }),
+
+      updateCaseIntakeData: (caseNumber: string, manualText: string, attachedFiles: AttachedFileMeta[]) => {
+        set((state) => {
+          const existing = state.intakeDataByCase[caseNumber] || { manual_text: '', attached_files: [], extracted_result: null };
+          const updatedRecord: CaseIntakeRecord = {
+            ...existing,
+            manual_text: manualText,
+            attached_files: attachedFiles
+          };
+
+          const updatedCases = state.cases.map(c =>
+            c.case_number === caseNumber
+              ? { ...c, manual_text: manualText, attached_files: attachedFiles }
+              : c
+          );
+
+          const updatedActive = state.activeCase?.case_number === caseNumber
+            ? { ...state.activeCase, manual_text: manualText, attached_files: attachedFiles }
+            : state.activeCase;
+
+          return {
+            cases: updatedCases,
+            activeCase: updatedActive,
+            intakeDataByCase: {
+              ...state.intakeDataByCase,
+              [caseNumber]: updatedRecord
+            }
+          };
+        });
+      },
+
+      updateCompletedStep: (caseNumber: string, stepNumber: number) => {
+        set((state) => {
+          const current = state.completedStepByCase[caseNumber] || 0;
+          if (stepNumber > current) {
+            const updatedCases = state.cases.map(c => 
+              c.case_number === caseNumber ? { ...c, completed_step: stepNumber } : c
+            );
+            const active = state.activeCase?.case_number === caseNumber
+              ? { ...state.activeCase, completed_step: stepNumber }
+              : state.activeCase;
+
+            return {
+              cases: updatedCases,
+              activeCase: active,
+              completedStepByCase: { ...state.completedStepByCase, [caseNumber]: stepNumber }
+            };
+          }
+          return state;
+        });
+      },
 
       setSelectedInspectorItem: (item: any | null) => {
         set({ selectedInspectorItem: item });
@@ -185,9 +249,15 @@ export const useCaseStore = create<CaseState>()(
         const invMap = get().investigationsByCase || {};
         const loadMap = get().loadingByCase || {};
         const errMap = get().errorByCase || {};
+        const stepMap = get().completedStepByCase || {};
+
+        const updatedActiveCase = policeCase ? {
+          ...policeCase,
+          completed_step: stepMap[policeCase.case_number] ?? policeCase.completed_step ?? 1
+        } : null;
 
         set({
-          activeCase: policeCase,
+          activeCase: updatedActiveCase,
           investigationData: caseNo ? (invMap[caseNo] || null) : null,
           loading: caseNo ? Boolean(loadMap[caseNo]) : false,
           error: caseNo ? (errMap[caseNo] || null) : null,
@@ -225,7 +295,8 @@ export const useCaseStore = create<CaseState>()(
           created_at: new Date().toISOString(),
           manual_text: newCaseManualText,
           attached_files: newCaseAttachedFiles,
-          extracted_result: complaintData
+          extracted_result: complaintData,
+          completed_step: 1
         };
 
         const updatedIntakeMap = {
@@ -237,12 +308,18 @@ export const useCaseStore = create<CaseState>()(
           }
         };
 
+        const updatedCompletedStepMap = {
+          ...get().completedStepByCase,
+          [newCaseNumber]: 1
+        };
+
         const updatedCases = [newCase, ...get().cases];
         set({
           cases: updatedCases,
           activeCase: newCase,
           investigationData: null,
           intakeDataByCase: updatedIntakeMap,
+          completedStepByCase: updatedCompletedStepMap,
           loading: false,
           error: null
         });
@@ -359,16 +436,22 @@ export const useCaseStore = create<CaseState>()(
             const nextErrMap = { ...state.errorByCase, [caseNumber]: resultingError };
             const nextLoadMap = { ...state.loadingByCase, [caseNumber]: false };
 
+            const currStep = state.completedStepByCase[caseNumber] || 0;
+            const nextStep = resultingData ? Math.max(currStep, 3) : currStep;
+            const nextCompletedStepMap = { ...state.completedStepByCase, [caseNumber]: nextStep };
+
             const isCurrent = state.activeCase?.case_number === caseNumber;
 
             return {
               investigationsByCase: nextInvMap,
               errorByCase: nextErrMap,
               loadingByCase: nextLoadMap,
+              completedStepByCase: nextCompletedStepMap,
               ...(isCurrent ? {
                 investigationData: resultingData ?? state.investigationData,
                 error: resultingError,
-                loading: false
+                loading: false,
+                activeCase: state.activeCase ? { ...state.activeCase, completed_step: nextStep } : null
               } : {})
             };
           });
@@ -387,6 +470,11 @@ export const useCaseStore = create<CaseState>()(
             r.id === id ? { ...r, status: 'DISPATCHED' as const } : r
           );
           set({ legalRequests: updated });
+        } finally {
+          const activeCaseNo = get().activeCase?.case_number;
+          if (activeCaseNo) {
+            get().updateCompletedStep(activeCaseNo, 4);
+          }
         }
       },
 
@@ -467,6 +555,7 @@ export const useCaseStore = create<CaseState>()(
             });
           }
         } finally {
+          get().updateCompletedStep(caseNumber, 2);
           set({ linkageLoading: false });
         }
       },
@@ -482,6 +571,7 @@ export const useCaseStore = create<CaseState>()(
         activeCase: state.activeCase,
         investigationsByCase: state.investigationsByCase,
         intakeDataByCase: state.intakeDataByCase,
+        completedStepByCase: state.completedStepByCase,
         legalRequests: state.legalRequests,
         linkageMatches: state.linkageMatches,
         linkageStats: state.linkageStats

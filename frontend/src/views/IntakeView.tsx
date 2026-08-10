@@ -20,7 +20,8 @@ import {
   AtSign,
   Wifi,
   WifiOff,
-  Cpu
+  Cpu,
+  Download
 } from 'lucide-react';
 import api from '../services/api';
 import { useCaseStore } from '../store/caseStore';
@@ -28,7 +29,7 @@ import { BankAccountEntity, AttachedFileMeta } from '../types';
 
 export default function IntakeView() {
   const navigate = useNavigate();
-  const { activeCase, intakeDataByCase, addCaseFromComplaint, setSelectedInspectorItem } = useCaseStore();
+  const { activeCase, intakeDataByCase, addCaseFromComplaint, updateCaseIntakeData, setSelectedInspectorItem } = useCaseStore();
 
   const [language, setLanguage] = useState('auto');
   const [rawText, setRawText] = useState('');
@@ -66,9 +67,10 @@ export default function IntakeView() {
       const caseNo = activeCase.case_number;
       const record = intakeDataByCase?.[caseNo];
 
-      const savedManualText = record?.manual_text || activeCase.manual_text || activeCase.complaint_text || '';
-      const savedFiles = record?.attached_files || activeCase.attached_files || [];
-      const savedExtracted = record?.extracted_result || activeCase.extracted_result || null;
+      // Strictly load manual_text typed by user - DO NOT fallback to complaint_text!
+      const savedManualText = record?.manual_text ?? activeCase.manual_text ?? '';
+      const savedFiles = record?.attached_files ?? activeCase.attached_files ?? [];
+      const savedExtracted = record?.extracted_result ?? activeCase.extracted_result ?? null;
 
       setRawText(savedManualText);
       setPersistedFiles(savedFiles);
@@ -78,9 +80,35 @@ export default function IntakeView() {
     }
   }, [activeCase?.case_number]);
 
+  // Continuously sync manual text & persisted files back to case store for active case
+  useEffect(() => {
+    if (activeCase?.case_number) {
+      updateCaseIntakeData(activeCase.case_number, rawText, persistedFiles);
+    }
+  }, [rawText, persistedFiles, activeCase?.case_number]);
+
   const handleFilesAdded = (files: FileList | File[]) => {
     const newFiles = Array.from(files);
     setAttachedFiles(prev => [...prev, ...newFiles]);
+
+    // Convert each new file into AttachedFileMeta with dataUrl for downloading
+    newFiles.forEach(file => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const dataUrl = e.target?.result as string;
+        const meta: AttachedFileMeta = {
+          name: file.name,
+          size: file.size,
+          type: file.type,
+          dataUrl
+        };
+        setPersistedFiles(prev => {
+          if (prev.some(p => p.name === file.name && p.size === file.size)) return prev;
+          return [...prev, meta];
+        });
+      };
+      reader.readAsDataURL(file);
+    });
   };
 
   const removeLiveFile = (index: number) => {
@@ -88,7 +116,24 @@ export default function IntakeView() {
   };
 
   const removePersistedFile = (index: number) => {
+    const target = persistedFiles[index];
     setPersistedFiles(prev => prev.filter((_, i) => i !== index));
+    if (target) {
+      setAttachedFiles(prev => prev.filter(f => f.name !== target.name));
+    }
+  };
+
+  const handleDownloadFile = (pfile: AttachedFileMeta) => {
+    if (!pfile.dataUrl) {
+      alert(`No downloadable payload available for ${pfile.name}`);
+      return;
+    }
+    const link = document.createElement('a');
+    link.href = pfile.dataUrl;
+    link.download = pfile.name;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   const handleDragOver = (e: React.DragEvent) => {
@@ -151,16 +196,12 @@ export default function IntakeView() {
 
   const handleCreateCase = async () => {
     if (extractedResult) {
-      const allFileMetas: AttachedFileMeta[] = [
-        ...attachedFiles.map(f => ({ name: f.name, size: f.size, type: f.type })),
-        ...persistedFiles
-      ];
-      addCaseFromComplaint(extractedResult, rawText, allFileMetas);
+      addCaseFromComplaint(extractedResult, rawText, persistedFiles);
       navigate('/linkage');
     }
   };
 
-  const totalFilesCount = attachedFiles.length + persistedFiles.length;
+  const totalFilesCount = persistedFiles.length;
 
   return (
     <div className="flex-1 flex flex-col p-4 overflow-hidden gap-4 select-none">
@@ -243,42 +284,33 @@ export default function IntakeView() {
                 isDragging ? 'border-blue-500 bg-blue-500/10 ring-2 ring-blue-500/30' : 'border-white/10 hover:border-white/20'
               }`}
             >
-              {/* Attached Files Pills (Both Live Uploads and Persisted Case Files) */}
+              {/* Attached Files Pills (with Download Options) */}
               {totalFilesCount > 0 && (
-                <div className="flex flex-wrap gap-2 mb-3 pb-2 border-b border-white/10 max-h-32 overflow-y-auto">
-                  {attachedFiles.map((file, idx) => (
-                    <div 
-                      key={`live-${idx}`}
-                      className="flex items-center gap-2 rounded-lg border border-blue-500/40 bg-blue-500/10 px-2.5 py-1.5 text-xs group hover:border-blue-400 transition-all"
-                    >
-                      {getFileIcon(file.name)}
-                      <div className="flex flex-col min-w-0">
-                        <span className="text-[11px] font-semibold text-white truncate max-w-[140px]">{file.name}</span>
-                        <span className="text-[9px] text-blue-300 font-mono">{(file.size / 1024).toFixed(1)} KB (New)</span>
-                      </div>
-                      <button
-                        onClick={() => removeLiveFile(idx)}
-                        className="text-slate-500 hover:text-rose-400 p-0.5 rounded transition-colors"
-                        title="Remove file"
-                      >
-                        <X className="h-3.5 w-3.5" />
-                      </button>
-                    </div>
-                  ))}
-
+                <div className="flex flex-wrap gap-2 mb-3 pb-2 border-b border-white/10 max-h-36 overflow-y-auto">
                   {persistedFiles.map((pfile, idx) => (
                     <div 
                       key={`persisted-${idx}`}
-                      className="flex items-center gap-2 rounded-lg border border-white/10 bg-[#0d1322] px-2.5 py-1.5 text-xs group hover:border-white/20 transition-all"
+                      className="flex items-center gap-2 rounded-lg border border-blue-500/30 bg-blue-500/10 px-2.5 py-1.5 text-xs group hover:border-blue-400 transition-all"
                     >
                       {getFileIcon(pfile.name)}
                       <div className="flex flex-col min-w-0">
-                        <span className="text-[11px] font-semibold text-slate-200 truncate max-w-[140px]">{pfile.name}</span>
-                        <span className="text-[9px] text-slate-400 font-mono">{(pfile.size / 1024).toFixed(1)} KB</span>
+                        <span className="text-[11px] font-semibold text-slate-100 truncate max-w-[130px]">{pfile.name}</span>
+                        <span className="text-[9px] text-blue-300 font-mono">{(pfile.size / 1024).toFixed(1)} KB</span>
                       </div>
+
+                      {/* Download File Button */}
+                      <button
+                        onClick={() => handleDownloadFile(pfile)}
+                        className="text-blue-400 hover:text-blue-200 p-1 rounded hover:bg-blue-500/20 transition-colors ml-1"
+                        title="Download Attached File"
+                      >
+                        <Download className="h-3.5 w-3.5" />
+                      </button>
+
+                      {/* Remove File Button */}
                       <button
                         onClick={() => removePersistedFile(idx)}
-                        className="text-slate-500 hover:text-rose-400 p-0.5 rounded transition-colors"
+                        className="text-slate-500 hover:text-rose-400 p-1 rounded hover:bg-rose-500/20 transition-colors"
                         title="Remove file"
                       >
                         <X className="h-3.5 w-3.5" />

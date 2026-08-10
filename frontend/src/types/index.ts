@@ -28,6 +28,7 @@ export interface AttachedFileMeta {
   name: string;
   size: number;
   type: string;
+  dataUrl?: string;
 }
 
 export interface PoliceCase {
@@ -48,6 +49,7 @@ export interface PoliceCase {
   manual_text?: string;
   attached_files?: AttachedFileMeta[];
   extracted_result?: any;
+  completed_step?: number;
 }
 
 export interface GroundedSOPStep {
