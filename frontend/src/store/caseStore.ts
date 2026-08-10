@@ -24,6 +24,12 @@ interface CaseState {
   errorByCase: Record<string, string | null>;
   intakeDataByCase: Record<string, CaseIntakeRecord>;
   completedStepByCase: Record<string, number>;
+  dispatchedDirectivesByCase: Record<string, any[]>;
+  responseAnalyticsByCase: Record<string, any>;
+
+  saveDispatchedDirectivesForCase: (caseNumber: string, directives: any[]) => void;
+  getDirectivesForCase: (caseNumber: string) => any[];
+  saveResponseAnalyticsForCase: (caseNumber: string, analyticsData: any) => void;
 
   // Linkage Module 2 State
   linkageMatches: LinkageMatch[];
@@ -44,6 +50,18 @@ interface CaseState {
   // Linkage Module 2 Actions
   runLinkageSearch: (caseNumber: string, entities: any, searchQuery?: string, searchType?: string) => Promise<void>;
   clearLinkage: () => void;
+
+  // Workflow Automator HITL Approval Queue & Policy State
+  // Email Response Manager & Followback System State & Actions
+  processedReplies: any[];
+  processedRepliesByCase: Record<string, any[]>;
+  replyLoading: boolean;
+
+  checkInboxForReplies: (caseNumber?: string, smtpCredentials?: any) => Promise<any>;
+  ingestSimulatedReply: (payload: { case_number: string; sender_email: string; subject: string; body_text: string; attachments?: any[] }) => Promise<any>;
+  sendFollowbackEmail: (payload: { case_number: string; recipient_email: string; subject: string; body: string; smtp_credentials?: any }) => Promise<any>;
+  registerCustomTemplate: (payload: { template_id: string; title: string; category?: string; subject_template: string; body_template: string; required_vars?: string[]; legal_statute_ref?: string }) => Promise<void>;
+  addTimelineEvent: (event: any) => void;
 }
 
 const sampleImgDataUrl = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
@@ -137,7 +155,7 @@ export const useCaseStore = create<CaseState>()(
       cases: initialMockCases,
       activeCase: null,
       investigationData: null,
-      legalRequests: initialSubpoenas,
+      legalRequests: [],
       loading: false,
       error: null,
       selectedInspectorItem: null,
@@ -146,6 +164,7 @@ export const useCaseStore = create<CaseState>()(
       investigationsByCase: {},
       loadingByCase: {},
       errorByCase: {},
+      pendingApprovalsByCase: {},
       intakeDataByCase: {
         'CR-2026-9910': {
           manual_text: 'Victim reported Rs. 2,00,000 lost via fraudulent UPI link scammer@paytm and transfer to SBI A/C 30910293101 (IFSC: SBIN0001234). Suspect phone: +91 98765 43210.',
@@ -166,6 +185,45 @@ export const useCaseStore = create<CaseState>()(
       completedStepByCase: {
         'CR-2026-9910': 3,
         'CR-2026-8814': 4
+      },
+      dispatchedDirectivesByCase: {},
+      responseAnalyticsByCase: {},
+
+      getDirectivesForCase: (caseNumber: string) => {
+        return get().dispatchedDirectivesByCase[caseNumber] || [];
+      },
+
+      saveDispatchedDirectivesForCase: (caseNumber: string, newDirectives: any[]) => {
+        set((state) => {
+          const existing = state.dispatchedDirectivesByCase[caseNumber] || [];
+          const existingMap = new Map(existing.map((item: any) => [item.id || item.title, item]));
+
+          const merged = newDirectives.map((item: any) => {
+            const key = item.id || item.title;
+            const prev = existingMap.get(key);
+            // Preserve dispatched status if previously dispatched or responded
+            if (prev && (prev.status === 'DISPATCHED_SMTP' || prev.status === 'RESPONSE_RECEIVED' || prev.status === 'AWAITING_PROVIDER_REPLY' || prev.status === 'DEFECTIVE_AWAITING_CURE')) {
+              return { ...item, ...prev, status: prev.status, dispatched_at: prev.dispatched_at || item.dispatched_at };
+            }
+            return item;
+          });
+
+          return {
+            dispatchedDirectivesByCase: {
+              ...state.dispatchedDirectivesByCase,
+              [caseNumber]: merged
+            }
+          };
+        });
+      },
+
+      saveResponseAnalyticsForCase: (caseNumber: string, analyticsData: any) => {
+        set((state) => ({
+          responseAnalyticsByCase: {
+            ...state.responseAnalyticsByCase,
+            [caseNumber]: analyticsData
+          }
+        }));
       },
 
       // Linkage Module 2 initial state
@@ -210,7 +268,7 @@ export const useCaseStore = create<CaseState>()(
         set((state) => {
           const current = state.completedStepByCase[caseNumber] || 0;
           if (stepNumber > current) {
-            const updatedCases = state.cases.map(c => 
+            const updatedCases = state.cases.map(c =>
               c.case_number === caseNumber ? { ...c, completed_step: stepNumber } : c
             );
             const active = state.activeCase?.case_number === caseNumber
@@ -497,17 +555,17 @@ export const useCaseStore = create<CaseState>()(
               + (entities?.vpas_upis?.length || 0)
               + (entities?.bank_accounts?.length || 0)
               + (searchQuery ? 1 : 0),
-            total_matches:           rawMatches.length,
-            high_confidence:         rawMatches.filter(m => m.confidence >= 0.85).length,
-            medium_confidence:       rawMatches.filter(m => m.confidence >= 0.70 && m.confidence < 0.85).length,
-            low_confidence:          rawMatches.filter(m => m.confidence < 0.70).length,
-            unique_linked_cases:     [...new Set(rawMatches.map(m => m.matched_case))].length,
-            unique_police_stations:  [...new Set(rawMatches.map(m => m.police_station))].length,
+            total_matches: rawMatches.length,
+            high_confidence: rawMatches.filter(m => m.confidence >= 0.85).length,
+            medium_confidence: rawMatches.filter(m => m.confidence >= 0.70 && m.confidence < 0.85).length,
+            low_confidence: rawMatches.filter(m => m.confidence < 0.70).length,
+            unique_linked_cases: [...new Set(rawMatches.map(m => m.matched_case))].length,
+            unique_police_stations: [...new Set(rawMatches.map(m => m.police_station))].length,
           };
 
           set({
             linkageMatches: rawMatches,
-            linkageStats:   computedStats,
+            linkageStats: computedStats,
 
             linkageError: null
           });
@@ -562,6 +620,108 @@ export const useCaseStore = create<CaseState>()(
 
       clearLinkage: () => {
         set({ linkageMatches: [], linkageStats: null, linkageError: null });
+      },
+
+      // --- Email Response Manager & Followback System ---
+      processedReplies: [],
+      processedRepliesByCase: {},
+      replyLoading: false,
+
+      checkInboxForReplies: async (caseNumber?: string, smtpCredentials?: any) => {
+        const targetCase = caseNumber || get().activeCase?.case_number;
+        set({ replyLoading: true });
+        try {
+          const res = await api.post('/api/email/check-inbox', {
+            case_number: targetCase,
+            smtp_credentials: smtpCredentials
+          });
+          if (res.data && Array.isArray(res.data.replies)) {
+            const replies = res.data.replies;
+            set((state) => {
+              const existing = (targetCase && state.processedRepliesByCase[targetCase]) || state.processedReplies || [];
+              const existingIds = new Set(existing.map((r: any) => r.id));
+              const newItems = replies.filter((r: any) => !existingIds.has(r.id));
+              const merged = [...newItems, ...existing];
+              return {
+                processedReplies: merged,
+                processedRepliesByCase: targetCase ? {
+                  ...(state.processedRepliesByCase || {}),
+                  [targetCase]: merged
+                } : (state.processedRepliesByCase || {})
+              };
+            });
+          }
+          return res.data;
+        } catch (err: any) {
+          console.warn('[Email Response Manager Inbox Check Error]:', err);
+          return { status: 'error', replies: [] };
+        } finally {
+          set({ replyLoading: false });
+        }
+      },
+
+      ingestSimulatedReply: async (payload) => {
+        set({ replyLoading: true });
+        try {
+          const res = await api.post('/api/email/ingest-reply', payload);
+          const replyObj = res.data?.reply;
+          if (replyObj) {
+            const targetCase = payload.case_number;
+            const existing = get().processedRepliesByCase[targetCase] || get().processedReplies || [];
+            const updated = [replyObj, ...existing];
+
+            set((state) => ({
+              processedReplies: updated,
+              processedRepliesByCase: {
+                ...state.processedRepliesByCase,
+                [targetCase]: updated
+              }
+            }));
+          }
+          return res.data;
+        } catch (err: any) {
+          console.error('[Email Response Ingestion Error]:', err);
+          return { status: 'error' };
+        } finally {
+          set({ replyLoading: false });
+        }
+      },
+
+      sendFollowbackEmail: async (payload) => {
+        set({ replyLoading: true });
+        try {
+          await api.post('/api/email/send-followback', payload);
+          const targetCase = payload.case_number;
+          const updated = get().processedReplies.map(r =>
+            (r.case_number === payload.case_number && r.sender_email === payload.recipient_email)
+              ? { ...r, status: 'FOLLOWBACK_SENT', followback_sent_at: new Date().toLocaleTimeString() }
+              : r
+          );
+          set((state) => ({
+            processedReplies: updated,
+            processedRepliesByCase: {
+              ...state.processedRepliesByCase,
+              [targetCase]: updated
+            }
+          }));
+        } catch (err: any) {
+          console.error('[Send Followback Error]:', err);
+          throw err;
+        } finally {
+          set({ replyLoading: false });
+        }
+      },
+
+      registerCustomTemplate: async (payload) => {
+        try {
+          await api.post('/api/workflow/templates/custom', payload);
+        } catch (err) {
+          console.error('Register custom template error:', err);
+        }
+      },
+
+      addTimelineEvent: (event: any) => {
+        console.log('[addTimelineEvent]', event);
       }
     }),
     {
@@ -574,9 +734,14 @@ export const useCaseStore = create<CaseState>()(
         completedStepByCase: state.completedStepByCase,
         legalRequests: state.legalRequests,
         linkageMatches: state.linkageMatches,
-        linkageStats: state.linkageStats
+        linkageStats: state.linkageStats,
+        processedReplies: state.processedReplies,
+        processedRepliesByCase: state.processedRepliesByCase,
+        dispatchedDirectivesByCase: state.dispatchedDirectivesByCase,
+        responseAnalyticsByCase: state.responseAnalyticsByCase
       })
     }
   )
 );
+
 

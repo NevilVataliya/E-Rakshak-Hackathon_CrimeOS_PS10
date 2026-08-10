@@ -28,48 +28,33 @@ import DynamicVisualizer, { VisualizationConfig } from '../components/common/Dyn
 
 export default function AnalyticsView() {
   const navigate = useNavigate();
-  const { activeCase, setSelectedInspectorItem, addTimelineEvent, responseAnalyticsByCase, saveResponseAnalyticsForCase } = useCaseStore();
+  const { activeCase, setSelectedInspectorItem, addTimelineEvent } = useCaseStore();
   const { t } = useLangStore();
-
+  
   const [loading, setLoading] = useState(false);
   const [responseType, setResponseType] = useState<'BANK_STATEMENT' | 'CDR' | 'IP_LOGS'>('BANK_STATEMENT');
   const [parsedData, setParsedData] = useState<any>(null);
   const [selectedChartType, setSelectedChartType] = useState<string>('AUTO');
   const [toastMsg, setToastMsg] = useState('');
 
-  // Load persistent response analytics if available for current case
-  React.useEffect(() => {
-    if (activeCase?.case_number) {
-      const savedAnalytics = responseAnalyticsByCase[activeCase.case_number];
-      if (savedAnalytics) {
-        setParsedData(savedAnalytics);
-        setSelectedInspectorItem({ type: 'PROVIDER_RESPONSE_ANALYTICS', data: savedAnalytics });
-      }
-    }
-  }, [activeCase?.case_number]);
-
   // ── Parse & Ingest Provider File ─────────────────────────────────────────────
   const handleProcessFile = async (selectedType?: 'BANK_STATEMENT' | 'CDR' | 'IP_LOGS') => {
     const targetType = selectedType || responseType;
-    const caseRef = activeCase?.case_number || 'CR-2026-9914';
     setLoading(true);
     setToastMsg('');
     try {
       const res = await api.post('/api/analytics/parse-response', {
-        case_number: caseRef,
         response_type: targetType
       });
       setParsedData(res.data);
-      saveResponseAnalyticsForCase(caseRef, res.data);
       setSelectedInspectorItem({ type: 'PROVIDER_RESPONSE_ANALYTICS', data: res.data });
-      setToastMsg(`Successfully analyzed ${targetType} provider response for case ${caseRef}!`);
+      setToastMsg(`Successfully analyzed ${targetType} provider response!`);
     } catch (err) {
-      console.warn('Using analytics response generator for type:', targetType);
+      console.warn('Using analytics fallback response for type:', targetType);
       const mockData = getMockDataForType(targetType);
       setParsedData(mockData);
-      saveResponseAnalyticsForCase(caseRef, mockData);
       setSelectedInspectorItem({ type: 'PROVIDER_RESPONSE_ANALYTICS', data: mockData });
-      setToastMsg(`Analyzed ${targetType} provider response for ${caseRef}`);
+      setToastMsg(`Analyzed ${targetType} response (Demo Fallback Mode)`);
     } finally {
       setLoading(false);
       setSelectedChartType('AUTO');
@@ -77,57 +62,39 @@ export default function AnalyticsView() {
   };
 
   const getMockDataForType = (type: string) => {
-    const caseNo = activeCase?.case_number || 'CR-2026-9914';
-    const banks = activeCase?.entities?.bank_accounts || [];
-    const phones = activeCase?.entities?.phone_numbers || [];
-
-    const victimBankObj = banks.find((b: any) => typeof b === 'object' && (b.is_victim_account || b.account_role === 'victim'));
-    const victimAcct = victimBankObj ? victimBankObj.account_number : (banks[0]?.account_number || banks[0] || '311102010008711');
-    const victimBankName = victimBankObj ? (victimBankObj.bank || 'Union Bank') : 'Union Bank';
-
-    const accusedBankObj = banks.find((b: any) => typeof b === 'object' && (!b.is_victim_account || b.account_role === 'accused'));
-    const accusedAcct = accusedBankObj ? accusedBankObj.account_number : (banks[1]?.account_number || banks[1] || '257735040901');
-    const accusedBankName = accusedBankObj ? (accusedBankObj.bank || 'IndusInd Bank') : 'IndusInd Bank';
-
-    const secondaryAcct = banks[2]?.account_number || banks[2] || '1006104000176743';
-    const secondaryBankName = banks[2]?.bank || 'IDBI Bank';
-
-    const phoneNo = phones[0] || '+2223755264';
-    const phoneNo2 = phones[1] || '+6612336761';
-
     if (type === 'BANK_STATEMENT') {
       return {
         status: 'success',
-        case_number: caseNo,
         response_type: 'BANK_STATEMENT',
-        total_records: 142,
-        total_volume_inr: '₹14,00,000',
+        total_records: 1840,
+        total_volume_inr: '₹48,90,000',
         detected_fraud_pattern: 'MONEY_LAUNDERING_LAYERING',
         fraud_confidence_score: 96,
         top_counterparties: [
-          { party: `A/C ${accusedAcct} (${accusedBankName})`, count: 14, amount: '₹9,00,000' },
-          { party: `A/C ${secondaryAcct} (${secondaryBankName})`, count: 9, amount: '₹5,00,000' },
-          { party: `Complainant A/C ${victimAcct} (${victimBankName})`, count: 1, amount: '₹14,00,000' }
+          { party: 'A/C 501004928172 (Mule A - HDFC)', count: 14, amount: '₹14,50,000' },
+          { party: 'A/C 918293847123 (Mule B - ICICI)', count: 9, amount: '₹9,20,000' },
+          { party: 'UPI refund.mule@okaxis', count: 22, amount: '₹6,80,000' },
+          { party: 'A/C 309812491023 (Mule C - SBI)', count: 6, amount: '₹5,40,000' }
         ],
-        layering_transaction_count: 24,
+        layering_transaction_count: 42,
         visualization_config: {
           recommended_chart_type: 'MONEY_TRAIL_FLOW',
-          chart_title: `Money Laundering Mule Trail Flow (${caseNo})`,
-          chart_insights: `Pass-through layering pattern detected: Defrauded proceeds transferred from Complainant A/C ${victimAcct} (${victimBankName}) → Primary Mule A/C ${accusedAcct} (${accusedBankName}) → Secondary Mule A/C ${secondaryAcct} (${secondaryBankName}).`,
+          chart_title: 'Dynamic Money Laundering Mule Trail Flow',
+          chart_insights: '4-tier pass-through layering pattern detected: Fraud proceeds transferred from victim to Mule A (HDFC), then split 60/40 to Mule B (ICICI) & Mule C (SBI) within 15 mins.',
           data_grounded: true,
           chart_data: [
-            { step: 1, bank: victimBankName, source: `Complainant (${victimAcct})`, target: `Accused Mule (${accusedAcct})`, amount: '₹9,00,000' },
-            { step: 2, bank: accusedBankName, source: `Accused Mule (${accusedAcct})`, target: `Layer 2 Mule (${secondaryAcct})`, amount: '₹5,00,000' },
-            { step: 3, bank: secondaryBankName, source: `Layer 2 Mule (${secondaryAcct})`, target: 'USDT Crypto Exchange Wallet', amount: '₹4,20,000' }
+            { step: 1, bank: 'HDFC Bank', source: 'Victim (Cyber Fraud)', target: 'Primary Mule (HDFC #501004)', amount: '₹14,50,000' },
+            { step: 2, bank: 'ICICI Bank', source: 'Primary Mule', target: 'Layer 2 Mule B (ICICI #918293)', amount: '₹8,70,000' },
+            { step: 3, bank: 'State Bank of India', source: 'Layer 2 Mule B', target: 'Layer 3 Mule C (SBI #309812)', amount: '₹5,80,000' },
+            { step: 4, bank: 'Crypto Exchange', source: 'Layer 3 Mule C', target: 'USDT Wallet 0x71a...9b4', amount: '₹4,20,000' }
           ]
         },
-        executive_summary: `Parsed ${accusedBankName} Statement for Case ${caseNo}. Identified multi-tier money laundering layering pattern with 96% confidence. Proceeds transferred from ${victimAcct} to ${accusedAcct} and secondary account ${secondaryAcct}.`,
-        recommended_next_action: `Execute Section 106 BNSS debit freeze order for ${accusedBankName} A/C ${accusedAcct} and ${secondaryBankName} A/C ${secondaryAcct}.`
+        executive_summary: 'Parsed HDFC Bank Statement (1,840 transactions). System identified multi-tier money laundering layering pattern with 96% confidence score. ₹48.9 Lakhs defrauded proceeds systematically split across 4 secondary mule accounts.',
+        recommended_next_action: 'Execute immediate Section 106 BNSS freeze orders for HDFC A/C #501004928172 and ICICI A/C #918293847123.'
       };
     } else if (type === 'IP_LOGS') {
       return {
         status: 'success',
-        case_number: caseNo,
         response_type: 'IP_LOGS',
         total_records: 920,
         detected_fraud_pattern: 'VPN_PROXY_SPOOFING',
@@ -135,13 +102,14 @@ export default function AnalyticsView() {
         top_ip_addresses: [
           { ip: '185.220.101.4', connections: 310, isp: 'TOR Exit Relay (Frankfurt)' },
           { ip: '45.142.120.9', connections: 184, isp: 'NordVPN Proxy (Amsterdam)' },
-          { ip: '103.21.244.2', connections: 92, isp: 'Cloudflare CDN Proxy' }
+          { ip: '103.21.244.2', connections: 92, isp: 'Cloudflare CDN Proxy' },
+          { ip: '185.156.177.12', connections: 44, isp: 'CyberGhost Proxy (Zurich)' }
         ],
         vpn_proxy_hits: 586,
         visualization_config: {
           recommended_chart_type: 'LINE_TREND',
-          chart_title: `IP Connection Velocity & Anomaly Trend (${caseNo})`,
-          chart_insights: 'Concurrent connection spikes from international VPN exit nodes during account compromise window.',
+          chart_title: 'IP Connection Velocity & Anomaly Trend',
+          chart_insights: 'Concurrent connection spikes from 3 international VPN exit nodes during account compromise window.',
           x_axis_key: 'timestamp',
           y_axis_key: 'connections',
           data_grounded: true,
@@ -153,31 +121,32 @@ export default function AnalyticsView() {
             { timestamp: '04:00', connections: 65 }
           ]
         },
-        executive_summary: `Parsed Cyber Forensic IP Connection Logs for Case ${caseNo}. Detects TOR exit relay masking and rapid ASN switching across European proxy servers.`,
-        recommended_next_action: `Issue Section 94 BNSS notice to Google / Telegram LERT for device cookie tokens for target handle.`
+        executive_summary: 'Parsed Google Cyber Forensic IP Connection Logs (920 records). Detects TOR exit relay masking and rapid ASN switching across Germany, Netherlands, and Switzerland.',
+        recommended_next_action: 'Issue Section 91 CrPC notice to Google LERT for device cookie tokens and secondary Gmail recovery logs.'
       };
     } else {
       return {
         status: 'success',
-        case_number: caseNo,
         response_type: 'CDR',
         total_records: 1420,
         top_b_parties: [
-          { phone: phoneNo, call_count: 84, total_duration_min: 192 },
-          { phone: phoneNo2, call_count: 42, total_duration_min: 88 }
+          { phone: '+91 98250 11223', call_count: 84, total_duration_min: 192 },
+          { phone: '+91 98790 44551', call_count: 42, total_duration_min: 88 },
+          { phone: '+91 97270 99887', call_count: 31, total_duration_min: 64 }
         ],
         night_calls_count: 38,
         top_tower_locations: [
           { tower_id: 'AHM-CG-TW-42', location_name: 'Surat Ring Road Cell ID #492', frequency: 912 },
-          { tower_id: 'ST-ADJ-TW-102', location_name: 'Adajan Patia Tower #102', frequency: 410 }
+          { tower_id: 'ST-ADJ-TW-102', location_name: 'Adajan Patia Tower #102', frequency: 410 },
+          { tower_id: 'ST-VRC-TW-88', location_name: 'Varachha Main Road Tower #88', frequency: 290 }
         ],
         imei_history: ['864910049201923', '864910049201999'],
         detected_fraud_pattern: 'NIGHT_ANOMALY_BURST',
         fraud_confidence_score: 88,
         visualization_config: {
           recommended_chart_type: 'HOURLY_ACTIVITY_BAR',
-          chart_title: `Hourly Call Pattern & Night Anomaly Index (${caseNo})`,
-          chart_insights: `Abnormal midnight call cluster (38 calls between 00:00 - 04:00 AM) linked with suspect line ${phoneNo}.`,
+          chart_title: 'Hourly Call Pattern & Night Anomaly Index',
+          chart_insights: 'Abnormal midnight call cluster (38 calls between 00:00 - 04:00 AM) linked with primary B-party suspect.',
           x_axis_key: 'hour',
           y_axis_key: 'calls',
           data_grounded: true,
@@ -190,8 +159,8 @@ export default function AnalyticsView() {
             { hour: '20:00 - 24:00', calls: 202 }
           ]
         },
-        executive_summary: `Ingested CDR records for suspect line ${phoneNo} in Case ${caseNo}. Target line exhibited high-frequency night activity (38 calls). Primary anchor location identified at Surat Ring Road.`,
-        recommended_next_action: `Issue Section 94 BNSS Notice for IMEI 864910049201999 handset CAF details.`
+        executive_summary: 'Provider response ingested successfully (1,420 CDR records). Target number exhibited high-frequency night activity (38 calls between 00:00-05:00 AM). Primary anchor location identified at Surat Ring Road.',
+        recommended_next_action: 'Issue Section 94 BNSS Notice for IMEI 864910049201999 handset CAF details.'
       };
     }
   };
@@ -201,7 +170,7 @@ export default function AnalyticsView() {
     if (!parsedData) return;
     addTimelineEvent({
       stage: 'ANALYTICS_PARSED',
-      title: `Ingested ${parsedData.response_type} Provider Intelligence (${activeCase?.case_number})`,
+      title: `Ingested ${parsedData.response_type} Provider Intelligence`,
       description: `${parsedData.executive_summary} Action: ${parsedData.recommended_next_action}`,
       timestamp: new Date().toLocaleTimeString(),
       status: 'VERIFIED'
@@ -227,7 +196,7 @@ export default function AnalyticsView() {
   const activeVisualConfig = getActiveVisualConfig();
 
   return (
-    <div className="flex-1 flex flex-col p-4 overflow-hidden gap-3 select-none bg-[#050811]">
+    <div className="flex-1 flex flex-col p-4 overflow-hidden gap-3 select-none">
 
       {/* Header Bar */}
       <div className="flex items-center justify-between border-b border-white/10 pb-3 shrink-0">
@@ -270,42 +239,45 @@ export default function AnalyticsView() {
         </div>
       )}
 
-      {/* Active Case Banner & Provider File Category Selector */}
+      {/* Response Type Selector & Preset Ingestion Control Bar */}
       <div className="rounded border border-white/10 bg-[#0d1322] p-2.5 flex items-center justify-between shrink-0 gap-3">
         <div className="flex items-center gap-2">
           <span className="text-xs font-bold text-slate-300 uppercase font-mono flex items-center gap-1.5">
             <Layers className="h-4 w-4 text-purple-400" />
-            Case: <span className="text-amber-300 font-extrabold">{activeCase?.case_number || 'Select Case'}</span> | Category:
+            Provider File Category:
           </span>
 
           <button
             onClick={() => { setResponseType('BANK_STATEMENT'); handleProcessFile('BANK_STATEMENT'); }}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-bold transition-all ${responseType === 'BANK_STATEMENT' && parsedData?.response_type === 'BANK_STATEMENT'
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-bold transition-all ${
+              responseType === 'BANK_STATEMENT'
                 ? 'bg-emerald-600 text-white shadow-md'
                 : 'bg-[#050811] text-slate-400 hover:text-white border border-white/10'
-              }`}
+            }`}
           >
             <CreditCard className="h-3.5 w-3.5" />
-            <span>🏦 Bank Statement</span>
+            <span>🏦 Bank Statement / Account Ledger</span>
           </button>
 
           <button
             onClick={() => { setResponseType('CDR'); handleProcessFile('CDR'); }}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-bold transition-all ${responseType === 'CDR' && parsedData?.response_type === 'CDR'
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-bold transition-all ${
+              responseType === 'CDR'
                 ? 'bg-blue-600 text-white shadow-md'
                 : 'bg-[#050811] text-slate-400 hover:text-white border border-white/10'
-              }`}
+            }`}
           >
             <PhoneCall className="h-3.5 w-3.5" />
-            <span>📱 Telecom CDR Dump</span>
+            <span>📱 Telecom CDR & Cell Tower Dump</span>
           </button>
 
           <button
             onClick={() => { setResponseType('IP_LOGS'); handleProcessFile('IP_LOGS'); }}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-bold transition-all ${responseType === 'IP_LOGS' && parsedData?.response_type === 'IP_LOGS'
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-bold transition-all ${
+              responseType === 'IP_LOGS'
                 ? 'bg-indigo-600 text-white shadow-md'
                 : 'bg-[#050811] text-slate-400 hover:text-white border border-white/10'
-              }`}
+            }`}
           >
             <Globe className="h-3.5 w-3.5" />
             <span>💻 Cyber IP Connection Logs</span>
@@ -341,37 +313,41 @@ export default function AnalyticsView() {
           <div className="flex items-center gap-1 bg-[#050811] p-1 rounded border border-white/10">
             <button
               onClick={() => setSelectedChartType('AUTO')}
-              className={`px-2.5 py-1 rounded text-[10px] font-bold font-mono transition-all ${selectedChartType === 'AUTO'
+              className={`px-2.5 py-1 rounded text-[10px] font-bold font-mono transition-all ${
+                selectedChartType === 'AUTO'
                   ? 'bg-purple-600 text-white'
                   : 'text-slate-400 hover:text-white'
-                }`}
+              }`}
             >
               ✨ AI Optimal
             </button>
             <button
               onClick={() => setSelectedChartType('MONEY_TRAIL_FLOW')}
-              className={`px-2.5 py-1 rounded text-[10px] font-bold font-mono transition-all ${selectedChartType === 'MONEY_TRAIL_FLOW'
+              className={`px-2.5 py-1 rounded text-[10px] font-bold font-mono transition-all ${
+                selectedChartType === 'MONEY_TRAIL_FLOW'
                   ? 'bg-emerald-600 text-white'
                   : 'text-slate-400 hover:text-white'
-                }`}
+              }`}
             >
               💸 Money Flow
             </button>
             <button
               onClick={() => setSelectedChartType('HOURLY_ACTIVITY_BAR')}
-              className={`px-2.5 py-1 rounded text-[10px] font-bold font-mono transition-all ${selectedChartType === 'HOURLY_ACTIVITY_BAR'
+              className={`px-2.5 py-1 rounded text-[10px] font-bold font-mono transition-all ${
+                selectedChartType === 'HOURLY_ACTIVITY_BAR'
                   ? 'bg-blue-600 text-white'
                   : 'text-slate-400 hover:text-white'
-                }`}
+              }`}
             >
               📊 Hourly Histogram
             </button>
             <button
               onClick={() => setSelectedChartType('LINE_TREND')}
-              className={`px-2.5 py-1 rounded text-[10px] font-bold font-mono transition-all ${selectedChartType === 'LINE_TREND'
+              className={`px-2.5 py-1 rounded text-[10px] font-bold font-mono transition-all ${
+                selectedChartType === 'LINE_TREND'
                   ? 'bg-indigo-600 text-white'
                   : 'text-slate-400 hover:text-white'
-                }`}
+              }`}
             >
               📈 Time Trend
             </button>
@@ -391,7 +367,7 @@ export default function AnalyticsView() {
             <span className="text-xs font-bold text-white uppercase tracking-wider border-b border-white/10 pb-1.5 flex items-center justify-between shrink-0 font-mono">
               <span className="flex items-center gap-1.5">
                 <ShieldAlert className="h-4 w-4 text-rose-400" />
-                Detected Fraud Signature ({activeCase?.case_number})
+                Detected Fraud Signature & Risk Index
               </span>
               <span className="text-[10px] bg-rose-500/20 text-rose-300 px-2 py-0.5 rounded font-mono font-bold border border-rose-500/30">
                 SCORE: {parsedData.fraud_confidence_score || 94}%
@@ -525,13 +501,11 @@ export default function AnalyticsView() {
 
         </div>
       ) : (
-        <div className="flex-1 rounded border border-white/10 bg-[#0d1322] flex flex-col items-center justify-center text-slate-500 space-y-3 p-6 text-center">
+        <div className="flex-1 rounded border border-white/10 bg-[#0d1322] flex flex-col items-center justify-center text-slate-500 space-y-3">
           <Cpu className="h-12 w-12 text-purple-400 opacity-60 animate-bounce" />
-          <h3 className="text-sm font-bold text-white uppercase tracking-wider font-mono">
-            Provider Response Analytics Workbench ({activeCase?.case_number || 'Select Active Case'})
-          </h3>
-          <p className="text-xs text-slate-400 max-w-md">
-            Select a file category above (<strong className="text-emerald-300">Bank Statement</strong>, <strong className="text-blue-300">Telecom CDR</strong>, or <strong className="text-indigo-300">Cyber IP Logs</strong>) and click <strong className="text-purple-300">"Ingest & Analyze Provider File"</strong> to evaluate pattern signatures for case <strong className="text-white">{activeCase?.case_number || 'current case'}</strong>!
+          <h3 className="text-sm font-bold text-white uppercase tracking-wider font-mono">Provider Response Analytics Workbench</h3>
+          <p className="text-xs text-slate-400 max-w-md text-center">
+            Select a file category above (<strong className="text-emerald-300">Bank Statement</strong>, <strong className="text-blue-300">Telecom CDR</strong>, or <strong className="text-indigo-300">Cyber IP Logs</strong>) and click <strong className="text-purple-300">"Ingest & Analyze Provider File"</strong> to evaluate pattern signatures and generate dynamic visual plots at runtime!
           </p>
         </div>
       )}
@@ -539,3 +513,4 @@ export default function AnalyticsView() {
     </div>
   );
 }
+

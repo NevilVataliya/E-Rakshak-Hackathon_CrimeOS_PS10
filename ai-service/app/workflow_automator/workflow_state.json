@@ -1,0 +1,41 @@
+{
+  "pending_approvals": [],
+  "policy": {
+    "policy": "MANDATORY_HUMAN_APPROVAL",
+    "risk_threshold": 6.0
+  },
+  "sent_notices": [
+    {
+      "sent_at": "2026-08-10T04:12:16.121369Z",
+      "case_number": "CR-2026-9914",
+      "recipient_email": "nevilvataliya84@gmail.com",
+      "recipient_name": "Telecom Operator Nodal Officer",
+      "subject": "URGENT STATUTORY DIRECTIVE: Requisition for Call Detail Records (CDR) and Tower Dump for +6612336761 - Target +6612336761 [Case: CR-2026-9914] [CrimeOS-REF: CR-2026-9914]",
+      "body": "STATUTORY DIRECTIVE UNDER SECTION 94 BNSS\n\nCase FIR / Ref: CR-2026-9914\nTarget Identifier: +6612336761\n\nObjective: Requisition for Call Detail Records (CDR) and Tower Dump for +6612336761\n\nPlease acknowledge receipt and process immediately.\n\nPSI Inspector V. K. Patel\nSurat Cyber Crime Station\nEmail: zoomtest021@gmail.com"
+    },
+    {
+      "sent_at": "2026-08-10T03:42:47.905575Z",
+      "case_number": "CR-2026-9914",
+      "recipient_email": "nevilvataliya84@gmail.com",
+      "recipient_name": "IDBI Bank",
+      "subject": "URGENT STATUTORY DIRECTIVE: Debit Freeze Order for Accused Beneficiary Account 1006104000176743 - Target 1006104000176743 [Case: CR-2026-9914] [CrimeOS-REF: CR-2026-9914]",
+      "body": "STATUTORY DIRECTIVE UNDER SECTION 94 BNSS\n\nCase FIR / Ref: CR-2026-9914\nTarget Identifier: 1006104000176743\n\nObjective: Debit Freeze Order for Accused Beneficiary Account 1006104000176743\n\nPlease acknowledge receipt and process immediately.\n\nPSI Inspector V. K. Patel\nSurat Cyber Crime Station\nEmail: zoomtest021@gmail.com"
+    },
+    {
+      "sent_at": "2026-08-10T03:41:06.226471Z",
+      "case_number": "CR-2026-9914",
+      "recipient_email": "compliance.nodal@idbi.co.in",
+      "recipient_name": "IDBI Bank",
+      "subject": "URGENT STATUTORY DIRECTIVE: Debit Freeze Order for Accused Beneficiary Account 1006104000176743 - Target 1006104000176743 [Case: CR-2026-9914] [CrimeOS-REF: CR-2026-9914]",
+      "body": "STATUTORY DIRECTIVE UNDER SECTION 94 BNSS\n\nCase FIR / Ref: CR-2026-9914\nTarget Identifier: 1006104000176743\n\nObjective: Debit Freeze Order for Accused Beneficiary Account 1006104000176743\n\nPlease acknowledge receipt and process immediately.\n\nPSI Inspector V. K. Patel\nSurat Cyber Crime Station\nEmail: zoomtest021@gmail.com"
+    },
+    {
+      "sent_at": "2026-08-10T03:41:02.235609Z",
+      "case_number": "CR-2026-9914",
+      "recipient_email": "compliance.nodal@idbi.co.in",
+      "recipient_name": "IDBI Bank",
+      "subject": "URGENT STATUTORY DIRECTIVE: Debit Freeze Order for Accused Beneficiary Account 1006104000176743 - Target 1006104000176743 [Case: CR-2026-9914] [CrimeOS-REF: CR-2026-9914]",
+      "body": "STATUTORY DIRECTIVE UNDER SECTION 94 BNSS\n\nCase FIR / Ref: CR-2026-9914\nTarget Identifier: 1006104000176743\n\nObjective: Debit Freeze Order for Accused Beneficiary Account 1006104000176743\n\nPlease acknowledge receipt and process immediately.\n\nPSI Inspector V. K. Patel\nSurat Cyber Crime Station\nEmail: zoomtest021@gmail.com"
+    }
+  ]
+}

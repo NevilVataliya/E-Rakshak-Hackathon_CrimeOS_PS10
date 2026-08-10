@@ -75,6 +75,8 @@ export interface InvestigationData {
   case_number: string;
   investigation_steps: GroundedSOPStep[];
   cross_case_matches: CrossCaseMatch[];
+  legal_requests?: any[];
+  master_fir?: any;
   sections: string[];
   evaluator_status: 'APPROVED' | 'RETRYING';
   summary?: string;

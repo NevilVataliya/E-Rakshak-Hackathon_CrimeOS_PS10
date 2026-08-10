@@ -1,4 +1,5 @@
 import os
+import json
 from fastapi import FastAPI, File, UploadFile, Form, HTTPException, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
@@ -407,6 +408,327 @@ def download_legal_pdf(filename: str):
 
     return FileResponse(path=path, filename=filename, media_type="application/pdf")
 
+class NoticeGenerateRequest(BaseModel):
+    case_number: str
+    notice_type: Optional[str] = "SECTION_94_BNSS"
+    provider_name: Optional[str] = "State Bank of India Fraud Nodal Cell"
+    provider_email: Optional[str] = "cgc.fraud@sbi.co.in"
+    target_identifier: Optional[str] = None
+    details: Optional[str] = None
+
+class EmailDispatchRequest(BaseModel):
+    case_number: str
+    receiver_name: str
+    receiver_email: str
+    receiver_type: Optional[str] = "bank"
+    objective: Optional[str] = "Statutory Requisition Directive"
+    body_text: Optional[str] = None
+
+@app.post("/api/requests/generate-notice")
+async def generate_notice_endpoint(req: NoticeGenerateRequest):
+    from app.pdf_generator.legal_notices import generate_section_94_bnss_pdf
+    filename = f"Notice_{req.notice_type}_{req.case_number}.pdf"
+    output_path = os.path.join(PDF_DIR, filename)
+    generate_section_94_bnss_pdf(
+        output_path=output_path,
+        case_data={"case_number": req.case_number, "fir_number": req.case_number.replace("CR-", "FIR-"), "crime_sub_type": "Cyber Fraud / Financial Investigation"},
+        request_details={"target_provider": req.provider_name, "items": [f"Target: {req.target_identifier or req.details or 'Requisition Data'}"]}
+    )
+    return {
+        "status": "success",
+        "notice_id": f"REQ-{req.case_number}-{int(os.path.getmtime(output_path))}",
+        "case_number": req.case_number,
+        "filename": filename,
+        "pdf_url": f"/api/requests/download/{filename}"
+    }
+
+@app.post("/api/requests/dispatch-email")
+async def dispatch_email_endpoint(req: EmailDispatchRequest):
+    from app.workflow_automator.smtp_mailer import SMTPMailer
+    mailer = SMTPMailer()
+    res = mailer.send_email(
+        to_email=req.receiver_email,
+        to_name=req.receiver_name,
+        subject=f"OFFICIAL STATUTORY DIRECTIVE: {req.objective} [CrimeOS-REF: {req.case_number}]",
+        body_text=req.body_text or f"Requisition directive for case {req.case_number}.",
+        case_number=req.case_number
+    )
+    return {
+        "status": "success",
+        "dispatch": res
+    }
+
+@app.get("/api/analytics/inbox-status")
+async def get_inbox_status(case_number: Optional[str] = None):
+    from app.workflow_automator.inbox_monitor import InboxMonitorAgent
+    monitor = InboxMonitorAgent()
+    results = monitor.check_inbox_once(target_case_number=case_number)
+    return {
+        "status": "online",
+        "inbox_active": True,
+        "processed_count": len(results),
+        "results": results
+    }
+
+# ── EMAIL RESPONSE MANAGER & FOLLOWBACK SYSTEM ENDPOINTS ───────────────────
+
+class CheckInboxRequest(BaseModel):
+    case_number: Optional[str] = None
+    smtp_credentials: Optional[Dict[str, Any]] = None
+
+class IngestReplyRequest(BaseModel):
+    case_number: str
+    sender_email: str
+    subject: str
+    body_text: str
+    attachments: Optional[List[Dict[str, Any]]] = None
+
+class SendFollowbackRequest(BaseModel):
+    case_number: str
+    recipient_email: str
+    subject: str
+    body: str
+    smtp_credentials: Optional[Dict[str, Any]] = None
+
+class WorkflowDispatchNoticeRequest(BaseModel):
+    case_number: str
+    objective: str
+    receiver_name: str
+    receiver_email: str
+    receiver_type: Optional[str] = "financial_fraud"
+    context_data: Optional[Dict[str, Any]] = None
+    smtp_credentials: Optional[Dict[str, Any]] = None
+
+class CustomTemplateRequest(BaseModel):
+    template_id: str
+    title: str
+    category: Optional[str] = "third_party_intermediary"
+    subject_template: str
+    body_template: str
+    legal_statute_ref: Optional[str] = "Section 94 BNSS"
+
+class CaseDiarySummaryRequest(BaseModel):
+    case_number: str
+    activity_timeline: Optional[List[Dict[str, Any]]] = None
+    investigating_officer: Optional[str] = "PSI Inspector V. K. Patel"
+    police_station: Optional[str] = "Surat Cyber Crime Station"
+
+
+@app.post("/api/email/check-inbox")
+async def check_inbox_endpoint(req: CheckInboxRequest):
+    """
+    Polls IMAP / simulated inbox for authority replies, runs Groq LLM classification,
+    saves evidence to case database, and returns processed replies with followback drafts.
+    """
+    from app.workflow_automator.inbox_monitor import InboxMonitorAgent
+    from app.workflow_automator.email_response_manager import classify_reply_with_groq
+
+    creds = req.smtp_credentials or {}
+    user = creds.get("imap_user") or creds.get("smtp_user") or os.environ.get("IMAP_USERNAME") or os.environ.get("SMTP_USER") or os.environ.get("SENDER_EMAIL")
+    pwd = creds.get("imap_pass") or creds.get("smtp_pass") or os.environ.get("IMAP_PASSWORD") or os.environ.get("SMTP_PASS") or os.environ.get("SMTP_PASSWORD")
+    raw_host = creds.get("imap_host") or creds.get("smtp_host") or os.environ.get("IMAP_HOST") or "imap.gmail.com"
+    host = raw_host.replace("smtp.", "imap.")
+    port = int(creds.get("imap_port") or creds.get("smtp_port") or os.environ.get("IMAP_PORT") or 993)
+
+    processed_replies = []
+    if user and pwd:
+        try:
+            inbox_agent = InboxMonitorAgent(imap_host=host, imap_port=port if port != 587 else 993, username=user, password=pwd)
+            raw_mails = inbox_agent.check_inbox_once(target_case_number=req.case_number)
+
+            # Deduplicate incoming mails by sender + subject, keeping top 5 most recent
+            seen_keys = set()
+            unique_mails = []
+            for mail in reversed(raw_mails):
+                key = (mail.get("sender_email") or mail.get("sender"), mail.get("subject"))
+                if key not in seen_keys:
+                    seen_keys.add(key)
+                    unique_mails.append(mail)
+                if len(unique_mails) >= 5:
+                    break
+
+            from concurrent.futures import ThreadPoolExecutor
+            def _proc(mail):
+                c_num = mail.get("case_number") or req.case_number or "CR-2026-9914"
+                sender = mail.get("sender") or mail.get("sender_email") or "authority@provider.com"
+                subj = mail.get("subject") or "Re: Legal Directive"
+                body = mail.get("body_text") or mail.get("body") or ""
+                atts = mail.get("attachments", [])
+                return classify_reply_with_groq(
+                    case_number=c_num,
+                    sender_email=sender,
+                    subject=subj,
+                    body_text=body,
+                    attachments=atts
+                )
+
+            if unique_mails:
+                with ThreadPoolExecutor(max_workers=min(5, len(unique_mails))) as executor:
+                    processed_replies = list(executor.map(_proc, unique_mails))
+        except Exception as e:
+            import traceback
+            print(f"[Check Inbox Endpoint Warning]: {e}")
+            traceback.print_exc()
+
+    return {
+        "status": "success",
+        "case_number": req.case_number,
+        "replies_count": len(processed_replies),
+        "replies": processed_replies
+    }
+
+
+@app.post("/api/email/ingest-reply")
+async def ingest_reply_endpoint(req: IngestReplyRequest):
+    """
+    Ingests simulated or manual incoming reply payload, classifies via Groq LLM,
+    and returns structured reply with followback draft (if data is partial).
+    """
+    from app.workflow_automator.email_response_manager import classify_reply_with_groq
+
+    reply_obj = classify_reply_with_groq(
+        case_number=req.case_number,
+        sender_email=req.sender_email,
+        subject=req.subject,
+        body_text=req.body_text,
+        attachments=req.attachments
+    )
+    return {
+        "status": "success",
+        "reply": reply_obj
+    }
+
+
+@app.post("/api/email/send-followback")
+async def send_followback_endpoint(req: SendFollowbackRequest):
+    """
+    Sends the human-approved followback email via SMTP ONLY when explicitly triggered by officer.
+    """
+    from app.workflow_automator.smtp_mailer import SMTPMailer
+
+    creds = req.smtp_credentials or {}
+    smtp_host = creds.get("smtp_host") or os.environ.get("SMTP_HOST") or "smtp.gmail.com"
+    smtp_port = int(creds.get("smtp_port") or os.environ.get("SMTP_PORT") or 587)
+    smtp_user = creds.get("smtp_user") or os.environ.get("SMTP_USER") or os.environ.get("SENDER_EMAIL")
+    smtp_pass = creds.get("smtp_pass") or os.environ.get("SMTP_PASS") or os.environ.get("SMTP_PASSWORD")
+
+    if not smtp_user or not smtp_pass:
+        raise HTTPException(
+            status_code=400,
+            detail="Real SMTP Credentials Missing: Please set SMTP_USER and SMTP_PASS in .env or configure credentials in UI."
+        )
+
+    mailer = SMTPMailer(
+        smtp_host=smtp_host,
+        smtp_port=smtp_port,
+        smtp_username=smtp_user,
+        smtp_password=smtp_pass,
+        sender_email=smtp_user,
+        sender_name="Surat Cyber Crime Police Station",
+        simulation_mode=False
+    )
+
+    res = mailer.send_email(
+        to_email=req.recipient_email,
+        to_name="Nodal Officer",
+        subject=req.subject,
+        body_text=req.body,
+        case_number=req.case_number
+    )
+
+    if not res.get("success"):
+        raise HTTPException(status_code=500, detail=f"Followback SMTP Email Dispatch Failed: {res.get('error')}")
+
+    return {
+        "status": "success",
+        "case_number": req.case_number,
+        "recipient": req.recipient_email,
+        "dispatch": res
+    }
+
+
+@app.post("/api/workflow/dispatch-notice")
+async def workflow_dispatch_notice(req: WorkflowDispatchNoticeRequest):
+    from app.workflow_automator.smtp_mailer import SMTPMailer
+
+    creds = req.smtp_credentials or {}
+    smtp_host = creds.get("smtp_host") or os.environ.get("SMTP_HOST") or os.environ.get("SMTP_SERVER") or "smtp.gmail.com"
+    smtp_port = int(creds.get("smtp_port") or os.environ.get("SMTP_PORT") or 587)
+    smtp_user = creds.get("smtp_user") or os.environ.get("SMTP_USER") or os.environ.get("SMTP_USERNAME") or os.environ.get("SENDER_EMAIL")
+    smtp_pass = creds.get("smtp_pass") or os.environ.get("SMTP_PASS") or os.environ.get("SMTP_PASSWORD") or os.environ.get("EMAIL_PASSWORD")
+
+    if not smtp_user or not smtp_pass:
+        raise HTTPException(
+            status_code=400,
+            detail="Real SMTP Credentials Missing: Could not find SMTP_USER or SMTP_PASS in environment (.env). Please set SMTP_USER and SMTP_PASS in .env file."
+        )
+
+    mailer = SMTPMailer(
+        smtp_host=smtp_host,
+        smtp_port=smtp_port,
+        smtp_username=smtp_user,
+        smtp_password=smtp_pass,
+        sender_email=os.environ.get("SENDER_EMAIL", smtp_user),
+        sender_name=os.environ.get("SENDER_NAME", "Surat Cyber Crime Police Station"),
+        simulation_mode=False
+    )
+
+    body = f"STATUTORY DIRECTIVE UNDER SECTION 94 BNSS\n\nCase FIR / Ref: {req.case_number}\nTarget Identifier: {req.context_data.get('target_identifier') if req.context_data else 'N/A'}\n\nObjective: {req.objective}\n\nPlease acknowledge receipt and process immediately.\n\nPSI Inspector V. K. Patel\nSurat Cyber Crime Station\nEmail: {smtp_user}"
+
+    sent_subject = f"URGENT STATUTORY DIRECTIVE: {req.objective} - Target {req.context_data.get('target_identifier') if req.context_data else ''} [Case: {req.case_number}] [CrimeOS-REF: {req.case_number}]"
+
+    res = mailer.send_email(
+        to_email=req.receiver_email,
+        to_name=req.receiver_name,
+        subject=sent_subject,
+        body_text=body,
+        case_number=req.case_number
+    )
+
+    if not res.get("success"):
+        raise HTTPException(status_code=500, detail=f"Real SMTP Email Dispatch Failed: {res.get('error')}")
+
+    return {
+        "status": "success",
+        "case_number": req.case_number,
+        "recipient": req.receiver_email,
+        "dispatch": res
+    }
+
+@app.post("/api/workflow/templates/custom")
+async def register_custom_template(req: CustomTemplateRequest):
+    from app.workflow_automator.template_engine import TemplateEngine
+    engine = TemplateEngine()
+    engine.register_template(req.template_id, req.dict())
+    return {
+        "status": "success",
+        "template_id": req.template_id,
+        "message": f"Custom notice template '{req.title}' registered successfully."
+    }
+
+@app.post("/api/case-diary/generate-summary")
+async def generate_case_diary_summary(req: CaseDiarySummaryRequest):
+    timeline_str = "\n".join([f"• [{item.get('module', 'LOG')}] {item.get('step_title', 'Step')}: {item.get('details', '')}" for item in (req.activity_timeline or [])])
+    summary_text = (
+        f"STATUTORY CASE DIARY SUMMARY (SECTION 167 BNSS / SECTION 173 CrPC)\n\n"
+        f"Case Reference: {req.case_number}\n"
+        f"Investigating Unit: {req.police_station}\n"
+        f"Investigating Officer: {req.investigating_officer}\n\n"
+        f"CHRONOLOGICAL INVESTIGATION TIMELINE:\n{timeline_str or '• Complaint ingested and multi-agent SOP analysis complete.'}\n\n"
+        f"FINAL REQUISITION & EVIDENCE STATUS:\n"
+        f"1. Section 94 BNSS Legal Notices rendered and dispatched to Nodal Officers.\n"
+        f"2. Bank statements and CDR call logs ingested & parsed.\n"
+        f"3. Electronic evidence SHA-256 certificate compiled under BSA Section 63.\n\n"
+        f"Recommendation: File Final Charge Sheet under Section 193 BNSS."
+    )
+    return {
+        "status": "success",
+        "case_number": req.case_number,
+        "statutory_case_summary": summary_text
+    }
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
+
+
