@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { 
   FileText, 
@@ -30,6 +30,7 @@ export default function TacticalStepperHeader() {
   const navigate = useNavigate();
   const location = useLocation();
   const { activeCase, completedStepByCase } = useCaseStore();
+  const [globalSumOpen, setGlobalSumOpen] = useState(false);
 
   const currentPath = location.pathname;
   const currentStepIndex = guidedSteps.findIndex(s => s.path === currentPath);
@@ -135,20 +136,33 @@ export default function TacticalStepperHeader() {
 
       <div className="h-4 w-px bg-white/10 mx-2 shrink-0" />
 
-      {/* Admin / Audit Trail Shortcut Button */}
-      <button
-        onClick={() => navigate('/admin')}
-        className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-semibold transition-colors shrink-0 ${
-          currentPath === '/admin'
-            ? 'border-indigo-500/50 bg-indigo-500/10 text-indigo-300 font-bold'
-            : 'border-white/10 bg-[#0d1322] text-slate-400 hover:text-white hover:border-white/20'
-        }`}
-        title="Admin & Audit Trail"
-      >
-        <ShieldCheck className="h-3.5 w-3.5 text-indigo-400" />
-        <span className="hidden sm:inline text-[11px]">Audit</span>
-      </button>
+      {/* Admin & Global Summarizer Shortcut Buttons */}
+      <div className="flex items-center gap-1.5 shrink-0">
+        <button
+          onClick={() => setGlobalSumOpen(true)}
+          className="flex items-center gap-1.5 rounded-lg border border-cyan-500/40 bg-gradient-to-r from-blue-600/30 to-cyan-600/30 px-2.5 py-1 text-xs font-extrabold text-cyan-200 hover:brightness-125 transition-all shadow-md shadow-cyan-500/20"
+          title="Synthesize Master AI Executive Briefing across all completed modules"
+        >
+          <Sparkles className="h-3.5 w-3.5 text-cyan-300 animate-pulse" />
+          <span className="hidden md:inline font-mono">Summarize All Modules</span>
+          <span className="md:hidden font-mono">Summary</span>
+        </button>
 
+        <button
+          onClick={() => navigate('/admin')}
+          className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-semibold transition-colors ${
+            currentPath === '/admin'
+              ? 'border-indigo-500/50 bg-indigo-500/10 text-indigo-300 font-bold'
+              : 'border-white/10 bg-[#0d1322] text-slate-400 hover:text-white hover:border-white/20'
+          }`}
+          title="Admin & Audit Trail"
+        >
+          <ShieldCheck className="h-3.5 w-3.5 text-indigo-400" />
+          <span className="hidden sm:inline text-[11px]">Audit</span>
+        </button>
+      </div>
+
+      <GlobalSummarizerModal isOpen={globalSumOpen} onClose={() => setGlobalSumOpen(false)} />
     </div>
   );
 }
