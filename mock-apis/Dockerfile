@@ -3,7 +3,8 @@ FROM node:20-alpine
 WORKDIR /app
 
 COPY package*.json ./
-RUN npm install --production
+RUN --mount=type=cache,target=/root/.npm \
+    npm install --production
 
 COPY . .
 

@@ -24,15 +24,16 @@ import {
 } from 'lucide-react';
 import api from '../services/api';
 import { useCaseStore } from '../store/caseStore';
-import { BankAccountEntity } from '../types';
+import { BankAccountEntity, AttachedFileMeta } from '../types';
 
 export default function IntakeView() {
   const navigate = useNavigate();
-  const { addCaseFromComplaint, setSelectedInspectorItem } = useCaseStore();
+  const { activeCase, intakeDataByCase, addCaseFromComplaint, setSelectedInspectorItem } = useCaseStore();
 
   const [language, setLanguage] = useState('auto');
   const [rawText, setRawText] = useState('');
   const [attachedFiles, setAttachedFiles] = useState<File[]>([]);
+  const [persistedFiles, setPersistedFiles] = useState<AttachedFileMeta[]>([]);
   const [isDragging, setIsDragging] = useState(false);
   const [loading, setLoading] = useState(false);
   const [extractedResult, setExtractedResult] = useState<any>(null);
@@ -59,13 +60,35 @@ export default function IntakeView() {
     fetchStatus();
   }, []);
 
+  // Sync state when active case changes or on component mount
+  useEffect(() => {
+    if (activeCase) {
+      const caseNo = activeCase.case_number;
+      const record = intakeDataByCase?.[caseNo];
+
+      const savedManualText = record?.manual_text || activeCase.manual_text || activeCase.complaint_text || '';
+      const savedFiles = record?.attached_files || activeCase.attached_files || [];
+      const savedExtracted = record?.extracted_result || activeCase.extracted_result || null;
+
+      setRawText(savedManualText);
+      setPersistedFiles(savedFiles);
+      if (savedExtracted) {
+        setExtractedResult(savedExtracted);
+      }
+    }
+  }, [activeCase?.case_number]);
+
   const handleFilesAdded = (files: FileList | File[]) => {
     const newFiles = Array.from(files);
     setAttachedFiles(prev => [...prev, ...newFiles]);
   };
 
-  const removeFile = (index: number) => {
+  const removeLiveFile = (index: number) => {
     setAttachedFiles(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const removePersistedFile = (index: number) => {
+    setPersistedFiles(prev => prev.filter((_, i) => i !== index));
   };
 
   const handleDragOver = (e: React.DragEvent) => {
@@ -96,7 +119,7 @@ export default function IntakeView() {
   };
 
   const handleIngest = async () => {
-    if (!rawText.trim() && attachedFiles.length === 0) return;
+    if (!rawText.trim() && attachedFiles.length === 0 && persistedFiles.length === 0) return;
     setLoading(true);
     setErrorMessage(null);
     try {
@@ -128,10 +151,16 @@ export default function IntakeView() {
 
   const handleCreateCase = async () => {
     if (extractedResult) {
-      addCaseFromComplaint(extractedResult);
+      const allFileMetas: AttachedFileMeta[] = [
+        ...attachedFiles.map(f => ({ name: f.name, size: f.size, type: f.type })),
+        ...persistedFiles
+      ];
+      addCaseFromComplaint(extractedResult, rawText, allFileMetas);
       navigate('/linkage');
     }
   };
+
+  const totalFilesCount = attachedFiles.length + persistedFiles.length;
 
   return (
     <div className="flex-1 flex flex-col p-4 overflow-hidden gap-4 select-none">
@@ -166,6 +195,7 @@ export default function IntakeView() {
           onClick={() => {
             setRawText('');
             setAttachedFiles([]);
+            setPersistedFiles([]);
             setExtractedResult(null);
             setErrorMessage(null);
           }}
@@ -213,21 +243,41 @@ export default function IntakeView() {
                 isDragging ? 'border-blue-500 bg-blue-500/10 ring-2 ring-blue-500/30' : 'border-white/10 hover:border-white/20'
               }`}
             >
-              {/* Attached Files Pills */}
-              {attachedFiles.length > 0 && (
+              {/* Attached Files Pills (Both Live Uploads and Persisted Case Files) */}
+              {totalFilesCount > 0 && (
                 <div className="flex flex-wrap gap-2 mb-3 pb-2 border-b border-white/10 max-h-32 overflow-y-auto">
                   {attachedFiles.map((file, idx) => (
                     <div 
-                      key={idx}
-                      className="flex items-center gap-2 rounded-lg border border-white/10 bg-[#0d1322] px-2.5 py-1.5 text-xs group hover:border-white/20 transition-all"
+                      key={`live-${idx}`}
+                      className="flex items-center gap-2 rounded-lg border border-blue-500/40 bg-blue-500/10 px-2.5 py-1.5 text-xs group hover:border-blue-400 transition-all"
                     >
                       {getFileIcon(file.name)}
                       <div className="flex flex-col min-w-0">
                         <span className="text-[11px] font-semibold text-white truncate max-w-[140px]">{file.name}</span>
-                        <span className="text-[9px] text-slate-400 font-mono">{(file.size / 1024).toFixed(1)} KB</span>
+                        <span className="text-[9px] text-blue-300 font-mono">{(file.size / 1024).toFixed(1)} KB (New)</span>
                       </div>
                       <button
-                        onClick={() => removeFile(idx)}
+                        onClick={() => removeLiveFile(idx)}
+                        className="text-slate-500 hover:text-rose-400 p-0.5 rounded transition-colors"
+                        title="Remove file"
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  ))}
+
+                  {persistedFiles.map((pfile, idx) => (
+                    <div 
+                      key={`persisted-${idx}`}
+                      className="flex items-center gap-2 rounded-lg border border-white/10 bg-[#0d1322] px-2.5 py-1.5 text-xs group hover:border-white/20 transition-all"
+                    >
+                      {getFileIcon(pfile.name)}
+                      <div className="flex flex-col min-w-0">
+                        <span className="text-[11px] font-semibold text-slate-200 truncate max-w-[140px]">{pfile.name}</span>
+                        <span className="text-[9px] text-slate-400 font-mono">{(pfile.size / 1024).toFixed(1)} KB</span>
+                      </div>
+                      <button
+                        onClick={() => removePersistedFile(idx)}
                         className="text-slate-500 hover:text-rose-400 p-0.5 rounded transition-colors"
                         title="Remove file"
                       >
@@ -272,9 +322,9 @@ export default function IntakeView() {
                   >
                     <Paperclip className="h-3.5 w-3.5 text-blue-400" />
                     <span>Attach Files</span>
-                    {attachedFiles.length > 0 && (
+                    {totalFilesCount > 0 && (
                       <span className="ml-1 rounded-full bg-blue-600 px-1.5 py-0.2 text-[10px] font-bold text-white font-mono">
-                        {attachedFiles.length}
+                        {totalFilesCount}
                       </span>
                     )}
                   </button>
@@ -295,7 +345,7 @@ export default function IntakeView() {
 
                   <button
                     onClick={handleIngest}
-                    disabled={loading || (!rawText.trim() && attachedFiles.length === 0)}
+                    disabled={loading || (!rawText.trim() && totalFilesCount === 0)}
                     className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-xs font-bold text-white hover:bg-blue-500 transition-colors disabled:opacity-40 shadow-md"
                   >
                     {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
@@ -411,3 +461,4 @@ export default function IntakeView() {
     </div>
   );
 }
+

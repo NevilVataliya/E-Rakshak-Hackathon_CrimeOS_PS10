@@ -24,6 +24,12 @@ export interface ExtractedEntities {
   date_time_of_incident?: string;
 }
 
+export interface AttachedFileMeta {
+  name: string;
+  size: number;
+  type: string;
+}
+
 export interface PoliceCase {
   case_number: string;
   fir_number: string;
@@ -39,6 +45,9 @@ export interface PoliceCase {
   entities: ExtractedEntities;
   sections: string[];
   created_at: string;
+  manual_text?: string;
+  attached_files?: AttachedFileMeta[];
+  extracted_result?: any;
 }
 
 export interface GroundedSOPStep {
