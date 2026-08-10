@@ -29,6 +29,7 @@ import {
 } from 'lucide-react';
 import api from '../services/api';
 import PDFPreviewModal from '../components/common/PDFPreviewModal';
+import ModuleSummarizerModal from '../components/common/ModuleSummarizerModal';
 import { useCaseStore } from '../store/caseStore';
 import { useLangStore } from '../store/langStore';
 import { SubpoenaNotice } from '../types';
@@ -475,6 +476,8 @@ export default function SubpoenasView() {
     setToastMsg(`Added Directive ${newId} to case checklist. Enter required details on right panel.`);
   };
 
+  const [summarizerOpen, setSummarizerOpen] = useState(false);
+
   const handleAutoDispatchNotice = async () => {
     const missing = getMissingFields();
     if (missing.length > 0) {
@@ -738,6 +741,14 @@ export default function SubpoenasView() {
         </div>
 
         <div className="flex items-center gap-2">
+          <button
+            onClick={() => setSummarizerOpen(true)}
+            className="flex items-center gap-1.5 rounded border border-blue-500/40 bg-blue-500/10 px-3 py-1.5 text-xs font-bold text-cyan-300 hover:bg-blue-500/20 transition-colors shadow-sm"
+          >
+            <Sparkles className="h-3.5 w-3.5 text-cyan-400" />
+            <span>AI Module Summary</span>
+          </button>
+
           <button
             onClick={() => setSmtpModalOpen(true)}
             className="flex items-center gap-1.5 rounded border border-emerald-500/40 bg-emerald-500/10 px-3 py-1.5 text-xs font-semibold text-emerald-300 hover:bg-emerald-500/20 transition-colors shadow-sm"
@@ -1571,6 +1582,13 @@ export default function SubpoenasView() {
         </div>
       )}
 
+      {/* Module 4 AI Executive Summarizer Modal */}
+      <ModuleSummarizerModal
+        isOpen={summarizerOpen}
+        onClose={() => setSummarizerOpen(false)}
+        moduleId="MODULE_4"
+        moduleTitle="Statutory Legal Directives & Reply Management"
+      />
     </div>
   );
 }

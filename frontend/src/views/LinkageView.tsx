@@ -10,9 +10,10 @@ import {
   MarkerType,
   type Connection
 } from '@xyflow/react';
-import { Network, ArrowRight, ShieldCheck, Loader2, Search, Phone, CreditCard, Building, AlertTriangle, RefreshCw } from 'lucide-react';
+import { Network, ArrowRight, ShieldCheck, Loader2, Search, Phone, CreditCard, Building, AlertTriangle, RefreshCw, Sparkles } from 'lucide-react';
 import { useCaseStore } from '../store/caseStore';
 import { LinkageMatch } from '../types';
+import ModuleSummarizerModal from '../components/common/ModuleSummarizerModal';
 
 // --- Node & Edge Color Mapping by Entity Type ---
 const entityStyle: Record<string, { bg: string; color: string; border: string; stroke: string }> = {
@@ -121,6 +122,7 @@ export default function LinkageView() {
 
   const [manualQuery, setManualQuery] = useState('');
   const [searchType, setSearchType] = useState<string>('auto');
+  const [summarizerOpen, setSummarizerOpen] = useState(false);
 
   // Build graph dynamically from linkage matches
   const { nodes: graphNodes, edges: graphEdges } = useMemo(
@@ -199,6 +201,14 @@ export default function LinkageView() {
         </div>
 
         <div className="flex items-center gap-2">
+          <button
+            onClick={() => setSummarizerOpen(true)}
+            className="flex items-center gap-1.5 rounded border border-blue-500/40 bg-blue-500/10 px-3 py-1.5 text-xs font-bold text-cyan-300 hover:bg-blue-500/20 transition-colors shadow-sm"
+          >
+            <Sparkles className="h-3.5 w-3.5 text-cyan-400" />
+            <span>AI Module Summary</span>
+          </button>
+
           <button
             onClick={handleAutoSearch}
             disabled={linkageLoading}
@@ -406,6 +416,12 @@ export default function LinkageView() {
 
       </div>
 
+      <ModuleSummarizerModal
+        isOpen={summarizerOpen}
+        onClose={() => setSummarizerOpen(false)}
+        moduleId="MODULE_2"
+        moduleTitle="Serial Linkage & Cross-FIR Pattern Analysis"
+      />
     </div>
   );
 }

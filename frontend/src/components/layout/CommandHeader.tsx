@@ -1,14 +1,16 @@
 import React, { useState } from 'react';
-import { Shield, Search, Building2, ChevronDown, LogOut, Command } from 'lucide-react';
+import { Shield, Search, Building2, ChevronDown, LogOut, Command, Sparkles } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
 import { useCaseStore } from '../../store/caseStore';
 import CommandPaletteDialog from './CommandPaletteDialog';
+import GlobalSummarizerModal from '../common/GlobalSummarizerModal';
 
 export default function CommandHeader() {
   const { user, logout } = useAuthStore();
   const { cases, activeCase, setActiveCase } = useCaseStore();
   const [cmdOpen, setCmdOpen] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [globalSumOpen, setGlobalSumOpen] = useState(false);
 
   return (
     <>
@@ -98,6 +100,9 @@ export default function CommandHeader() {
 
       {/* Global Command Palette */}
       <CommandPaletteDialog open={cmdOpen} onOpenChange={setCmdOpen} />
+
+      {/* Global Executive AI Summarizer Modal */}
+      <GlobalSummarizerModal isOpen={globalSumOpen} onClose={() => setGlobalSumOpen(false)} />
     </>
   );
 }

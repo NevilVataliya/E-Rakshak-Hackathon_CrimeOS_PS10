@@ -11,9 +11,11 @@ import {
   ChevronRight,
   LayoutDashboard,
   ShieldCheck,
-  Lock
+  Lock,
+  Sparkles
 } from 'lucide-react';
 import { useCaseStore } from '../../store/caseStore';
+import GlobalSummarizerModal from '../common/GlobalSummarizerModal';
 
 const guidedSteps = [
   { step: 1, id: 'intake', title: 'Complaint Intake', path: '/intake', icon: FileText, subtitle: 'Multimodal Parsing' },

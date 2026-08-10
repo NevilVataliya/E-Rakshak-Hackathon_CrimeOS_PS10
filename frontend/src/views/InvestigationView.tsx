@@ -16,6 +16,7 @@ import {
   Play
 } from 'lucide-react';
 import PDFPreviewModal from '../components/common/PDFPreviewModal';
+import ModuleSummarizerModal from '../components/common/ModuleSummarizerModal';
 import { useCaseStore } from '../store/caseStore';
 import { GroundedSOPStep } from '../types';
 
@@ -24,6 +25,7 @@ export default function InvestigationView() {
   const { activeCase, runInvestigationStudio, investigationData, loading, error, setSelectedInspectorItem } = useCaseStore();
   const [pdfModalOpen, setPdfModalOpen] = useState(false);
   const [expandedStep, setExpandedStep] = useState<number | null>(0);
+  const [summarizerOpen, setSummarizerOpen] = useState(false);
 
   const handleRunAgentStudio = () => {
     if (activeCase) {
@@ -54,6 +56,14 @@ export default function InvestigationView() {
         </div>
 
         <div className="flex items-center gap-2">
+          <button
+            onClick={() => setSummarizerOpen(true)}
+            className="flex items-center gap-1.5 rounded border border-blue-500/40 bg-blue-500/10 px-3 py-1.5 text-xs font-bold text-cyan-300 hover:bg-blue-500/20 transition-colors shadow-sm"
+          >
+            <Sparkles className="h-3.5 w-3.5 text-cyan-400" />
+            <span>AI Module Summary</span>
+          </button>
+
           <button
             onClick={handleRunAgentStudio}
             disabled={loading}
@@ -254,6 +264,12 @@ export default function InvestigationView() {
         pdfUrl={`/api/requests/download/Notice_Section_94_BNSS_${activeCase?.case_number || 'CR-2026-9910'}.pdf`}
       />
 
+      <ModuleSummarizerModal
+        isOpen={summarizerOpen}
+        onClose={() => setSummarizerOpen(false)}
+        moduleId="MODULE_3"
+        moduleTitle="AI Investigation Studio & Multi-Agent Planning"
+      />
     </div>
   );
 }

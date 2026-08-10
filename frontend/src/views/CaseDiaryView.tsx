@@ -10,11 +10,13 @@ import {
   Lock
 } from 'lucide-react';
 import { useCaseStore } from '../store/caseStore';
+import ModuleSummarizerModal from '../components/common/ModuleSummarizerModal';
 
 export default function CaseDiaryView() {
   const { activeCase } = useCaseStore();
   const [downloading, setDownloading] = useState(false);
   const [toastMsg, setToastMsg] = useState('');
+  const [summarizerOpen, setSummarizerOpen] = useState(false);
 
   const handleDownloadDiary = () => {
     setDownloading(true);
@@ -39,9 +41,19 @@ export default function CaseDiaryView() {
           </p>
         </div>
 
-        <span className="rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-2 py-0.5 text-xs font-bold font-mono">
-          ● Judicial Court Ready
-        </span>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setSummarizerOpen(true)}
+            className="flex items-center gap-1.5 rounded border border-blue-500/40 bg-blue-500/10 px-3 py-1.5 text-xs font-bold text-cyan-300 hover:bg-blue-500/20 transition-colors shadow-sm"
+          >
+            <Sparkles className="h-3.5 w-3.5 text-cyan-400" />
+            <span>AI Module Summary</span>
+          </button>
+
+          <span className="rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-2 py-0.5 text-xs font-bold font-mono">
+            ● Judicial Court Ready
+          </span>
+        </div>
       </div>
 
       {/* Toast Notification */}
@@ -146,6 +158,13 @@ export default function CaseDiaryView() {
 
       </div>
 
+      {/* Module 6 AI Executive Summarizer Modal */}
+      <ModuleSummarizerModal
+        isOpen={summarizerOpen}
+        onClose={() => setSummarizerOpen(false)}
+        moduleId="MODULE_6"
+        moduleTitle="Court-Ready Case Diary & Judicial Register"
+      />
     </div>
   );
 }

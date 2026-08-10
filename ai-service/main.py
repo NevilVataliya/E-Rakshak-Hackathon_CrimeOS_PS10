@@ -470,6 +470,64 @@ async def get_inbox_status(case_number: Optional[str] = None):
         "results": results
     }
 
+class ParseAnalyticsRequest(BaseModel):
+    case_number: str
+    response_type: Optional[str] = "BANK_STATEMENT"
+    reply_id: Optional[str] = None
+    file_content: Optional[str] = None
+
+@app.post("/api/analytics/parse-response")
+async def parse_response_endpoint(req: ParseAnalyticsRequest):
+    from app.workflow_automator.analytics_agent import AnalyticsAgent
+    agent = AnalyticsAgent()
+    
+    p_name = "Nodal Compliance Authority"
+    if req.response_type == "BANK_STATEMENT":
+        p_name = "IndusInd Bank / Union Bank"
+    elif req.response_type == "CDR":
+        p_name = "Reliance Jio Telecom"
+    elif req.response_type == "IP_LOGS":
+        p_name = "Google LERT / Telegram"
+
+    content = req.file_content or f"Simulated forensic payload for {req.response_type} case {req.case_number}"
+    res = agent.analyze_response(
+        provider_name=p_name,
+        response_type=req.response_type or "text",
+        file_path_or_content=content,
+        case_number=req.case_number
+    )
+    return res
+
+# ── HIERARCHICAL SUMMARIZER AGENT ENDPOINTS ───────────────────────────────────
+
+class ModuleSummaryRequest(BaseModel):
+    case_number: str
+    module_id: str
+    module_payload: Optional[Dict[str, Any]] = None
+
+class GlobalSummaryRequest(BaseModel):
+    case_number: str
+    module_summaries: Dict[str, Dict[str, Any]]
+
+@app.post("/api/summary/module")
+async def summarize_module_endpoint(req: ModuleSummaryRequest):
+    from app.workflow_automator.summarizer_agent import SummarizerAgent
+    agent = SummarizerAgent()
+    return agent.summarize_module(
+        case_number=req.case_number,
+        module_id=req.module_id,
+        module_payload=req.module_payload or {}
+    )
+
+@app.post("/api/summary/global")
+async def summarize_global_endpoint(req: GlobalSummaryRequest):
+    from app.workflow_automator.summarizer_agent import SummarizerAgent
+    agent = SummarizerAgent()
+    return agent.summarize_global(
+        case_number=req.case_number,
+        module_summaries=req.module_summaries
+    )
+
 # ── EMAIL RESPONSE MANAGER & FOLLOWBACK SYSTEM ENDPOINTS ───────────────────
 
 class CheckInboxRequest(BaseModel):

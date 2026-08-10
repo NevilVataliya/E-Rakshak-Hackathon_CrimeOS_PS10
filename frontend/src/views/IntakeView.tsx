@@ -24,12 +24,14 @@ import {
   Download
 } from 'lucide-react';
 import api from '../services/api';
+import ModuleSummarizerModal from '../components/common/ModuleSummarizerModal';
 import { useCaseStore } from '../store/caseStore';
 import { BankAccountEntity, AttachedFileMeta } from '../types';
 
 export default function IntakeView() {
   const navigate = useNavigate();
   const { activeCase, intakeDataByCase, addCaseFromComplaint, updateCaseIntakeData, setSelectedInspectorItem } = useCaseStore();
+  const [summarizerOpen, setSummarizerOpen] = useState(false);
 
   const [language, setLanguage] = useState('auto');
   const [rawText, setRawText] = useState('');
@@ -232,18 +234,28 @@ export default function IntakeView() {
           </p>
         </div>
 
-        <button
-          onClick={() => {
-            setRawText('');
-            setAttachedFiles([]);
-            setPersistedFiles([]);
-            setExtractedResult(null);
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setSummarizerOpen(true)}
+            className="flex items-center gap-1.5 rounded-lg border border-blue-500/40 bg-blue-500/10 px-3 py-1.5 text-xs font-bold text-cyan-300 hover:bg-blue-500/20 transition-all shadow-sm"
+          >
+            <Sparkles className="h-3.5 w-3.5 text-cyan-400" />
+            <span>AI Module Summary</span>
+          </button>
+
+          <button
+            onClick={() => {
+              setRawText('');
+              setAttachedFiles([]);
+              setPersistedFiles([]);
+              setExtractedResult(null);
             setErrorMessage(null);
           }}
           className="flex items-center gap-1 text-xs font-semibold text-slate-400 hover:text-rose-400 transition-colors"
         >
           <Trash2 className="h-3.5 w-3.5" /> Reset Input
         </button>
+      </div>
       </div>
 
       {/* Offline Mode Warning Banner */}
@@ -490,6 +502,12 @@ export default function IntakeView() {
 
       </div>
 
+      <ModuleSummarizerModal
+        isOpen={summarizerOpen}
+        onClose={() => setSummarizerOpen(false)}
+        moduleId="MODULE_1"
+        moduleTitle="Complaint Intake & Multimodal Extraction"
+      />
     </div>
   );
 }

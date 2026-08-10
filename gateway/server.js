@@ -562,6 +562,40 @@ app.get('/api/requests/download/:filename', (req, res) => {
   res.redirect(`${AI_SERVICE_URL}/api/requests/download/${filename}`);
 });
 
+app.post('/api/analytics/parse-response', authenticateToken, async (req, res) => {
+  try {
+    const response = await axios.post(`${AI_SERVICE_URL}/api/analytics/parse-response`, req.body);
+    res.json(response.data);
+  } catch (err) {
+    const errorMsg = err.response?.data?.detail || err.response?.data?.error || err.message;
+    console.error('Analytics parse-response proxy error:', errorMsg);
+    res.status(err.response?.status || 500).json({ error: 'Analytics Proxy Error', detail: errorMsg });
+  }
+});
+
+// --- SUMMARIZER AGENT PROXY ROUTES ---
+app.post('/api/summary/module', authenticateToken, async (req, res) => {
+  try {
+    const response = await axios.post(`${AI_SERVICE_URL}/api/summary/module`, req.body);
+    res.json(response.data);
+  } catch (err) {
+    const errorMsg = err.response?.data?.detail || err.response?.data?.error || err.message;
+    console.error('Module summary proxy error:', errorMsg);
+    res.status(err.response?.status || 500).json({ error: 'Module Summary Proxy Error', detail: errorMsg });
+  }
+});
+
+app.post('/api/summary/global', authenticateToken, async (req, res) => {
+  try {
+    const response = await axios.post(`${AI_SERVICE_URL}/api/summary/global`, req.body);
+    res.json(response.data);
+  } catch (err) {
+    const errorMsg = err.response?.data?.detail || err.response?.data?.error || err.message;
+    console.error('Global summary proxy error:', errorMsg);
+    res.status(err.response?.status || 500).json({ error: 'Global Summary Proxy Error', detail: errorMsg });
+  }
+});
+
 // --- EMAIL RESPONSE MANAGER PROXY ROUTES ---
 app.post('/api/email/check-inbox', authenticateToken, async (req, res) => {
   try {
