@@ -81,35 +81,36 @@ export default function SubpoenasView() {
   const [activeTab, setActiveTab] = useState<'auto_email_test' | 'email_response'>('auto_email_test');
 
   // Real SMTP Credentials Settings State
+  // Server Environment SMTP Credentials Settings State
   const [smtpModalOpen, setSmtpModalOpen] = useState(false);
-  const [smtpHost, setSmtpHost] = useState(() => localStorage.getItem('crime_os_smtp_host') || 'smtp.gmail.com');
-  const [smtpPort, setSmtpPort] = useState(() => localStorage.getItem('crime_os_smtp_port') || '587');
-  const [smtpUser, setSmtpUser] = useState(() => localStorage.getItem('crime_os_smtp_user') || '');
-  const [smtpPass, setSmtpPass] = useState(() => localStorage.getItem('crime_os_smtp_pass') || '');
+  const [smtpHost, setSmtpHost] = useState('smtp.gmail.com');
+  const [smtpPort, setSmtpPort] = useState('587');
+  const [smtpUser, setSmtpUser] = useState('');
+  const [smtpPass, setSmtpPass] = useState('');
 
   const saveSmtpCredentials = () => {
-    localStorage.setItem('crime_os_smtp_host', smtpHost);
-    localStorage.setItem('crime_os_smtp_port', smtpPort);
-    localStorage.setItem('crime_os_smtp_user', smtpUser);
-    localStorage.setItem('crime_os_smtp_pass', smtpPass);
-    setToastMsg('⚙️ Real SMTP Server Credentials Saved! Direct email sending enabled.');
+    // Clean up legacy insecure local storage items if any exist
+    if (typeof window !== 'undefined' && window.localStorage) {
+      window.localStorage.removeItem('crime_os_smtp_pass');
+      window.localStorage.removeItem('crime_os_smtp_user');
+      window.localStorage.removeItem('crime_os_smtp_host');
+      window.localStorage.removeItem('crime_os_smtp_port');
+    }
+    setToastMsg('⚙️ Server Environment (.env) SMTP Configuration Active!');
     setSmtpModalOpen(false);
   };
 
   const getSmtpCredsPayload = () => {
-    if (smtpUser && smtpPass) {
-      return {
-        smtp_host: smtpHost,
-        smtp_port: parseInt(smtpPort, 10) || 587,
-        smtp_user: smtpUser,
-        smtp_pass: smtpPass,
-        imap_host: smtpHost.replace('smtp.', 'imap.'),
-        imap_port: 993,
-        imap_user: smtpUser,
-        imap_pass: smtpPass
-      };
-    }
-    return undefined;
+    return {
+      smtp_host: smtpHost || undefined,
+      smtp_port: parseInt(smtpPort, 10) || 587,
+      smtp_user: smtpUser || undefined,
+      smtp_pass: smtpPass || undefined,
+      imap_host: smtpHost.replace('smtp.', 'imap.'),
+      imap_port: 993,
+      imap_user: smtpUser || undefined,
+      imap_pass: smtpPass || undefined
+    };
   };
 
   // Nodal Email Resolver helper

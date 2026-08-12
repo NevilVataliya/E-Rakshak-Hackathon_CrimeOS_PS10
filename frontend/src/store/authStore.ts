@@ -65,7 +65,12 @@ export const useAuthStore = create<AuthState>()(
         set({ token: 'mock-jwt-token-io-patel', user: found, isAuthenticated: true });
       },
 
-      logout: () => {
+      logout: async () => {
+        try {
+          await api.post('/api/auth/logout');
+        } catch (err) {
+          // Ignore network errors on logout
+        }
         set({ user: null, token: null, isAuthenticated: false });
       }
     }),

@@ -10,6 +10,9 @@ const FormData = require('form-data');
 const { Pool } = require('pg');
 const { sendLegalNoticeEmail } = require('./src/services/emailService');
 
+const cookieParser = require('cookie-parser');
+const { uploadFileToStorage, getSignedDownloadUrl } = require('./src/services/supabaseStorage');
+
 const app = express();
 const PORT = process.env.PORT || 4000;
 const JWT_SECRET = process.env.JWT_SECRET || 'crimeos_secret_jwt_key_2026_investigation_suite';
@@ -23,13 +26,20 @@ const pool = new Pool({
 
 const upload = multer({ dest: 'uploads/' });
 
-app.use(cors());
+app.use(cors({
+  origin: true,
+  credentials: true
+}));
+app.use(cookieParser());
 app.use(express.json());
 
 // --- AUTHENTICATION MIDDLEWARE ---
 const authenticateToken = (req, res, next) => {
   const authHeader = req.headers['authorization'];
-  const token = authHeader && authHeader.split(' ')[1];
+  let token = authHeader && authHeader.split(' ')[1];
+  if (!token && req.cookies && req.cookies.jwt) {
+    token = req.cookies.jwt;
+  }
   if (!token || token === 'null' || token === 'undefined') {
     return res.status(401).json({ error: 'Access token required' });
   }
@@ -70,20 +80,36 @@ const authorizeRoles = (...roles) => {
 app.post('/api/auth/login', async (req, res) => {
   const { username, password } = req.body;
   try {
+    const cookieOptions = {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 24 * 60 * 60 * 1000 // 24 hours
+    };
+
     const result = await pool.query('SELECT * FROM users WHERE username = $1', [username]);
     if (result.rows.length === 0) {
       const mockRoles = { io_patel: 'IO', sho_sharma: 'SHO', legal_desai: 'LEGAL_ADVISOR', admin_crimeos: 'ADMIN' };
       const role = mockRoles[username] || 'IO';
       const token = jwt.sign({ username, role, police_station: 'Surat Cyber Crime Station' }, JWT_SECRET, { expiresIn: '24h' });
+      
+      res.cookie('jwt', token, cookieOptions);
       return res.json({ token, user: { username, role, full_name: username.toUpperCase(), police_station: 'Surat Cyber Crime Station' } });
     }
     const user = result.rows[0];
     const token = jwt.sign({ id: user.id, username: user.username, role: user.role, police_station: user.police_station }, JWT_SECRET, { expiresIn: '24h' });
+    
+    res.cookie('jwt', token, cookieOptions);
     res.json({ token, user: { id: user.id, username: user.username, role: user.role, full_name: user.full_name, police_station: user.police_station } });
   } catch (err) {
     console.error('Login error:', err);
     res.status(500).json({ error: 'Internal server error' });
   }
+});
+
+app.post('/api/auth/logout', (req, res) => {
+  res.clearCookie('jwt');
+  res.json({ message: 'Logged out successfully' });
 });
 
 app.get('/api/auth/me', authenticateToken, (req, res) => {
@@ -177,12 +203,16 @@ app.post(['/api/complaints/upload', '/api/ingest'], upload.any(), async (req, re
     form.append('input_type', req.body.input_type || 'multimodal');
     form.append('raw_text', req.body.raw_text || '');
 
-    uploadedFiles.forEach(f => {
+    for (const f of uploadedFiles) {
       form.append('files', fs.createReadStream(f.path), {
         filename: f.originalname,
         contentType: f.mimetype
       });
-    });
+      // Store file in Supabase Cloud Storage bucket
+      uploadFileToStorage(f.path, `complaints/${Date.now()}_${f.originalname}`, f.mimetype).catch(err => {
+        console.warn('[-] Cloud storage upload notice:', err.message);
+      });
+    }
 
     const aiRes = await axios.post(`${AI_SERVICE_URL}/api/ingest`, form, {
       headers: form.getHeaders()
@@ -245,20 +275,7 @@ app.get('/api/cases', authenticateToken, async (req, res) => {
     res.json(result.rows);
   } catch (err) {
     if (!ENABLE_DEMO_FALLBACKS) return res.status(500).json({ error: err.message });
-    res.json([
-      {
-        id: 'case-1',
-        case_number: 'CR-2026-9910',
-        fir_number: 'FIR-9910/2026',
-        crime_category: 'CYBER',
-        crime_sub_type: 'UPI Financial Fraud & Impersonation',
-        status: 'INVESTIGATING',
-        assigned_io: 'PSI Inspector V. K. Patel',
-        assigned_sho: 'PI Senior Inspector R. S. Sharma',
-        sections: '318(4) BNS, 66D IT Act',
-        created_at: '2026-07-20T10:00:00Z'
-      }
-    ]);
+    res.json([]);
   }
 });
 
@@ -774,39 +791,38 @@ app.post('/api/case-diary/generate-summary', authenticateToken, async (req, res)
 // --- 5. RESPONSE ANALYTICS & AUDIT LOGS ---
 app.post('/api/analytics/parse-response', authenticateToken, upload.single('file'), async (req, res) => {
   try {
-    const response = await axios.post(`${AI_SERVICE_URL}/api/analytics/parse-response`, {
-      file_path: req.file ? req.file.path : null,
-      response_type: req.body.response_type || 'CDR'
-    });
+    const payload = {
+      case_number: req.body?.case_number || 'CR-2026-9910',
+      response_type: req.body?.response_type || 'BANK_STATEMENT',
+      reply_id: req.body?.reply_id || null,
+      file_path: req.file ? req.file.path : (req.body?.file_path || null),
+      file_content: req.body?.file_content || null
+    };
+    const response = await axios.post(`${AI_SERVICE_URL}/api/analytics/parse-response`, payload);
     res.json(response.data);
   } catch (err) {
-    console.error('Parse response proxy error:', err.message);
-    if (!ENABLE_DEMO_FALLBACKS) return res.status(500).json({ error: err.message, stack: err.stack });
+    const errorMsg = err.response?.data?.detail || err.response?.data?.error || err.message;
+    console.error('Parse response proxy error:', errorMsg);
+    if (!ENABLE_DEMO_FALLBACKS) return res.status(err.response?.status || 500).json({ error: errorMsg });
     res.json({
       status: 'success',
-      response_type: 'CDR',
+      case_number: req.body?.case_number || 'CR-2026-9910',
+      response_type: req.body?.response_type || 'BANK_STATEMENT',
       total_records: 1420,
-      date_range: '01/06/2026 to 15/07/2026',
-      top_b_parties: [
-        { phone: '+91 98250 11223', call_count: 84, total_duration_min: 192 },
-        { phone: '+91 98790 44551', call_count: 42, total_duration_min: 88 }
+      detected_fraud_pattern: 'MONEY_LAUNDERING_LAYERING',
+      fraud_confidence_score: 96,
+      top_counterparties: [
+        { party: 'A/C 30910293101 (State Bank of India)', count: 14, amount: '₹2,00,000' },
+        { party: 'A/C 501004928172 (HDFC Bank)', count: 8, amount: '₹1,45,000' }
       ],
-      night_calls_count: 38,
-      top_tower_locations: [
-        { tower_id: 'AHM-CG-TW-42', location_name: 'CG Road, Surat', frequency: 912 }
-      ],
-      imei_history: ['864910049201923', '864910049201999'],
-      executive_summary: "Provider response ingested successfully (1,420 CDR records). Target number exhibited high-frequency night activity (38 calls between 00:00-05:00 AM). Primary anchor location identified at CG Road, Surat.",
-      recommended_next_action: "Issue Section 94 BNSS Notice for IMEI 864910049201999 handset CAF details."
+      executive_summary: `Ingested provider compliance response for Case ${req.body?.case_number || 'CR-2026-9910'}. Identified pass-through layering transfers across suspect accounts.`,
+      recommended_next_action: 'Issue Section 106 BNSS Emergency Debit Freeze directive.'
     });
   }
 });
 
 app.get('/api/admin/audit-logs', authenticateToken, authorizeRoles('SHO', 'ADMIN'), (req, res) => {
-  res.json([
-    { id: 'l1', user: 'PSI Inspector V. K. Patel', action: 'GENERATED_SECTION_94_NOTICE', case_id: 'CR-2026-9910', timestamp: new Date().toISOString() },
-    { id: 'l2', user: 'PI Senior Inspector R. S. Sharma', action: 'DISPATCHED_EMAIL_NOTICE', case_id: 'CR-2026-9910', timestamp: new Date().toISOString() }
-  ]);
+  res.json([]);
 });
 
 app.listen(PORT, () => {

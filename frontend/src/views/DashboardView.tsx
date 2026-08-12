@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Layers, FileCheck2, AlertTriangle, Cpu, FileUp, ShieldCheck, ListTree, Activity, Zap, CheckCircle2 } from 'lucide-react';
+import { Layers, FileCheck2, AlertTriangle, Cpu, FileUp, ShieldCheck, ListTree, Activity, Zap, CheckCircle2, RotateCcw } from 'lucide-react';
 import { useCaseStore } from '../store/caseStore';
 import { PoliceCase } from '../types';
 import CasePipelineModal from '../components/common/CasePipelineModal';
 
 export default function DashboardView() {
   const navigate = useNavigate();
-  const { cases, activeCase, setActiveCase, fetchCases } = useCaseStore();
+  const { cases, activeCase, setActiveCase, fetchCases, startNewComplaint, clearAllCasesAndData } = useCaseStore();
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedCaseForModal, setSelectedCaseForModal] = useState<PoliceCase | null>(null);
 
@@ -19,6 +19,11 @@ export default function DashboardView() {
     setActiveCase(c);
     setSelectedCaseForModal(c);
     setModalOpen(true);
+  };
+
+  const handleRegisterNewComplaint = () => {
+    startNewComplaint();
+    navigate('/intake');
   };
 
   return (
@@ -38,13 +43,28 @@ export default function DashboardView() {
           </p>
         </div>
 
-        <button
-          onClick={() => navigate('/intake')}
-          className="flex items-center gap-1.5 rounded bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-blue-500 transition-colors shadow-sm"
-        >
-          <FileUp className="h-3.5 w-3.5" />
-          <span>Register New Complaint</span>
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => {
+              if (window.confirm('Are you sure you want to delete all past cases and reset storage?')) {
+                clearAllCasesAndData();
+              }
+            }}
+            className="flex items-center gap-1.5 rounded border border-rose-500/40 bg-rose-500/10 px-3 py-1.5 text-xs font-semibold text-rose-300 hover:bg-rose-500/20 transition-colors shadow-sm"
+            title="Purge all cases and clear local storage"
+          >
+            <RotateCcw className="h-3.5 w-3.5 text-rose-400" />
+            <span>Purge All Cases</span>
+          </button>
+
+          <button
+            onClick={handleRegisterNewComplaint}
+            className="flex items-center gap-1.5 rounded bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-blue-500 transition-colors shadow-sm"
+          >
+            <FileUp className="h-3.5 w-3.5" />
+            <span>Register New Complaint</span>
+          </button>
+        </div>
       </div>
 
       {/* KPI Metric Cards */}
@@ -168,7 +188,7 @@ export default function DashboardView() {
           <div className="space-y-2.5 flex-1">
             {/* Quick Action Button for Registering New Complaint */}
             <button
-              onClick={() => navigate('/intake')}
+              onClick={handleRegisterNewComplaint}
               className="flex w-full items-center justify-between rounded-xl border border-blue-500/40 bg-gradient-to-r from-blue-600/20 to-indigo-600/10 p-3 text-left hover:border-blue-400 transition-all group shadow-md"
             >
               <div className="space-y-0.5">

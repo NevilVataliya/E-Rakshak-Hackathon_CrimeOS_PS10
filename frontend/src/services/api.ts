@@ -10,6 +10,7 @@ const getBaseUrl = () => {
 const api = axios.create({
   baseURL: getBaseUrl(),
   timeout: 300000,
+  withCredentials: true,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -23,13 +24,13 @@ api.interceptors.request.use((config) => {
       const parsed = JSON.parse(authState);
       token = parsed?.state?.token;
     }
-    // Fallback to default mock JWT token if not present
-    if (!token) {
-      token = 'mock-jwt-token-io_patel';
+    if (token && !token.startsWith('mock-jwt-')) {
+      config.headers.Authorization = `Bearer ${token}`;
+    } else if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
     }
-    config.headers.Authorization = `Bearer ${token}`;
   } catch (err) {
-    config.headers.Authorization = `Bearer mock-jwt-token-io_patel`;
+    // Ignore error if localStorage parsing fails
   }
   return config;
 });

@@ -23,7 +23,8 @@ import {
   Plus,
   Send,
   Link,
-  ShieldCheck
+  ShieldCheck,
+  RotateCcw
 } from 'lucide-react';
 import api from '../services/api';
 import ModuleSummarizerModal from '../components/common/ModuleSummarizerModal';
@@ -40,7 +41,8 @@ export default function AnalyticsView() {
     responseAnalyticsByCase,
     saveResponseAnalyticsForCase,
     processedRepliesByCase,
-    addDirectiveForCase
+    addDirectiveForCase,
+    clearModule5EmailData
   } = useCaseStore();
   const { t } = useLangStore();
 
@@ -216,14 +218,30 @@ export default function AnalyticsView() {
       setParsedData(res.data);
       saveResponseAnalyticsForCase(caseRef, res.data);
       setSelectedInspectorItem({ type: 'PROVIDER_RESPONSE_ANALYTICS', data: res.data });
-      setToastMsg(`Successfully analyzed ${targetType} response for case ${caseRef}!`);
+      addTimelineEvent({
+        module: 'MODULE_5_ANALYTICS',
+        stage: 'ANALYTICS_PARSED',
+        step_title: `Ingested ${targetType} Evidence (${caseRef})`,
+        details: res.data.executive_summary || `Parsed ${targetType} evidence. Action: ${res.data.recommended_next_action}`,
+        timestamp: new Date().toISOString(),
+        status: 'VERIFIED'
+      });
+      setToastMsg(`Successfully analyzed ${targetType} response for case ${caseRef}! Transmitted to Module 6.`);
     } catch (err) {
       console.warn('Generating forensic analytics payload for type:', targetType);
       const groundedData = buildAnalyticsFromCaseData(targetType, replyItem);
       setParsedData(groundedData);
       saveResponseAnalyticsForCase(caseRef, groundedData);
       setSelectedInspectorItem({ type: 'PROVIDER_RESPONSE_ANALYTICS', data: groundedData });
-      setToastMsg(`Analyzed forensic ${targetType} intelligence for ${caseRef}`);
+      addTimelineEvent({
+        module: 'MODULE_5_ANALYTICS',
+        stage: 'ANALYTICS_PARSED',
+        step_title: `Ingested ${targetType} Evidence (${caseRef})`,
+        details: groundedData.executive_summary || `Parsed ${targetType} evidence. Action: ${groundedData.recommended_next_action}`,
+        timestamp: new Date().toISOString(),
+        status: 'VERIFIED'
+      });
+      setToastMsg(`Analyzed forensic ${targetType} intelligence for ${caseRef}. Transmitted to Module 6.`);
     } finally {
       setLoading(false);
       setSelectedChartType('AUTO');
@@ -234,13 +252,25 @@ export default function AnalyticsView() {
   const handleExportToCaseDiary = () => {
     if (!parsedData) return;
     addTimelineEvent({
+      module: 'MODULE_5_ANALYTICS',
       stage: 'ANALYTICS_PARSED',
-      title: `Ingested ${parsedData.response_type} Evidence Analysis (${currentCaseNo})`,
-      description: `${parsedData.executive_summary} Action: ${parsedData.recommended_next_action}`,
-      timestamp: new Date().toLocaleTimeString(),
+      step_title: `Ingested ${parsedData.response_type} Evidence Analysis (${currentCaseNo})`,
+      details: `${parsedData.executive_summary} Action: ${parsedData.recommended_next_action}`,
+      timestamp: new Date().toISOString(),
       status: 'VERIFIED'
     });
+    if (currentCaseNo && parsedData) {
+      saveResponseAnalyticsForCase(currentCaseNo, parsedData);
+    }
     setToastMsg('Forensic evidence analysis exported to Module 6 (Case Diary)!');
+  };
+
+  // Helper to infer category from reply
+  const inferTypeFromReply = (r: any): 'BANK_STATEMENT' | 'CDR' | 'IP_LOGS' => {
+    const c = (r.classification || r.subject || r.body_text || '').toUpperCase();
+    if (c.includes('CDR') || c.includes('TELECOM') || c.includes('CALL')) return 'CDR';
+    if (c.includes('IP') || c.includes('LOG') || c.includes('CYBER') || c.includes('LERT')) return 'IP_LOGS';
+    return 'BANK_STATEMENT';
   };
 
   // 1-Click Dispatch New Statutory Directive to Module 4
@@ -302,6 +332,18 @@ export default function AnalyticsView() {
             <span>AI Module Summary</span>
           </button>
 
+          <button
+            onClick={() => {
+              clearModule5EmailData();
+              setParsedData(null);
+              setToastMsg('Purged all Module 5 email requests, responses, and cached analytics data!');
+            }}
+            className="flex items-center gap-1.5 rounded border border-rose-500/40 bg-rose-500/10 px-3 py-1.5 text-xs font-bold text-rose-300 hover:bg-rose-500/20 transition-colors shadow-sm"
+          >
+            <RotateCcw className="h-3.5 w-3.5 text-rose-400" />
+            <span>Reset Module 5 Emails</span>
+          </button>
+
           {parsedData && (
             <button
               onClick={handleExportToCaseDiary}
@@ -313,7 +355,12 @@ export default function AnalyticsView() {
           )}
 
           <button
-            onClick={() => navigate('/case-diary')}
+            onClick={() => {
+              if (parsedData) {
+                handleExportToCaseDiary();
+              }
+              navigate('/case-diary');
+            }}
             className="flex items-center gap-1.5 rounded bg-blue-600 px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-blue-500 transition-colors"
           >
             <span>Proceed to Module 6</span>
@@ -339,16 +386,22 @@ export default function AnalyticsView() {
           </div>
 
           <div className="flex items-center gap-1.5 overflow-x-auto">
-            {caseReplies.map((r: any, idx: number) => (
-              <button
-                key={r.id || idx}
-                onClick={() => handleProcessFile(undefined, r)}
-                className="px-2.5 py-1 rounded bg-[#0d1322] border border-white/10 hover:border-amber-500 text-[11px] text-amber-300 font-bold flex items-center gap-1 transition-colors"
-              >
-                <span>#{idx + 1} {r.sender_email?.split('@')[0]}</span>
-                <span className="text-[9px] text-slate-400">({r.classification})</span>
-              </button>
-            ))}
+            {caseReplies.map((r: any, idx: number) => {
+              const inferredType = inferTypeFromReply(r);
+              return (
+                <button
+                  key={r.id || idx}
+                  onClick={() => {
+                    setResponseType(inferredType);
+                    handleProcessFile(inferredType, r);
+                  }}
+                  className="px-2.5 py-1 rounded bg-[#0d1322] border border-white/10 hover:border-amber-500 text-[11px] text-amber-300 font-bold flex items-center gap-1 transition-colors"
+                >
+                  <span>#{idx + 1} {r.sender_email?.split('@')[0]}</span>
+                  <span className="text-[9px] text-slate-400">({r.classification || inferredType})</span>
+                </button>
+              );
+            })}
           </div>
         </div>
       )}

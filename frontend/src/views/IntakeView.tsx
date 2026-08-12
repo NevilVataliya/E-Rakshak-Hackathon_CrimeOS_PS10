@@ -21,7 +21,8 @@ import {
   Wifi,
   WifiOff,
   Cpu,
-  Download
+  Download,
+  Plus
 } from 'lucide-react';
 import api from '../services/api';
 import ModuleSummarizerModal from '../components/common/ModuleSummarizerModal';
@@ -30,7 +31,7 @@ import { BankAccountEntity, AttachedFileMeta } from '../types';
 
 export default function IntakeView() {
   const navigate = useNavigate();
-  const { activeCase, intakeDataByCase, addCaseFromComplaint, updateCaseIntakeData, setSelectedInspectorItem } = useCaseStore();
+  const { activeCase, intakeDataByCase, addCaseFromComplaint, updateCaseIntakeData, setSelectedInspectorItem, startNewComplaint } = useCaseStore();
   const [summarizerOpen, setSummarizerOpen] = useState(false);
 
   const [language, setLanguage] = useState('auto');
@@ -79,8 +80,14 @@ export default function IntakeView() {
       if (savedExtracted) {
         setExtractedResult(savedExtracted);
       }
+    } else {
+      setRawText('');
+      setAttachedFiles([]);
+      setPersistedFiles([]);
+      setExtractedResult(null);
+      setErrorMessage(null);
     }
-  }, [activeCase?.case_number]);
+  }, [activeCase]);
 
   // Continuously sync manual text & persisted files back to case store for active case
   useEffect(() => {
@@ -215,6 +222,15 @@ export default function IntakeView() {
             <h1 className="text-base font-extrabold tracking-wide text-white uppercase font-mono flex items-center gap-2">
               Complaint Intake & Multimodal Analysis
             </h1>
+            {activeCase ? (
+              <span className="inline-flex items-center gap-1 rounded-full border border-blue-500/40 bg-blue-500/10 px-2.5 py-0.5 text-[11px] font-bold text-blue-300 font-mono">
+                Active Case: {activeCase.case_number}
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/40 bg-emerald-500/10 px-2.5 py-0.5 text-[11px] font-bold text-emerald-300 font-mono">
+                ✨ New Complaint Registration
+              </span>
+            )}
             {systemStatus && (
               systemStatus.offline_mode ? (
                 <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-500/40 bg-amber-500/10 px-2.5 py-0.5 text-[11px] font-bold text-amber-300 font-mono">
@@ -236,6 +252,21 @@ export default function IntakeView() {
 
         <div className="flex items-center gap-2">
           <button
+            onClick={() => {
+              startNewComplaint();
+              setRawText('');
+              setAttachedFiles([]);
+              setPersistedFiles([]);
+              setExtractedResult(null);
+              setErrorMessage(null);
+            }}
+            className="flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3.5 py-1.5 text-xs font-bold text-white hover:bg-emerald-500 transition-all shadow-md"
+          >
+            <Plus className="h-3.5 w-3.5" />
+            <span>+ Register New Complaint</span>
+          </button>
+
+          <button
             onClick={() => setSummarizerOpen(true)}
             className="flex items-center gap-1.5 rounded-lg border border-blue-500/40 bg-blue-500/10 px-3 py-1.5 text-xs font-bold text-cyan-300 hover:bg-blue-500/20 transition-all shadow-sm"
           >
@@ -249,13 +280,13 @@ export default function IntakeView() {
               setAttachedFiles([]);
               setPersistedFiles([]);
               setExtractedResult(null);
-            setErrorMessage(null);
-          }}
-          className="flex items-center gap-1 text-xs font-semibold text-slate-400 hover:text-rose-400 transition-colors"
-        >
-          <Trash2 className="h-3.5 w-3.5" /> Reset Input
-        </button>
-      </div>
+              setErrorMessage(null);
+            }}
+            className="flex items-center gap-1 text-xs font-semibold text-slate-400 hover:text-rose-400 transition-colors"
+          >
+            <Trash2 className="h-3.5 w-3.5" /> Clear Form
+          </button>
+        </div>
       </div>
 
       {/* Offline Mode Warning Banner */}

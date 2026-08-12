@@ -157,13 +157,8 @@ async def run_investigation(req: InvestigationRequest):
         print(f"[-] LangGraph Graph Execution Error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.post("/api/analytics/parse-response")
-async def parse_provider_response(req: ResponseParseRequest):
-    """
-    Parses messy or large provider response files (CSV, Excel, PDF) using Hybrid Pandas + LLM Synthesizer.
-    """
-    result = analyze_large_provider_csv(file_path=req.file_path, response_type=req.response_type)
-    return result
+# Analytics parse-response endpoint defined at line 479
+
 
 @app.post("/api/linkage/search")
 async def search_entity_linkages(req: LinkageSearchRequest):
@@ -471,9 +466,10 @@ async def get_inbox_status(case_number: Optional[str] = None):
     }
 
 class ParseAnalyticsRequest(BaseModel):
-    case_number: str
+    case_number: Optional[str] = "CR-2026-9910"
     response_type: Optional[str] = "BANK_STATEMENT"
     reply_id: Optional[str] = None
+    file_path: Optional[str] = None
     file_content: Optional[str] = None
 
 @app.post("/api/analytics/parse-response")
@@ -489,12 +485,13 @@ async def parse_response_endpoint(req: ParseAnalyticsRequest):
     elif req.response_type == "IP_LOGS":
         p_name = "Google LERT / Telegram"
 
-    content = req.file_content or f"Simulated forensic payload for {req.response_type} case {req.case_number}"
+    case_no = req.case_number or "CR-2026-9910"
+    content = req.file_path or req.file_content or f"Simulated forensic payload for {req.response_type} case {case_no}"
     res = agent.analyze_response(
         provider_name=p_name,
-        response_type=req.response_type or "text",
+        response_type=req.response_type or "BANK_STATEMENT",
         file_path_or_content=content,
-        case_number=req.case_number
+        case_number=case_no
     )
     return res
 

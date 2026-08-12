@@ -115,6 +115,17 @@ CREATE TABLE IF NOT EXISTS audit_logs (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
+-- 8. Document Ingestion Logs Table
+CREATE TABLE IF NOT EXISTS document_ingestion_logs (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    document_name VARCHAR(255) NOT NULL,
+    file_hash VARCHAR(64) UNIQUE,
+    chunks_count INT DEFAULT 0,
+    status VARCHAR(50) DEFAULT 'COMPLETED',
+    metadata JSONB DEFAULT '{}'::jsonb,
+    ingested_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
 -- SEED INITIAL USERS (Password for all seed users: "police123")
 -- bcrypt hash for 'police123' = '$2a$10$wE4ZlYwJzL.HjKqGf.k.EOuHq.vS0uU.y.2uV5K1V2s1.W.x2.u'
 INSERT INTO users (id, username, email, password_hash, full_name, role, badge_number, police_station)

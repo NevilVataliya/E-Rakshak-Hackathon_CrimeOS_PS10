@@ -63,6 +63,9 @@ interface CaseState {
   registerCustomTemplate: (payload: { template_id: string; title: string; category?: string; subject_template: string; body_template: string; required_vars?: string[]; legal_statute_ref?: string }) => Promise<void>;
   addTimelineEvent: (event: any) => void;
   addDirectiveForCase: (caseNumber: string, directive: any) => void;
+  clearModule5EmailData: () => void;
+  startNewComplaint: () => void;
+  clearAllCasesAndData: () => void;
 
   // Hierarchical Summarizer Agent State & Actions
   moduleSummariesByCase: Record<string, Record<string, any>>;
@@ -77,91 +80,14 @@ const sampleImgDataUrl = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAAB
 const samplePdfDataUrl = 'data:application/pdf;base64,JVBERi0xLjQKJcOkw7zDtsOfCjEgMCBvYmoKPDwvVHlwZSAvQ2F0YWxvZyAvUGFnZXMgMiAwIFI+PgplbmRvYmoKMiAwIG9iago8PC9UeXBlIC9QYWdlcyAvQ291bnQgMCAvS2lkcyBbXSA+PgplbmRvYmoKdHJhaWxlcgo8PC9Sb290IDEgMCBSPj4KJSVFT0Y=';
 const sampleTxtDataUrl = 'data:text/plain;charset=utf-8,CrimeOS%20Evidence%20Log';
 
-const initialMockCases: PoliceCase[] = [
-  {
-    case_number: 'CR-2026-9910',
-    fir_number: 'FIR-042/2026',
-    crime_category: 'CYBER',
-    crime_sub_type: 'Telegram Investment Scam & UPI Fraud',
-    complaint_text: 'Victim reported Rs. 2,00,000 lost via fraudulent UPI link scammer@paytm and transfer to SBI A/C 30910293101 (IFSC: SBIN0001234). Suspect phone: +91 98765 43210.',
-    original_language: 'gu',
-    translated_text: 'Victim reported Rs. 2,00,000 lost via fraudulent UPI link scammer@paytm and transfer to SBI A/C 30910293101.',
-    severity_score: 9.2,
-    assigned_io: 'PSI V. K. Patel',
-    police_station: 'Surat Cyber Crime HQ',
-    status: 'AGENT_REASONING',
-    entities: {
-      persons: [{ name: 'Ramesh Patel', role: 'victim' }],
-      phone_numbers: ['+91 98765 43210'],
-      vpas_upis: ['scammer@paytm'],
-      bank_accounts: [{ account_number: '30910293101', ifsc: 'SBIN0001234', bank: 'State Bank of India', account_name: 'Accused Fraudster' }],
-      monetary_loss: 200000
-    },
-    sections: ['BNS Section 318(4)', 'IT Act Section 66D', 'BSA Section 63'],
-    created_at: '2026-07-24T10:00:00Z',
-    manual_text: 'Victim reported Rs. 2,00,000 lost via fraudulent UPI link scammer@paytm and transfer to SBI A/C 30910293101 (IFSC: SBIN0001234). Suspect phone: +91 98765 43210.',
-    attached_files: [
-      { name: 'UPI_Payment_Screenshot_Paytm.png', size: 482100, type: 'image/png', dataUrl: sampleImgDataUrl },
-      { name: 'Bank_Statement_RTGS_Extract.pdf', size: 1240500, type: 'application/pdf', dataUrl: samplePdfDataUrl }
-    ],
-    completed_step: 3
-  },
-  {
-    case_number: 'CR-2026-8814',
-    fir_number: 'FIR-019/2026',
-    crime_category: 'CONVENTIONAL',
-    crime_sub_type: 'Extortion & Cyber Stalking',
-    complaint_text: 'Victim threatened via WhatsApp messages demanding Rs. 50,000. Suspect phone: +91 94260 11223.',
-    original_language: 'hi',
-    translated_text: 'Victim threatened via WhatsApp messages demanding Rs. 50,000.',
-    severity_score: 7.8,
-    assigned_io: 'PSI V. K. Patel',
-    police_station: 'Surat Cyber Crime HQ',
-    status: 'SUBPOENA_DISPATCHED',
-    entities: {
-      persons: [{ name: 'Suresh Kumar', role: 'victim' }],
-      phone_numbers: ['+91 94260 11223'],
-      vpas_upis: ['extortion@ybl'],
-      bank_accounts: [],
-      monetary_loss: 50000
-    },
-    sections: ['BNS Section 308(2)', 'IT Act Section 66E'],
-    created_at: '2026-07-23T14:30:00Z',
-    manual_text: 'Victim threatened via WhatsApp messages demanding Rs. 50,000. Suspect phone: +91 94260 11223.',
-    attached_files: [
-      { name: 'WhatsApp_Chat_Export_Evidence.txt', size: 52400, type: 'text/plain', dataUrl: sampleTxtDataUrl }
-    ],
-    completed_step: 4
-  }
-];
+const initialMockCases: PoliceCase[] = [];
 
-const initialSubpoenas: SubpoenaNotice[] = [
-  {
-    id: 'REQ-BNSS-9910-01',
-    case_no: 'CR-2026-9910',
-    type: 'SECTION_94_BNSS',
-    provider: 'Paytm Payments Bank Nodal Office',
-    email: 'nodal.officer@paytm.com',
-    status: 'APPROVED_SHO',
-    pdf_url: '/api/requests/download/Notice_Section_94_BNSS_CR-2026-9910.pdf',
-    created_at: '2026-07-24T11:00:00Z'
-  },
-  {
-    id: 'REQ-1930-9910-02',
-    case_no: 'CR-2026-9910',
-    type: 'DEBIT_FREEZE_1930',
-    provider: 'State Bank of India Fraud Nodal Cell',
-    email: 'cgc.fraud@sbi.co.in',
-    status: 'DISPATCHED',
-    pdf_url: '/api/requests/download/Notice_Section_94_BNSS_CR-2026-9910.pdf',
-    created_at: '2026-07-24T11:15:00Z'
-  }
-];
+const initialSubpoenas: SubpoenaNotice[] = [];
 
 export const useCaseStore = create<CaseState>()(
   persist(
     (set, get) => ({
-      cases: initialMockCases,
+      cases: [],
       activeCase: null,
       investigationData: null,
       legalRequests: [],
@@ -174,27 +100,8 @@ export const useCaseStore = create<CaseState>()(
       loadingByCase: {},
       errorByCase: {},
       pendingApprovalsByCase: {},
-      intakeDataByCase: {
-        'CR-2026-9910': {
-          manual_text: 'Victim reported Rs. 2,00,000 lost via fraudulent UPI link scammer@paytm and transfer to SBI A/C 30910293101 (IFSC: SBIN0001234). Suspect phone: +91 98765 43210.',
-          attached_files: [
-            { name: 'UPI_Payment_Screenshot_Paytm.png', size: 482100, type: 'image/png', dataUrl: sampleImgDataUrl },
-            { name: 'Bank_Statement_RTGS_Extract.pdf', size: 1240500, type: 'application/pdf', dataUrl: samplePdfDataUrl }
-          ],
-          extracted_result: null
-        },
-        'CR-2026-8814': {
-          manual_text: 'Victim threatened via WhatsApp messages demanding Rs. 50,000. Suspect phone: +91 94260 11223.',
-          attached_files: [
-            { name: 'WhatsApp_Chat_Export_Evidence.txt', size: 52400, type: 'text/plain', dataUrl: sampleTxtDataUrl }
-          ],
-          extracted_result: null
-        }
-      },
-      completedStepByCase: {
-        'CR-2026-9910': 3,
-        'CR-2026-8814': 4
-      },
+      intakeDataByCase: {},
+      completedStepByCase: {},
       dispatchedDirectivesByCase: {},
       responseAnalyticsByCase: {},
 
@@ -857,23 +764,82 @@ export const useCaseStore = create<CaseState>()(
 
       addTimelineEvent: (event: any) => {
         console.log('[addTimelineEvent]', event);
+        set((state) => {
+          const currentCase = state.activeCase;
+          if (!currentCase) return state;
+          const caseNo = currentCase.case_number;
+          const newEvent = {
+            timestamp: event.timestamp || new Date().toISOString(),
+            module: event.module || 'MODULE_5_ANALYTICS',
+            step_title: event.step_title || event.title || 'Evidence Analyzed',
+            details: event.details || event.description || 'Processed provider response dataset.'
+          };
+          const updatedTimeline = [...(currentCase.activity_timeline || []), newEvent];
+          const updatedCase = { ...currentCase, activity_timeline: updatedTimeline };
+          const updatedCases = state.cases.map(c => c.case_number === caseNo ? updatedCase : c);
+          const nextCompletedStep = Math.max(state.completedStepByCase[caseNo] || 0, 5);
+
+          return {
+            cases: updatedCases,
+            activeCase: updatedCase,
+            completedStepByCase: {
+              ...state.completedStepByCase,
+              [caseNo]: nextCompletedStep
+            }
+          };
+        });
+      },
+
+      clearModule5EmailData: () => {
+        set({
+          processedReplies: [],
+          processedRepliesByCase: {},
+          responseAnalyticsByCase: {},
+          dispatchedDirectivesByCase: {},
+          legalRequests: []
+        });
+      },
+
+      startNewComplaint: () => {
+        set({
+          activeCase: null,
+          investigationData: null,
+          selectedInspectorItem: null,
+          error: null
+        });
+      },
+
+      clearAllCasesAndData: () => {
+        if (typeof window !== 'undefined' && window.localStorage) {
+          window.localStorage.removeItem('crime-os-case-storage');
+        }
+        set({
+          cases: [],
+          activeCase: null,
+          investigationData: null,
+          legalRequests: [],
+          investigationsByCase: {},
+          loadingByCase: {},
+          errorByCase: {},
+          intakeDataByCase: {},
+          completedStepByCase: {},
+          dispatchedDirectivesByCase: {},
+          responseAnalyticsByCase: {},
+          processedReplies: [],
+          processedRepliesByCase: {},
+          selectedInspectorItem: null,
+          error: null
+        });
       }
     }),
     {
       name: 'crime-os-case-storage',
       partialize: (state) => ({
-        cases: state.cases,
-        activeCase: state.activeCase,
-        investigationsByCase: state.investigationsByCase,
-        intakeDataByCase: state.intakeDataByCase,
         completedStepByCase: state.completedStepByCase,
         legalRequests: state.legalRequests,
         linkageMatches: state.linkageMatches,
         linkageStats: state.linkageStats,
-        processedReplies: state.processedReplies,
-        processedRepliesByCase: state.processedRepliesByCase,
-        dispatchedDirectivesByCase: state.dispatchedDirectivesByCase,
-        responseAnalyticsByCase: state.responseAnalyticsByCase
+        dispatchedDirectivesByCase: state.dispatchedDirectivesByCase
       })
     }
   )

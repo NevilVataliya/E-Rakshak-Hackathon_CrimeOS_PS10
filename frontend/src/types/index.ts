@@ -50,6 +50,7 @@ export interface PoliceCase {
   attached_files?: AttachedFileMeta[];
   extracted_result?: any;
   completed_step?: number;
+  activity_timeline?: any[];
 }
 
 export interface GroundedSOPStep {
