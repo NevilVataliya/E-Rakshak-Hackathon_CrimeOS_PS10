@@ -8,7 +8,6 @@ import LinkageView from './views/LinkageView';
 import InvestigationView from './views/InvestigationView';
 import SubpoenasView from './views/SubpoenasView';
 import AnalyticsView from './views/AnalyticsView';
-import CaseDiaryView from './views/CaseDiaryView';
 import AdminView from './views/AdminView';
 import LoginView from './views/LoginView';
 import { useAuthStore } from './store/authStore';
@@ -38,7 +37,6 @@ function ProtectedLayout() {
             <Route path="/investigation" element={<InvestigationView />} />
             <Route path="/subpoenas" element={<SubpoenasView />} />
             <Route path="/analytics" element={<AnalyticsView />} />
-            <Route path="/case-diary" element={<CaseDiaryView />} />
             <Route path="/admin" element={<AdminView />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>

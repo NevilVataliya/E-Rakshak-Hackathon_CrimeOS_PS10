@@ -90,14 +90,6 @@ export default function CommandPaletteDialog({ open, onOpenChange }: CommandPale
                 <BarChart3 className="h-3.5 w-3.5 text-blue-400" />
                 <span>Module 5: High-Scale CDR Pattern Analytics Studio</span>
               </Command.Item>
-
-              <Command.Item
-                onSelect={() => handleSelect('/case-diary')}
-                className="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-xs text-slate-200 hover:bg-emerald-600/20 hover:text-emerald-300"
-              >
-                <FileCheck2 className="h-3.5 w-3.5 text-emerald-400" />
-                <span>Module 6: Court-Ready Master FIR Case Diary & Section 63 BSA</span>
-              </Command.Item>
             </Command.Group>
 
             <Command.Group heading="STATUTORY PROVISIONS" className="px-2 py-1 text-[10px] font-bold text-slate-500 uppercase tracking-wider">

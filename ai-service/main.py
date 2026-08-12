@@ -562,11 +562,7 @@ class CustomTemplateRequest(BaseModel):
     body_template: str
     legal_statute_ref: Optional[str] = "Section 94 BNSS"
 
-class CaseDiarySummaryRequest(BaseModel):
-    case_number: str
-    activity_timeline: Optional[List[Dict[str, Any]]] = None
-    investigating_officer: Optional[str] = "PSI Inspector V. K. Patel"
-    police_station: Optional[str] = "Surat Cyber Crime Station"
+
 
 
 @app.post("/api/email/check-inbox")
@@ -761,26 +757,7 @@ async def register_custom_template(req: CustomTemplateRequest):
         "message": f"Custom notice template '{req.title}' registered successfully."
     }
 
-@app.post("/api/case-diary/generate-summary")
-async def generate_case_diary_summary(req: CaseDiarySummaryRequest):
-    timeline_str = "\n".join([f"• [{item.get('module', 'LOG')}] {item.get('step_title', 'Step')}: {item.get('details', '')}" for item in (req.activity_timeline or [])])
-    summary_text = (
-        f"STATUTORY CASE DIARY SUMMARY (SECTION 167 BNSS / SECTION 173 CrPC)\n\n"
-        f"Case Reference: {req.case_number}\n"
-        f"Investigating Unit: {req.police_station}\n"
-        f"Investigating Officer: {req.investigating_officer}\n\n"
-        f"CHRONOLOGICAL INVESTIGATION TIMELINE:\n{timeline_str or '• Complaint ingested and multi-agent SOP analysis complete.'}\n\n"
-        f"FINAL REQUISITION & EVIDENCE STATUS:\n"
-        f"1. Section 94 BNSS Legal Notices rendered and dispatched to Nodal Officers.\n"
-        f"2. Bank statements and CDR call logs ingested & parsed.\n"
-        f"3. Electronic evidence SHA-256 certificate compiled under BSA Section 63.\n\n"
-        f"Recommendation: File Final Charge Sheet under Section 193 BNSS."
-    )
-    return {
-        "status": "success",
-        "case_number": req.case_number,
-        "statutory_case_summary": summary_text
-    }
+
 
 if __name__ == "__main__":
     import uvicorn

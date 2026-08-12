@@ -775,18 +775,7 @@ app.get('/api/analytics/inbox-status', authenticateToken, async (req, res) => {
   }
 });
 
-app.post('/api/case-diary/generate-summary', authenticateToken, async (req, res) => {
-  try {
-    const response = await axios.post(`${AI_SERVICE_URL}/api/case-diary/generate-summary`, req.body);
-    res.json(response.data);
-  } catch (err) {
-    res.json({
-      status: 'success',
-      case_number: req.body.case_number,
-      statutory_case_summary: `STATUTORY CASE DIARY SUMMARY (SECTION 167 BNSS / SECTION 173 CrPC)\n\nCase Reference: ${req.body.case_number}\nInvestigating Unit: ${req.body.police_station || 'Surat Cyber Crime HQ'}\nInvestigating Officer: ${req.body.investigating_officer || 'PSI Inspector V. K. Patel'}\n\nCHRONOLOGICAL STEPS LOGGED:\n• Section 94 BNSS Legal Notices rendered & dispatched.\n• Provider reply evidence ingested and parsed.\n• BSA Section 63 Certificate compiled.\n\nRecommendation: Submit Final Charge Sheet under Section 193 BNSS.`
-    });
-  }
-});
+
 
 // --- 5. RESPONSE ANALYTICS & AUDIT LOGS ---
 app.post('/api/analytics/parse-response', authenticateToken, upload.single('file'), async (req, res) => {

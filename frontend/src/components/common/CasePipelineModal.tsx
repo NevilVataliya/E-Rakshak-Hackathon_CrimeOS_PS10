@@ -29,8 +29,7 @@ const pipelineSteps = [
   { step: 2, id: 'linkage', title: 'Serial Offender Linkage Analysis', path: '/linkage', icon: Network, subtitle: 'Entity Cross-Match Graph', desc: 'Cross-match phone numbers, VPAs, and bank accounts across historical police station records.' },
   { step: 3, id: 'investigation', title: 'AI Investigation Studio', path: '/investigation', icon: Bot, subtitle: 'Multi-Agent Legal SOP Directives', desc: 'AI agent reasoning across BNS, BSA 2023, and I4C Cyber SOP manuals with verified citations.' },
   { step: 4, id: 'subpoenas', title: 'Subpoenas & Notices Generator', path: '/subpoenas', icon: Send, subtitle: 'Section 94 BNSS Legal Requisitions', desc: 'Generate and dispatch Section 94 BNSS notices & 1930 bank account freeze requisitions.' },
-  { step: 5, id: 'analytics', title: 'Response Analysis & Parsing', path: '/analytics', icon: BarChart3, subtitle: 'Telecom CDR & Bank Statement Parsing', desc: 'Upload ISP/Telecom tower logs and bank statements for automated timeline alignment.' },
-  { step: 6, id: 'diary', title: 'Court Case Diary Compiler', path: '/case-diary', icon: FileCheck2, subtitle: 'Judicial Form 50 & BSA Sec 63 Cert', desc: 'Compile Form 50 Police Case Diary and mandatory Section 63 BSA electronic evidence certificate.' }
+  { step: 5, id: 'analytics', title: 'Response Analysis & Parsing', path: '/analytics', icon: BarChart3, subtitle: 'Telecom CDR & Bank Statement Parsing', desc: 'Upload ISP/Telecom tower logs and bank statements for automated timeline alignment.' }
 ];
 
 export default function CasePipelineModal({ open, onClose, policeCase }: CasePipelineModalProps) {

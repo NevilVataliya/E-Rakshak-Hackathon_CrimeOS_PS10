@@ -248,22 +248,7 @@ export default function AnalyticsView() {
     }
   };
 
-  // Export Evidence to Case Diary (Module 6)
-  const handleExportToCaseDiary = () => {
-    if (!parsedData) return;
-    addTimelineEvent({
-      module: 'MODULE_5_ANALYTICS',
-      stage: 'ANALYTICS_PARSED',
-      step_title: `Ingested ${parsedData.response_type} Evidence Analysis (${currentCaseNo})`,
-      details: `${parsedData.executive_summary} Action: ${parsedData.recommended_next_action}`,
-      timestamp: new Date().toISOString(),
-      status: 'VERIFIED'
-    });
-    if (currentCaseNo && parsedData) {
-      saveResponseAnalyticsForCase(currentCaseNo, parsedData);
-    }
-    setToastMsg('Forensic evidence analysis exported to Module 6 (Case Diary)!');
-  };
+
 
   // Helper to infer category from reply
   const inferTypeFromReply = (r: any): 'BANK_STATEMENT' | 'CDR' | 'IP_LOGS' => {
@@ -342,29 +327,6 @@ export default function AnalyticsView() {
           >
             <RotateCcw className="h-3.5 w-3.5 text-rose-400" />
             <span>Reset Module 5 Emails</span>
-          </button>
-
-          {parsedData && (
-            <button
-              onClick={handleExportToCaseDiary}
-              className="flex items-center gap-1.5 rounded bg-purple-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-purple-500 transition-colors shadow-md"
-            >
-              <Share2 className="h-4 w-4" />
-              <span>Export Evidence to Module 6</span>
-            </button>
-          )}
-
-          <button
-            onClick={() => {
-              if (parsedData) {
-                handleExportToCaseDiary();
-              }
-              navigate('/case-diary');
-            }}
-            className="flex items-center gap-1.5 rounded bg-blue-600 px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-blue-500 transition-colors"
-          >
-            <span>Proceed to Module 6</span>
-            <ArrowRight className="h-4 w-4" />
           </button>
         </div>
       </div>

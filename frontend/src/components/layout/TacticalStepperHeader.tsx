@@ -23,7 +23,6 @@ const guidedSteps = [
   { step: 3, id: 'investigation', title: 'Investigation Studio', path: '/investigation', icon: Bot, subtitle: 'Multi-Agent SOP' },
   { step: 4, id: 'subpoenas', title: 'Subpoenas & Notices', path: '/subpoenas', icon: Send, subtitle: 'Section 94 BNSS' },
   { step: 5, id: 'analytics', title: 'Response Analysis', path: '/analytics', icon: BarChart3, subtitle: 'CDR & Bank Logs' },
-  { step: 6, id: 'diary', title: 'Court Case Diary', path: '/case-diary', icon: FileCheck2, subtitle: 'Judicial Register' },
 ];
 
 export default function TacticalStepperHeader() {

@@ -18,7 +18,6 @@ const pipelineModules = [
   { id: 'mod3', title: 'Investigation Studio', icon: Bot, path: '/investigation' },
   { id: 'mod4', title: 'Subpoenas & Notices', icon: Send, path: '/subpoenas' },
   { id: 'mod5', title: 'CDR & Bank Response Analysis', icon: BarChart3, path: '/analytics' },
-  { id: 'mod6', title: 'Court Case Diary', icon: FileCheck2, path: '/case-diary' },
   { id: 'admin', title: 'Administration & Audit', icon: ShieldCheck, path: '/admin' }
 ];
 
