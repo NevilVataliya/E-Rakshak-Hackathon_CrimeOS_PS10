@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import {
   ReactFlow,
   Controls,
@@ -14,6 +15,7 @@ import { Network, ArrowRight, ShieldCheck, Loader2, Search, Phone, CreditCard, B
 import { useCaseStore } from '../store/caseStore';
 import { LinkageMatch, LinkageStats } from '../types';
 import ModuleSummarizerModal from '../components/common/ModuleSummarizerModal';
+import TranslatedText from '../components/common/TranslatedText';
 
 // --- Node & Edge Color Mapping by Entity Type ---
 const entityStyle: Record<string, { bg: string; color: string; border: string; stroke: string }> = {
@@ -124,6 +126,7 @@ const matchTypeLabels: Record<string, string> = {
 };
 
 export default function LinkageView() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const {
     activeCase,
@@ -301,16 +304,16 @@ export default function LinkageView() {
         <div>
           <div className="flex items-center gap-2">
             <h1 className="text-base font-black tracking-wide text-slate-900 dark:text-white uppercase font-mono flex items-center gap-2">
-              Serial Offender Linkage Analysis Studio
+              {t('linkage.title', 'Serial Offender Linkage Analysis Studio')}
             </h1>
             {caseRef && (
               <span className="rounded-full border border-amber-300 dark:border-amber-500/40 bg-amber-50 dark:bg-amber-500/10 px-2.5 py-0.5 text-[11px] font-bold text-amber-900 dark:text-amber-300 font-mono">
-                Active Case: {caseRef}
+                {t('brand.active_fir', 'Active Case:')} {caseRef}
               </span>
             )}
           </div>
           <p className="text-xs text-slate-600 dark:text-slate-400 mt-0.5">
-            Cross-match phone numbers, VPAs/UPI IDs, and bank accounts against historical police station records.
+            {t('linkage.subtitle', 'Cross-match phone numbers, VPAs/UPI IDs, and bank accounts against historical police station records.')}
           </p>
         </div>
 
@@ -320,7 +323,7 @@ export default function LinkageView() {
             className="flex items-center gap-1.5 rounded border border-amber-500 bg-amber-500 px-3 py-1.5 text-xs font-bold text-slate-950 hover:bg-amber-600 transition-colors shadow-sm"
           >
             <Sparkles className="h-3.5 w-3.5" />
-            <span>AI Module Summary</span>
+            <span>{t('nav.summary', 'AI Module Summary')}</span>
           </button>
 
           <button

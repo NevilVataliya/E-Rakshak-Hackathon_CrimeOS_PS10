@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import {
   Sparkles,
   FileText,
@@ -19,8 +20,10 @@ import PDFPreviewModal from '../components/common/PDFPreviewModal';
 import ModuleSummarizerModal from '../components/common/ModuleSummarizerModal';
 import { useCaseStore } from '../store/caseStore';
 import { GroundedSOPStep } from '../types';
+import TranslatedText from '../components/common/TranslatedText';
 
 export default function InvestigationView() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { activeCase, runInvestigationStudio, investigationData, investigationsByCase, loading, error, setSelectedInspectorItem } = useCaseStore();
   const [pdfModalOpen, setPdfModalOpen] = useState(false);
@@ -58,10 +61,10 @@ export default function InvestigationView() {
       <div className="flex items-center justify-between border-b border-slate-200 dark:border-white/10 pb-3 shrink-0">
         <div>
           <h1 className="text-base font-black tracking-wide text-slate-900 dark:text-white uppercase font-mono flex items-center gap-2">
-            AI Multi-Agent Legal Investigation Studio
+            {t('investigation.title', 'AI Multi-Agent Legal Investigation Studio')}
           </h1>
           <p className="text-xs text-slate-600 dark:text-slate-400 mt-0.5">
-            AI-powered legal reasoning grounded in Bharatiya Nagarik Suraksha Sanhita (BNSS) & official Police SOP manuals.
+            {t('investigation.subtitle', 'AI-powered legal reasoning grounded in Bharatiya Nagarik Suraksha Sanhita (BNSS) & official Police SOP manuals.')}
           </p>
         </div>
 
@@ -71,7 +74,7 @@ export default function InvestigationView() {
             className="flex items-center gap-1.5 rounded border border-amber-500 bg-amber-500 px-3 py-1.5 text-xs font-bold text-slate-950 hover:bg-amber-600 transition-colors shadow-sm"
           >
             <Sparkles className="h-3.5 w-3.5" />
-            <span>AI Module Summary</span>
+            <span>{t('nav.summary', 'AI Module Summary')}</span>
           </button>
 
           <button
@@ -80,14 +83,14 @@ export default function InvestigationView() {
             className="flex items-center gap-1.5 rounded border border-blue-300 bg-blue-50 px-3 py-1.5 text-xs font-bold text-blue-950 hover:bg-blue-100 transition-colors disabled:opacity-50 shadow-sm"
           >
             {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
-            <span>{steps.length > 0 ? 'Re-Generate Investigation Path' : 'Generate Investigation Path'}</span>
+            <span>{steps.length > 0 ? t('investigation.btn_run_agents', 'Re-Generate Investigation Path') : t('investigation.btn_run_agents', 'Generate Investigation Path')}</span>
           </button>
 
           <button
             onClick={() => navigate('/subpoenas')}
             className="flex items-center gap-1.5 rounded bg-[#0A2540] dark:bg-blue-600 px-3.5 py-1.5 text-xs font-bold text-white hover:bg-slate-800 dark:hover:bg-blue-500 transition-colors shadow-sm"
           >
-            <span>Proceed to Subpoenas & Notices</span>
+            <span>{t('investigation.proceed_to_subpoenas', 'Proceed to Subpoenas & Notices')}</span>
             <ArrowRight className="h-3.5 w-3.5 text-amber-400" />
           </button>
         </div>

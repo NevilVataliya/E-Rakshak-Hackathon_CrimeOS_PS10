@@ -961,6 +961,79 @@ app.get('/api/analytics/inbox-status', authenticateToken, async (req, res) => {
 
 
 // --- 5. RESPONSE ANALYTICS & AUDIT LOGS ---
+app.post('/api/analytics/upload-and-parse', authenticateToken, upload.single('file'), async (req, res) => {
+  const caseNumber = req.body?.case_number;
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'No file uploaded' });
+    }
+
+    const form = new FormData();
+    form.append('file', fs.createReadStream(req.file.path), {
+      filename: req.file.originalname,
+      contentType: req.file.mimetype
+    });
+    form.append('case_number', req.body?.case_number || 'CR-2026-9910');
+    form.append('response_type', req.body?.response_type || 'BANK_STATEMENT');
+    if (req.body?.case_entities) {
+      form.append('case_entities', typeof req.body.case_entities === 'string' ? req.body.case_entities : JSON.stringify(req.body.case_entities));
+    }
+
+    const response = await axios.post(`${AI_SERVICE_URL}/api/analytics/upload-and-parse`, form, {
+      headers: form.getHeaders()
+    });
+    const analyticsData = response.data;
+
+    if (caseNumber && analyticsData) {
+      try {
+        const existing = await pool.query('SELECT investigation_plan FROM cases WHERE case_number = $1', [caseNumber]);
+        let existingPlan = {};
+        if (existing.rows.length > 0 && existing.rows[0].investigation_plan) {
+          try {
+            existingPlan = typeof existing.rows[0].investigation_plan === 'string'
+              ? JSON.parse(existing.rows[0].investigation_plan)
+              : existing.rows[0].investigation_plan;
+          } catch (e) {
+            existingPlan = {};
+          }
+        }
+        existingPlan.response_analytics = analyticsData;
+        existingPlan.completed_step = Math.max(existingPlan.completed_step || 1, 5);
+        await pool.query(
+          `UPDATE cases SET investigation_plan = $1, updated_at = CURRENT_TIMESTAMP WHERE case_number = $2`,
+          [JSON.stringify(existingPlan), caseNumber]
+        );
+      } catch (dbErr) {
+        console.warn('DB update warning for upload and parse analytics:', dbErr.message);
+      }
+    }
+
+    if (req.file && fs.existsSync(req.file.path)) {
+      fs.unlinkSync(req.file.path);
+    }
+
+    res.json(analyticsData);
+  } catch (err) {
+    if (req.file && fs.existsSync(req.file.path)) {
+      fs.unlinkSync(req.file.path);
+    }
+    const errorMsg = err.response?.data?.detail || err.response?.data?.error || err.message;
+    console.error('Upload and parse proxy error:', errorMsg);
+    res.status(err.response?.status || 500).json({ error: 'Upload and Parse Proxy Error', detail: errorMsg });
+  }
+});
+
+app.post('/api/analytics/generate-certificate', authenticateToken, async (req, res) => {
+  try {
+    const response = await axios.post(`${AI_SERVICE_URL}/api/analytics/generate-certificate`, req.body);
+    res.json(response.data);
+  } catch (err) {
+    const errorMsg = err.response?.data?.detail || err.response?.data?.error || err.message;
+    console.error('Generate certificate proxy error:', errorMsg);
+    res.status(err.response?.status || 500).json({ error: 'Generate Certificate Proxy Error', detail: errorMsg });
+  }
+});
+
 app.post('/api/analytics/parse-response', authenticateToken, upload.single('file'), async (req, res) => {
   const caseNumber = req.body?.case_number;
   try {
@@ -969,7 +1042,8 @@ app.post('/api/analytics/parse-response', authenticateToken, upload.single('file
       response_type: req.body?.response_type || 'BANK_STATEMENT',
       reply_id: req.body?.reply_id || null,
       file_path: req.file ? req.file.path : (req.body?.file_path || null),
-      file_content: req.body?.file_content || null
+      file_content: req.body?.file_content || null,
+      case_entities: req.body?.case_entities || null
     };
     const response = await axios.post(`${AI_SERVICE_URL}/api/analytics/parse-response`, payload);
     const analyticsData = response.data;
@@ -998,57 +1072,38 @@ app.post('/api/analytics/parse-response', authenticateToken, upload.single('file
       }
     }
 
-    res.json(analyticsData);
-  } catch (err) {
-    const errorMsg = err.response?.data?.detail || err.response?.data?.error || err.message;
-    console.error('Parse response proxy error:', errorMsg);
-    if (!ENABLE_DEMO_FALLBACKS) return res.status(err.response?.status || 500).json({ error: errorMsg });
-    
-    const fallbackAnalytics = {
-      status: 'success',
-      case_number: caseNumber || 'CR-2026-9910',
-      response_type: req.body?.response_type || 'BANK_STATEMENT',
-      total_records: 1420,
-      detected_fraud_pattern: 'MONEY_LAUNDERING_LAYERING',
-      fraud_confidence_score: 96,
-      top_counterparties: [
-        { party: 'A/C 30910293101 (State Bank of India)', count: 14, amount: '₹2,00,000' },
-        { party: 'A/C 501004928172 (HDFC Bank)', count: 8, amount: '₹1,45,000' }
-      ],
-      executive_summary: `Ingested provider compliance response for Case ${caseNumber || 'CR-2026-9910'}. Identified pass-through layering transfers across suspect accounts.`,
-      recommended_next_action: 'Issue Section 106 BNSS Emergency Debit Freeze directive.'
-    };
-
-    if (caseNumber) {
-      try {
-        const existing = await pool.query('SELECT investigation_plan FROM cases WHERE case_number = $1', [caseNumber]);
-        let existingPlan = {};
-        if (existing.rows.length > 0 && existing.rows[0].investigation_plan) {
-          try {
-            existingPlan = typeof existing.rows[0].investigation_plan === 'string'
-              ? JSON.parse(existing.rows[0].investigation_plan)
-              : existing.rows[0].investigation_plan;
-          } catch (e) {
-            existingPlan = {};
-          }
-        }
-        existingPlan.response_analytics = fallbackAnalytics;
-        existingPlan.completed_step = Math.max(existingPlan.completed_step || 1, 5);
-        await pool.query(
-          `UPDATE cases SET investigation_plan = $1, updated_at = CURRENT_TIMESTAMP WHERE case_number = $2`,
-          [JSON.stringify(existingPlan), caseNumber]
-        );
-      } catch (dbErr) {
-        console.warn('DB update warning for fallback response analytics:', dbErr.message);
-      }
+    if (req.file && fs.existsSync(req.file.path)) {
+      fs.unlinkSync(req.file.path);
     }
 
-    res.json(fallbackAnalytics);
+    res.json(analyticsData);
+  } catch (err) {
+    if (req.file && fs.existsSync(req.file.path)) {
+      fs.unlinkSync(req.file.path);
+    }
+    const errorMsg = err.response?.data?.detail || err.response?.data?.error || err.message;
+    console.error('Parse response proxy error:', errorMsg);
+    res.status(err.response?.status || 500).json({ error: errorMsg });
   }
 });
 
 app.get('/api/admin/audit-logs', authenticateToken, authorizeRoles('SHO', 'ADMIN'), (req, res) => {
   res.json([]);
+});
+
+// --- 6. TRANSLATION PROXY ROUTE ---
+app.post('/api/translate/batch', async (req, res) => {
+  try {
+    const response = await axios.post(`${AI_SERVICE_URL}/api/translate/batch`, req.body);
+    res.json(response.data);
+  } catch (err) {
+    console.error('Translation proxy error:', err.message);
+    res.json({
+      status: 'fallback',
+      target_lang: req.body?.target_lang || 'en',
+      translations: req.body?.texts || []
+    });
+  }
 });
 
 app.listen(PORT, () => {

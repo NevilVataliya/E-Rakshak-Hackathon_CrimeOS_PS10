@@ -13,6 +13,7 @@ import LoginView from './views/LoginView';
 import { useAuthStore } from './store/authStore';
 import { useUIStore } from './store/uiStore';
 import { useCaseStore } from './store/caseStore';
+import AutoTranslateProvider from './components/common/AutoTranslateProvider';
 
 function ProtectedLayout() {
   const { isAuthenticated } = useAuthStore();
@@ -63,11 +64,13 @@ export default function App() {
   }, []);
 
   return (
-    <Router>
-      <Routes>
-        <Route path="/login" element={<LoginView />} />
-        <Route path="/*" element={<ProtectedLayout />} />
-      </Routes>
-    </Router>
+    <AutoTranslateProvider>
+      <Router>
+        <Routes>
+          <Route path="/login" element={<LoginView />} />
+          <Route path="/*" element={<ProtectedLayout />} />
+        </Routes>
+      </Router>
+    </AutoTranslateProvider>
   );
 }

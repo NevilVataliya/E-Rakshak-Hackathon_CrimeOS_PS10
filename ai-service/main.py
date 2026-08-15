@@ -877,6 +877,39 @@ async def register_custom_template(req: CustomTemplateRequest):
     }
 
 
+class TranslateBatchRequest(BaseModel):
+    texts: List[str]
+    target_lang: str  # "hi" or "gu" or "en"
+    src_lang: Optional[str] = "en"
+
+
+@app.post("/api/translate/batch")
+async def translate_batch_endpoint(req: TranslateBatchRequest):
+    """
+    Translates a list of strings into Hindi or Gujarati with Redis caching and entity preservation.
+    """
+    try:
+        from app.services.offline_translator import offline_translator
+        translations = offline_translator.translate_batch(
+            texts=req.texts,
+            target_lang=req.target_lang,
+            src_lang=req.src_lang or "en"
+        )
+        return {
+            "status": "success",
+            "target_lang": req.target_lang,
+            "count": len(translations),
+            "translations": translations
+        }
+    except Exception as e:
+        print(f"[-] /api/translate/batch error: {e}")
+        return {
+            "status": "fallback",
+            "target_lang": req.target_lang,
+            "count": len(req.texts),
+            "translations": req.texts
+        }
+
 
 if __name__ == "__main__":
     import uvicorn

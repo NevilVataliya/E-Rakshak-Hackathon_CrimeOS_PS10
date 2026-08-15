@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { 
   FileText, 
   Network, 
@@ -17,19 +18,20 @@ import {
 import { useCaseStore } from '../../store/caseStore';
 import GlobalSummarizerModal from '../common/GlobalSummarizerModal';
 
-const guidedSteps = [
-  { step: 1, id: 'intake', title: 'Complaint Intake', path: '/intake', icon: FileText, subtitle: 'Multimodal Parsing' },
-  { step: 2, id: 'linkage', title: 'Serial Link Analysis', path: '/linkage', icon: Network, subtitle: 'Entity Cross-Match' },
-  { step: 3, id: 'investigation', title: 'Investigation Studio', path: '/investigation', icon: Bot, subtitle: 'Multi-Agent SOP' },
-  { step: 4, id: 'subpoenas', title: 'Subpoenas & Notices', path: '/subpoenas', icon: Send, subtitle: 'Section 94 BNSS' },
-  { step: 5, id: 'analytics', title: 'Response Analysis', path: '/analytics', icon: BarChart3, subtitle: 'CDR & Bank Logs' },
-];
-
 export default function TacticalStepperHeader() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
   const { activeCase, completedStepByCase } = useCaseStore();
   const [globalSumOpen, setGlobalSumOpen] = useState(false);
+
+  const guidedSteps = [
+    { step: 1, id: 'intake', title: t('stepper.step1_title', 'Complaint Intake'), path: '/intake', icon: FileText, subtitle: t('stepper.step1_sub', 'Multimodal Parsing') },
+    { step: 2, id: 'linkage', title: t('stepper.step2_title', 'Serial Link Analysis'), path: '/linkage', icon: Network, subtitle: t('stepper.step2_sub', 'Entity Cross-Match') },
+    { step: 3, id: 'investigation', title: t('stepper.step3_title', 'Investigation Studio'), path: '/investigation', icon: Bot, subtitle: t('stepper.step3_sub', 'Multi-Agent SOP') },
+    { step: 4, id: 'subpoenas', title: t('stepper.step4_title', 'Subpoenas & Notices'), path: '/subpoenas', icon: Send, subtitle: t('stepper.step4_sub', 'Section 94 BNSS') },
+    { step: 5, id: 'analytics', title: t('stepper.step5_title', 'Response Analysis'), path: '/analytics', icon: BarChart3, subtitle: t('stepper.step5_sub', 'CDR & Bank Logs') },
+  ];
 
   const currentPath = location.pathname;
   const currentStepIndex = guidedSteps.findIndex(s => s.path === currentPath);
@@ -48,10 +50,10 @@ export default function TacticalStepperHeader() {
             ? 'border-[#0A2540] dark:border-blue-500 bg-[#0A2540] dark:bg-blue-600/30 text-white font-bold'
             : 'border-slate-300 dark:border-slate-700 bg-slate-100 dark:bg-[#0d1322] text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
         }`}
-        title="Command Dashboard"
+        title={t('nav.dashboard', 'Command Dashboard')}
       >
         <LayoutDashboard className="h-3.5 w-3.5" />
-        <span className="hidden sm:inline text-[11px]">Dashboard</span>
+        <span className="hidden sm:inline text-[11px]">{t('nav.dashboard', 'Dashboard')}</span>
       </button>
 
       <div className="h-4 w-px bg-slate-300 dark:bg-slate-700 mx-2 shrink-0" />
@@ -80,7 +82,7 @@ export default function TacticalStepperHeader() {
                     ? 'border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-[#0d1322] text-slate-700 dark:text-slate-300 hover:border-amber-500 hover:text-slate-900'
                     : 'border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-[#050811] text-slate-400 dark:text-slate-600 opacity-60 cursor-not-allowed'
                 }`}
-                title={isLocked ? `Complete Step ${stepNum - 1} first` : item.title}
+                title={isLocked ? t('stepper.locked_tooltip', { step: stepNum - 1, defaultValue: `Complete Step ${stepNum - 1} first` }) : item.title}
               >
                 {/* Step Badge / Number */}
                 <span
@@ -132,11 +134,11 @@ export default function TacticalStepperHeader() {
         <button
           onClick={() => setGlobalSumOpen(true)}
           className="flex items-center gap-1.5 rounded border border-amber-600 bg-amber-500 px-2.5 py-1 text-xs font-bold text-slate-950 hover:bg-amber-600 hover:text-white transition-all shadow-sm"
-          title="Synthesize Master AI Executive Briefing across all completed modules"
+          title={t('nav.summarize_all', 'Synthesize Master AI Executive Briefing across all completed modules')}
         >
           <Sparkles className="h-3.5 w-3.5" />
-          <span className="hidden md:inline font-mono">Summarize All Modules</span>
-          <span className="md:hidden font-mono">Summary</span>
+          <span className="hidden md:inline font-mono">{t('nav.summarize_all', 'Summarize All Modules')}</span>
+          <span className="md:hidden font-mono">{t('nav.summary', 'Summary')}</span>
         </button>
 
         <button
@@ -146,10 +148,10 @@ export default function TacticalStepperHeader() {
               ? 'border-indigo-600 bg-indigo-600 text-white font-bold'
               : 'border-slate-300 dark:border-slate-700 bg-slate-100 dark:bg-[#0d1322] text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
           }`}
-          title="Admin & Audit Trail"
+          title={t('nav.admin', 'Admin & Audit Trail')}
         >
           <ShieldCheck className="h-3.5 w-3.5" />
-          <span className="hidden sm:inline text-[11px]">Audit</span>
+          <span className="hidden sm:inline text-[11px]">{t('nav.audit', 'Audit')}</span>
         </button>
       </div>
 

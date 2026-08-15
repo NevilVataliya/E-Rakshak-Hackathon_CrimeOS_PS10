@@ -1,12 +1,15 @@
 import React, { useState } from 'react';
 import { Shield, Search, Building2, ChevronDown, LogOut, Command, Sun, Moon } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '../../store/authStore';
 import { useCaseStore } from '../../store/caseStore';
 import { useUIStore } from '../../store/uiStore';
 import CommandPaletteDialog from './CommandPaletteDialog';
 import GlobalSummarizerModal from '../common/GlobalSummarizerModal';
+import LanguageSelector from './LanguageSelector';
 
 export default function CommandHeader() {
+  const { t } = useTranslation();
   const { user, logout } = useAuthStore();
   const { cases, activeCase, setActiveCase } = useCaseStore();
   const { theme, toggleTheme } = useUIStore();
@@ -34,14 +37,14 @@ export default function CommandHeader() {
             <div className="flex flex-col">
               <div className="flex items-center gap-1.5">
                 <span className="text-[10px] font-bold tracking-widest text-amber-400 uppercase font-mono">
-                  GOVERNMENT OF GUJARAT
+                  {t('brand.govt', 'GOVERNMENT OF GUJARAT')}
                 </span>
                 <span className="text-[9px] px-1 rounded bg-amber-500/20 text-amber-300 font-bold border border-amber-400/30">
-                  OFFICIAL
+                  {t('brand.official', 'OFFICIAL')}
                 </span>
               </div>
               <span className="text-xs font-black tracking-wider text-white uppercase">
-                POLICE DEPARTMENT • CYBER CRIME CELL
+                {t('brand.department', 'POLICE DEPARTMENT • CYBER CRIME CELL')}
               </span>
             </div>
           </div>
@@ -50,29 +53,32 @@ export default function CommandHeader() {
 
           <div className="flex items-center gap-1.5 text-xs text-slate-300">
             <Building2 className="h-3.5 w-3.5 text-amber-400 shrink-0" />
-            <span className="font-semibold text-slate-200">{user?.police_station || 'State Cyber Crime Command HQ'}</span>
+            <span className="font-semibold text-slate-200">{user?.police_station || t('brand.state_hq', 'State Cyber Crime Command HQ')}</span>
           </div>
         </div>
 
         {/* Center: Search Bar (CMDK Trigger) */}
         <button
           onClick={() => setCmdOpen(true)}
-          className="flex h-7 w-80 items-center justify-between rounded border border-slate-600/80 bg-slate-800/80 px-2.5 text-xs text-slate-300 transition-colors hover:border-amber-400/50 hover:bg-slate-800 hover:text-white"
+          className="flex h-7 w-72 lg:w-80 items-center justify-between rounded border border-slate-600/80 bg-slate-800/80 px-2.5 text-xs text-slate-300 transition-colors hover:border-amber-400/50 hover:bg-slate-800 hover:text-white"
         >
-          <div className="flex items-center gap-2">
-            <Search className="h-3 w-3 text-amber-400" />
-            <span className="text-[11px] truncate">Search Case FIR, Phone, Account, or VPA...</span>
+          <div className="flex items-center gap-2 truncate">
+            <Search className="h-3 w-3 text-amber-400 shrink-0" />
+            <span className="text-[11px] truncate">{t('brand.search_placeholder', 'Search Case FIR, Phone, Account, or VPA...')}</span>
           </div>
-          <kbd className="inline-flex items-center gap-0.5 rounded border border-slate-600 bg-slate-900 px-1.5 py-0.2 text-[9px] font-mono text-slate-300">
+          <kbd className="inline-flex items-center gap-0.5 rounded border border-slate-600 bg-slate-900 px-1.5 py-0.2 text-[9px] font-mono text-slate-300 shrink-0 ml-1">
             <Command className="h-2.5 w-2.5" /> K
           </kbd>
         </button>
 
-        {/* Right: Active Case, Theme Toggle & Officer Profile Badge */}
-        <div className="flex items-center gap-3">
+        {/* Right: Language Selector, Active Case, Theme Toggle & Officer Profile Badge */}
+        <div className="flex items-center gap-2.5">
+          {/* Quick Multi-Language Switcher */}
+          <LanguageSelector />
+
           {activeCase && (
-            <div className="flex items-center gap-1.5 rounded border border-amber-500/40 bg-amber-500/10 px-2.5 py-0.5 text-xs font-mono">
-              <span className="text-[10px] font-bold text-amber-300 uppercase">ACTIVE FIR:</span>
+            <div className="flex items-center gap-1.5 rounded border border-amber-500/40 bg-amber-500/10 px-2 py-0.5 text-xs font-mono">
+              <span className="text-[10px] font-bold text-amber-300 uppercase">{t('brand.active_fir', 'ACTIVE FIR:')}</span>
               <span className="font-bold text-white">{activeCase.case_number}</span>
             </div>
           )}
@@ -80,18 +86,18 @@ export default function CommandHeader() {
           {/* Light / Dark Mode Toggle Button */}
           <button
             onClick={toggleTheme}
-            className="flex items-center gap-1.5 rounded border border-slate-600 bg-slate-800/80 px-2.5 py-1 text-xs font-semibold text-amber-300 hover:bg-slate-700 hover:text-white transition-colors"
-            title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+            className="flex items-center gap-1.5 rounded border border-slate-600 bg-slate-800/80 px-2 py-1 text-xs font-semibold text-amber-300 hover:bg-slate-700 hover:text-white transition-colors"
+            title={theme === 'dark' ? t('brand.light_mode', 'Switch to Light Mode') : t('brand.dark_mode', 'Switch to Dark Mode')}
           >
             {theme === 'dark' ? (
               <>
                 <Sun className="h-3.5 w-3.5 text-amber-400" />
-                <span className="hidden md:inline text-[11px] font-mono">Light Mode</span>
+                <span className="hidden lg:inline text-[11px] font-mono">{t('brand.light_mode', 'Light Mode')}</span>
               </>
             ) : (
               <>
                 <Moon className="h-3.5 w-3.5 text-amber-300" />
-                <span className="hidden md:inline text-[11px] font-mono">Dark Mode</span>
+                <span className="hidden lg:inline text-[11px] font-mono">{t('brand.dark_mode', 'Dark Mode')}</span>
               </>
             )}
           </button>
@@ -105,9 +111,9 @@ export default function CommandHeader() {
               className="flex items-center gap-2 rounded border border-slate-600 bg-slate-800 px-2.5 py-1 text-xs text-white hover:border-amber-400/50 transition-colors"
             >
               <div className="flex h-5 w-5 items-center justify-center rounded-full bg-amber-500 text-[10px] font-bold text-slate-950 font-mono">
-                IO
+                {t('brand.io_label', 'IO')}
               </div>
-              <span className="text-xs font-bold">{user?.full_name || 'PSI Inspector V. K. Patel'}</span>
+              <span className="text-xs font-bold truncate max-w-[130px]">{user?.full_name || 'PSI Inspector V. K. Patel'}</span>
               <ChevronDown className="h-3 w-3 text-slate-300" />
             </button>
 
@@ -126,7 +132,7 @@ export default function CommandHeader() {
                   className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-xs font-semibold text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-500/10 transition-colors mt-1"
                 >
                   <LogOut className="h-3.5 w-3.5" />
-                  <span>Sign Out</span>
+                  <span>{t('brand.sign_out', 'Sign Out')}</span>
                 </button>
               </div>
             )}

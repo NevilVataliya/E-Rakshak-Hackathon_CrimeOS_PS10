@@ -1,9 +1,12 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { Shield, Lock, Building2, Award, Loader2, CheckCircle2 } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
+import LanguageSelector from '../components/layout/LanguageSelector';
 
 export default function LoginView() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { login } = useAuthStore();
   const [username, setUsername] = useState('io_patel');
@@ -19,8 +22,13 @@ export default function LoginView() {
   };
 
   return (
-    <div className="h-screen w-screen flex flex-col items-center justify-center bg-slate-100 dark:bg-[#050811] p-4 select-none">
+    <div className="h-screen w-screen flex flex-col items-center justify-center bg-slate-100 dark:bg-[#050811] p-4 select-none relative">
       
+      {/* Top Floating Language Switcher */}
+      <div className="absolute top-4 right-4 z-50">
+        <LanguageSelector />
+      </div>
+
       {/* Central Login Card */}
       <div className="w-full max-w-md rounded-lg border border-slate-300 dark:border-white/10 bg-white dark:bg-[#0d1322] shadow-2xl overflow-hidden text-slate-900 dark:text-slate-100">
         
@@ -39,7 +47,7 @@ export default function LoginView() {
 
           <div>
             <div className="text-[10px] font-bold tracking-widest text-amber-400 uppercase font-mono">
-              GOVERNMENT OF GUJARAT • POLICE DEPARTMENT
+              {t('brand.govt', 'GOVERNMENT OF GUJARAT')} • {t('brand.department', 'POLICE DEPARTMENT')}
             </div>
             <h1 className="text-xl font-black tracking-wider text-white uppercase mt-0.5">
               CRIME<span className="text-amber-400">OS</span> PORTAL

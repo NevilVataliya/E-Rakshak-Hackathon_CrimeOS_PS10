@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { Layers, FileCheck2, AlertTriangle, Cpu, FileUp, ShieldCheck, ListTree, Activity, Zap, CheckCircle2, RotateCcw, Loader2 } from 'lucide-react';
 import { useCaseStore } from '../store/caseStore';
 import { PoliceCase } from '../types';
 import CasePipelineModal from '../components/common/CasePipelineModal';
 
 export default function DashboardView() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { cases, activeCase, setActiveCase, fetchCases, startNewComplaint, clearAllCasesAndData, dispatchedDirectivesByCase, linkageMatches } = useCaseStore();
   const [modalOpen, setModalOpen] = useState(false);
@@ -56,13 +58,13 @@ export default function DashboardView() {
       <div className="flex items-center justify-between border-b border-slate-200 dark:border-white/10 pb-3 shrink-0">
         <div>
           <h1 className="text-base font-black tracking-wide text-slate-900 dark:text-white uppercase font-mono flex items-center gap-2">
-            Investigation Command Register
+            {t('dashboard.title', 'Investigation Command Register')}
             <span className="rounded bg-emerald-100 dark:bg-emerald-500/20 px-2 py-0.5 text-[10px] text-emerald-800 dark:text-emerald-300 font-sans font-bold border border-emerald-300 dark:border-emerald-500/30">
               Live Station Feed
             </span>
           </h1>
           <p className="text-xs text-slate-600 dark:text-slate-400">
-            Official law enforcement pipeline — manage FIR cases, serial offender linkage, and legal requisitions.
+            {t('dashboard.subtitle', 'Official law enforcement pipeline — manage FIR cases, serial offender linkage, and legal requisitions.')}
           </p>
         </div>
 
@@ -82,7 +84,7 @@ export default function DashboardView() {
             className="flex items-center gap-1.5 rounded bg-[#0A2540] dark:bg-blue-600 px-3.5 py-1.5 text-xs font-bold text-white hover:bg-slate-800 dark:hover:bg-blue-500 transition-colors shadow-sm"
           >
             <FileUp className="h-3.5 w-3.5 text-amber-400" />
-            <span>Register New Complaint</span>
+            <span>{t('dashboard.create_case', 'Register New Complaint')}</span>
           </button>
         </div>
       </div>
@@ -91,7 +93,7 @@ export default function DashboardView() {
       <div className="grid grid-cols-4 gap-3 shrink-0">
         <div className="rounded-lg border border-slate-200 dark:border-white/10 bg-white dark:bg-[#0d1322] p-3 space-y-1 shadow-sm">
           <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 text-[10px] font-bold uppercase tracking-wider">
-            <span>Active Cases</span>
+            <span>{t('dashboard.total_cases', 'Active Cases')}</span>
             <Layers className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
           </div>
           <p className="text-xl font-extrabold text-slate-900 dark:text-white font-mono">{totalCasesCount}</p>
@@ -100,7 +102,7 @@ export default function DashboardView() {
 
         <div className="rounded-lg border border-slate-200 dark:border-white/10 bg-white dark:bg-[#0d1322] p-3 space-y-1 shadow-sm">
           <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 text-[10px] font-bold uppercase tracking-wider">
-            <span>Subpoenas Dispatched</span>
+            <span>{t('dashboard.notices_sent', 'Subpoenas Dispatched')}</span>
             <FileCheck2 className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
           </div>
           <p className="text-xl font-extrabold text-slate-900 dark:text-white font-mono">{totalDispatchedSubpoenas}</p>
@@ -109,7 +111,7 @@ export default function DashboardView() {
 
         <div className="rounded-lg border border-slate-200 dark:border-white/10 bg-white dark:bg-[#0d1322] p-3 space-y-1 shadow-sm">
           <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 text-[10px] font-bold uppercase tracking-wider">
-            <span>Serial Link Matches</span>
+            <span>{t('linkage.stats_matches', 'Serial Link Matches')}</span>
             <AlertTriangle className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
           </div>
           <p className="text-xl font-extrabold text-slate-900 dark:text-white font-mono">{totalSerialMatches}</p>
