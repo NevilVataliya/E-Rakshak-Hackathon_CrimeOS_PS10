@@ -8,7 +8,7 @@ import redis
 from typing import List, Tuple, Dict
 
 # High-frequency police & UI terminology dictionary (0ms instant lookup)
-FFAST_DICT: Dict[str, Dict[str, str]] = {
+FAST_DICT: Dict[str, Dict[str, str]] = {
     "Dashboard": {"hi": "डैशबोर्ड", "gu": "ડેશબોર્ડ"},
     "Investigation": {"hi": "जाँच", "gu": "તપાસ"},
     "Investigation Studio": {"hi": "जाँच स्टूडियो", "gu": "તપાસ સ્ટુડિયો"},

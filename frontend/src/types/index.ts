@@ -56,6 +56,8 @@ export interface PoliceCase {
   investigation_data?: any;
   dispatched_directives?: any[];
   response_analytics?: any;
+  response_analytics_history?: any[];
+  response_analytics_by_type?: Record<string, any[]>;
   module_summaries?: Record<string, any>;
   cross_case_matches?: any[];
 }

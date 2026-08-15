@@ -81,44 +81,70 @@ export default function DynamicVisualizer({ config }: Props) {
       {/* 2. Hourly Activity Bar Chart with Midnight Anomaly Highlighter */}
       {chartType === 'HOURLY_ACTIVITY_BAR' && (
         <div className="space-y-2 pt-1 font-mono">
-          {data.map((item: any, idx: number) => {
-            const calls = item.calls || item.count || 0;
-            const maxCalls = 500;
-            const percentage = Math.min(100, Math.max(12, (calls / maxCalls) * 100));
-            const isNight = item.risk === 'High' || (item.hour && item.hour.includes('Night'));
+          {(() => {
+            const maxVal = Math.max(...data.map((d: any) => d.calls || d.count || 0), 1);
+            return data.map((item: any, idx: number) => {
+              const calls = item.calls || item.count || 0;
+              const percentage = calls === 0 ? 0 : Math.min(100, Math.max(3, (calls / maxVal) * 100));
+              const isNight = item.risk === 'High' || (item.hour && (item.hour.startsWith('22:') || item.hour.startsWith('23:') || item.hour.startsWith('00:') || item.hour.startsWith('01:') || item.hour.startsWith('02:') || item.hour.startsWith('03:') || item.hour.startsWith('04:') || item.hour.startsWith('05:')) && calls > 0);
 
-            return (
-              <div key={idx} className="space-y-1 text-xs font-mono">
-                <div className="flex justify-between text-[11px]">
-                  <span className="text-slate-800 dark:text-slate-200 font-semibold">{item.hour || item.category || `Period ${idx+1}`}</span>
-                  <span className={isNight ? 'text-rose-700 dark:text-rose-400 font-black flex items-center gap-1' : 'text-slate-600 dark:text-slate-400 font-bold'}>
-                    {calls} calls {isNight && <><Zap className="h-3.5 w-3.5 text-rose-500 shrink-0 animate-bounce" /> [NIGHT BURST ANOMALY]</>}
-                  </span>
+              return (
+                <div key={idx} className="space-y-1 text-xs font-mono">
+                  <div className="flex justify-between text-[11px]">
+                    <span className="text-slate-800 dark:text-slate-200 font-semibold">{item.hour || item.category || `Period ${idx+1}`}</span>
+                    <span className={isNight ? 'text-rose-700 dark:text-rose-400 font-black flex items-center gap-1' : 'text-slate-600 dark:text-slate-400 font-bold'}>
+                      {calls} calls {isNight && <span className="text-[10px] bg-rose-100 dark:bg-rose-950/60 text-rose-800 dark:text-rose-300 px-1.5 py-0.5 rounded border border-rose-300 dark:border-rose-500/30">[NIGHT BURST]</span>}
+                    </span>
+                  </div>
+                  <div className="w-full bg-slate-100 dark:bg-[#050811] h-3 rounded-full overflow-hidden border border-slate-200 dark:border-white/5">
+                    {percentage > 0 && (
+                      <div
+                        className={`h-full rounded-full transition-all duration-500 ${isNight ? 'bg-gradient-to-r from-rose-600 via-amber-500 to-rose-500' : 'bg-gradient-to-r from-blue-600 to-indigo-500'}`}
+                        style={{ width: `${percentage}%` }}
+                      />
+                    )}
+                  </div>
                 </div>
-                <div className="w-full bg-slate-200 dark:bg-[#050811] h-3.5 rounded-full overflow-hidden border border-slate-300 dark:border-white/5">
-                  <div
-                    className={`h-full rounded-full transition-all duration-500 ${isNight ? 'bg-gradient-to-r from-rose-600 via-amber-500 to-rose-500' : 'bg-gradient-to-r from-blue-600 to-indigo-500'}`}
-                    style={{ width: `${percentage}%` }}
-                  />
-                </div>
-              </div>
-            );
-          })}
+              );
+            });
+          })()}
         </div>
       )}
 
       {/* 3. Time Series Velocity Line Trend */}
       {chartType === 'LINE_TREND' && (
         <div className="space-y-2 pt-1 font-mono">
-          <div className="grid grid-cols-5 gap-2 text-center text-xs">
-            {data.map((item: any, idx: number) => (
-              <div key={idx} className="bg-slate-50 dark:bg-[#050811] p-2.5 rounded-lg border border-slate-200 dark:border-white/10 shadow-sm">
-                <div className="text-[10px] font-bold text-slate-500 dark:text-slate-400">{item.timestamp || item.category || `T-${idx}`}</div>
-                <div className="text-base font-black text-indigo-700 dark:text-indigo-300 mt-1">{item.connections || item.value || 0}</div>
-                <div className="text-[9px] text-slate-400">conns</div>
+          {(() => {
+            const maxConns = Math.max(...data.map((d: any) => d.connections || d.value || 0), 1);
+            const displayItems = data.filter((item: any) => (item.connections || item.value || 0) > 0).length >= 1
+              ? data.filter((item: any) => (item.connections || item.value || 0) > 0)
+              : data.slice(0, 8);
+
+            return (
+              <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-2 text-center text-xs">
+                {displayItems.map((item: any, idx: number) => {
+                  const val = item.connections || item.value || 0;
+                  const isHigh = val >= (maxConns * 0.7);
+                  return (
+                    <div
+                      key={idx}
+                      className={`p-2 rounded-lg border shadow-sm transition-all ${
+                        isHigh
+                          ? 'bg-purple-50 dark:bg-purple-950/40 border-purple-300 dark:border-purple-500/40 ring-1 ring-purple-400/30'
+                          : 'bg-slate-50 dark:bg-[#050811] border-slate-200 dark:border-white/10'
+                      }`}
+                    >
+                      <div className="text-[10px] font-bold text-slate-500 dark:text-slate-400 truncate">{item.timestamp || item.category || `T-${idx}`}</div>
+                      <div className={`text-sm font-black mt-1 ${isHigh ? 'text-purple-900 dark:text-purple-300' : 'text-indigo-700 dark:text-indigo-300'}`}>
+                        {val}
+                      </div>
+                      <div className="text-[9px] text-slate-400">events</div>
+                    </div>
+                  );
+                })}
               </div>
-            ))}
-          </div>
+            );
+          })()}
         </div>
       )}
 

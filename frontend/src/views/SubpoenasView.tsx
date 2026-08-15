@@ -181,18 +181,10 @@ export default function SubpoenasView() {
 
 
 
-  // Initialize and Sync Directives List when activeCase or investigationData changes
+  // Initialize and Sync Directives List when activeCase, investigationData, or dispatchedDirectivesByCase changes
   useEffect(() => {
     const caseRef = activeCase?.case_number || '';
     setAutoCaseNumber(caseRef);
-
-    // RESTORE SAVED DISPATCHED DIRECTIVES FROM CASE STORE IF PRESENT!
-    const savedForCase = caseRef ? (dispatchedDirectivesByCase[caseRef] || activeCase?.dispatched_directives || []) : [];
-    if (savedForCase.length > 0) {
-      setDirectives(savedForCase);
-      selectDirectiveItem(0, savedForCase);
-      return;
-    }
 
     const storeState = useCaseStore.getState();
     const invData = (caseRef ? storeState.investigationsByCase[caseRef] : null) || investigationData || activeCase?.investigation_data || null;
@@ -231,7 +223,7 @@ export default function SubpoenasView() {
         const hasRequired = Boolean(provider && desc && email && (targetId || domain !== 'financial_fraud'));
 
         return {
-          id: `DIR-0${idx + 1}`,
+          id: req.id || `DIR-0${idx + 1}`,
           title: `${provider}: ${desc}`,
           objective: desc,
           target_provider: provider,
@@ -282,38 +274,35 @@ export default function SubpoenasView() {
       });
     }
 
-    // Merge saved dispatched directives from store to preserve DISPATCHED_SMTP status
-    const savedDirectives = caseRef ? (dispatchedDirectivesByCase[caseRef] || []) : [];
+    // Merge saved dispatched directives from store to preserve DISPATCHED_SMTP status and Module 5 discoveries
+    const savedDirectives = caseRef ? (dispatchedDirectivesByCase[caseRef] || activeCase?.dispatched_directives || []) : [];
     const savedMap = new Map(savedDirectives.map((d: any) => [d.id || d.title || d.target_id, d]));
 
     const mergedList = initialList.map((item: any) => {
       const key = item.id || item.title || item.target_id;
       const saved = savedMap.get(key);
-      if (saved && (saved.status === 'DISPATCHED_SMTP' || saved.status === 'RESPONSE_RECEIVED' || saved.status === 'AWAITING_PROVIDER_REPLY' || saved.status === 'DEFECTIVE_AWAITING_CURE')) {
-        return { ...item, ...saved, status: saved.status, dispatched_at: saved.dispatched_at || item.dispatched_at };
+      if (saved) {
+        return { ...item, ...saved };
       }
       return item;
     });
 
-    // Also append any extra custom saved directives for this case
+    // Also append any extra custom / Module 5 saved directives for this case
     savedDirectives.forEach((sd: any) => {
       const key = sd.id || sd.title || sd.target_id;
-      if (!initialList.some((it: any) => (it.id || it.title || it.target_id) === key)) {
+      if (!mergedList.some((it: any) => (it.id || it.title || it.target_id) === key)) {
         mergedList.push(sd);
       }
     });
 
     const listToSet = mergedList.length > 0 ? mergedList : initialList;
     setDirectives(listToSet);
-    if (caseRef && listToSet.length > 0) {
-      saveDispatchedDirectivesForCase(caseRef, listToSet);
-    }
     if (listToSet.length > 0) {
       selectDirectiveItem(0, listToSet);
     } else {
       clearRightForm();
     }
-  }, [activeCase?.case_number, (investigationData as any)?.legal_requests?.length]);
+  }, [activeCase?.case_number, (investigationData as any)?.legal_requests?.length, dispatchedDirectivesByCase]);
 
   const clearRightForm = () => {
     setAutoObjective('');

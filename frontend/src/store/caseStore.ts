@@ -26,12 +26,14 @@ interface CaseState {
   completedStepByCase: Record<string, number>;
   dispatchedDirectivesByCase: Record<string, any[]>;
   responseAnalyticsByCase: Record<string, any>;
+  responseAnalyticsHistoryByCase: Record<string, any[]>;
+  responseAnalyticsByTypeByCase: Record<string, Record<string, any[]>>;
   linkageMatchesByCase: Record<string, LinkageMatch[]>;
   linkageStatsByCase: Record<string, LinkageStats | null>;
 
   saveDispatchedDirectivesForCase: (caseNumber: string, directives: any[]) => void;
   getDirectivesForCase: (caseNumber: string) => any[];
-  saveResponseAnalyticsForCase: (caseNumber: string, analyticsData: any) => void;
+  saveResponseAnalyticsForCase: (caseNumber: string, analyticsData: any, category?: string) => void;
 
   // Linkage Module 2 State
   linkageMatches: LinkageMatch[];
@@ -106,6 +108,8 @@ export const useCaseStore = create<CaseState>()(
       completedStepByCase: {},
       dispatchedDirectivesByCase: {},
       responseAnalyticsByCase: {},
+      responseAnalyticsHistoryByCase: {},
+      responseAnalyticsByTypeByCase: {},
       linkageMatchesByCase: {},
       linkageStatsByCase: {},
 
@@ -162,26 +166,62 @@ export const useCaseStore = create<CaseState>()(
         });
       },
 
-      saveResponseAnalyticsForCase: (caseNumber: string, analyticsData: any) => {
+      saveResponseAnalyticsForCase: (caseNumber: string, analyticsData: any, category?: string) => {
         set((state) => {
           const currentStep = state.completedStepByCase[caseNumber] || 0;
           const nextStep = Math.max(currentStep, 5);
+          const cat = category || analyticsData.response_type || 'BANK_STATEMENT';
+          const docName = analyticsData.provider_name || analyticsData.file_name || `${cat}_Doc`;
+          analyticsData.doc_id = analyticsData.doc_id || `DOC-${Date.now().toString().slice(-6)}`;
+          analyticsData.file_name = docName;
+          analyticsData.category = cat;
+          analyticsData.ingested_at = analyticsData.ingested_at || new Date().toISOString();
+
+          // 1. Update history
+          const existingHist = state.responseAnalyticsHistoryByCase?.[caseNumber] || [];
+          const histIdx = existingHist.findIndex(d => (d.file_name && d.file_name === docName) || d.doc_id === analyticsData.doc_id);
+          const updatedHist = histIdx >= 0
+            ? existingHist.map((d, i) => i === histIdx ? analyticsData : d)
+            : [analyticsData, ...existingHist];
+
+          // 2. Update by_type
+          const existingByType = state.responseAnalyticsByTypeByCase?.[caseNumber] || {};
+          const catList = existingByType[cat] || [];
+          const catIdx = catList.findIndex(d => (d.file_name && d.file_name === docName) || d.doc_id === analyticsData.doc_id);
+          const updatedCatList = catIdx >= 0
+            ? catList.map((d, i) => i === catIdx ? analyticsData : d)
+            : [analyticsData, ...catList];
+          const updatedByType = { ...existingByType, [cat]: updatedCatList };
 
           const updatedCases = state.cases.map(c =>
             c.case_number === caseNumber
-              ? { ...c, completed_step: 5, response_analytics: analyticsData }
+              ? {
+                  ...c,
+                  completed_step: 5,
+                  response_analytics: analyticsData,
+                  response_analytics_history: updatedHist,
+                  response_analytics_by_type: updatedByType
+                }
               : c
           );
 
           const updatedActive = state.activeCase?.case_number === caseNumber
-            ? { ...state.activeCase, completed_step: 5, response_analytics: analyticsData }
+            ? {
+                ...state.activeCase,
+                completed_step: 5,
+                response_analytics: analyticsData,
+                response_analytics_history: updatedHist,
+                response_analytics_by_type: updatedByType
+              }
             : state.activeCase;
 
           // Sync analytics update to PostgreSQL DB
           api.post('/api/cases', {
             case_number: caseNumber,
             completed_step: 5,
-            response_analytics: analyticsData
+            response_analytics: analyticsData,
+            response_analytics_history: updatedHist,
+            response_analytics_by_type: updatedByType
           }).catch(err => console.warn('[-] DB analytics sync error:', err.message));
 
           return {
@@ -194,18 +234,14 @@ export const useCaseStore = create<CaseState>()(
             responseAnalyticsByCase: {
               ...state.responseAnalyticsByCase,
               [caseNumber]: analyticsData
-            }
-          };
-        });
-      },
-
-      addDirectiveForCase: (caseNumber: string, directive: any) => {
-        set((state) => {
-          const existing = state.dispatchedDirectivesByCase[caseNumber] || [];
-          return {
-            dispatchedDirectivesByCase: {
-              ...state.dispatchedDirectivesByCase,
-              [caseNumber]: [directive, ...existing]
+            },
+            responseAnalyticsHistoryByCase: {
+              ...state.responseAnalyticsHistoryByCase,
+              [caseNumber]: updatedHist
+            },
+            responseAnalyticsByTypeByCase: {
+              ...state.responseAnalyticsByTypeByCase,
+              [caseNumber]: updatedByType
             }
           };
         });
@@ -462,6 +498,8 @@ export const useCaseStore = create<CaseState>()(
             const invMap = { ...get().investigationsByCase };
             const dirMap = { ...get().dispatchedDirectivesByCase };
             const anaMap = { ...get().responseAnalyticsByCase };
+            const anaHistMap = { ...get().responseAnalyticsHistoryByCase };
+            const anaByTypeMap = { ...get().responseAnalyticsByTypeByCase };
             const sumMap = { ...get().moduleSummariesByCase };
             const globalSumMap = { ...get().globalSummaryByCase };
             const linkageMatchesMap = { ...get().linkageMatchesByCase };
@@ -479,6 +517,8 @@ export const useCaseStore = create<CaseState>()(
                 if (c.investigation_data) invMap[c.case_number] = c.investigation_data;
                 if (c.dispatched_directives && c.dispatched_directives.length > 0) dirMap[c.case_number] = c.dispatched_directives;
                 if (c.response_analytics) anaMap[c.case_number] = c.response_analytics;
+                if (c.response_analytics_history && c.response_analytics_history.length > 0) anaHistMap[c.case_number] = c.response_analytics_history;
+                if (c.response_analytics_by_type) anaByTypeMap[c.case_number] = c.response_analytics_by_type;
                 if (c.module_summaries) sumMap[c.case_number] = c.module_summaries;
                 if (c.global_summary) globalSumMap[c.case_number] = c.global_summary;
                 if (c.cross_case_matches && c.cross_case_matches.length > 0) linkageMatchesMap[c.case_number] = c.cross_case_matches;
@@ -515,6 +555,8 @@ export const useCaseStore = create<CaseState>()(
               investigationsByCase: invMap,
               dispatchedDirectivesByCase: dirMap,
               responseAnalyticsByCase: anaMap,
+              responseAnalyticsHistoryByCase: anaHistMap,
+              responseAnalyticsByTypeByCase: anaByTypeMap,
               moduleSummariesByCase: sumMap,
               globalSummaryByCase: globalSumMap,
               linkageMatchesByCase: linkageMatchesMap,
@@ -538,6 +580,8 @@ export const useCaseStore = create<CaseState>()(
         const invMap = get().investigationsByCase || {};
         const dirMap = get().dispatchedDirectivesByCase || {};
         const anaMap = get().responseAnalyticsByCase || {};
+        const anaHistMap = get().responseAnalyticsHistoryByCase || {};
+        const anaByTypeMap = get().responseAnalyticsByTypeByCase || {};
         const linkageMatchesMap = get().linkageMatchesByCase || {};
         const linkageStatsMap = get().linkageStatsByCase || {};
         const loadMap = get().loadingByCase || {};
@@ -548,6 +592,8 @@ export const useCaseStore = create<CaseState>()(
         const invData = invMap[caseNo] || policeCase.investigation_data || null;
         const directives = dirMap[caseNo] || policeCase.dispatched_directives || [];
         const analytics = anaMap[caseNo] || policeCase.response_analytics || null;
+        const anaHistory = anaHistMap[caseNo] || policeCase.response_analytics_history || [];
+        const anaByType = anaByTypeMap[caseNo] || policeCase.response_analytics_by_type || {};
         const caseMatches = linkageMatchesMap[caseNo] || policeCase.cross_case_matches || [];
         const caseStats = linkageStatsMap[caseNo] || (caseMatches.length > 0 ? {
           total_entities_searched: caseMatches.length,
@@ -582,6 +628,8 @@ export const useCaseStore = create<CaseState>()(
           investigation_data: invData,
           dispatched_directives: directives,
           response_analytics: analytics,
+          response_analytics_history: anaHistory,
+          response_analytics_by_type: anaByType,
           cross_case_matches: caseMatches
         };
 
@@ -1122,6 +1170,74 @@ export const useCaseStore = create<CaseState>()(
             completedStepByCase: {
               ...state.completedStepByCase,
               [caseNo]: nextCompletedStep
+            }
+          };
+        });
+      },
+
+      addDirectiveForCase: (caseNumber: string, directive: any) => {
+        set((state) => {
+          const caseRef = caseNumber || state.activeCase?.case_number || 'CR-2026-9914';
+          const existing = state.dispatchedDirectivesByCase[caseRef] || state.activeCase?.dispatched_directives || [];
+
+          const formattedDirective = {
+            id: directive.id || `DIR-M5-${Date.now().toString().slice(-4)}`,
+            title: directive.title || `${directive.target_provider || 'Provider'}: ${directive.objective || 'Statutory Notice'}`,
+            objective: directive.objective || 'Statutory Notice Requisition',
+            target_provider: directive.target_provider || 'Compliance Desk',
+            target_id: String(directive.target_id || ''),
+            domain: directive.domain || (
+              directive.target_provider?.toLowerCase().includes('telecom') || directive.target_provider?.toLowerCase().includes('airtel') || directive.target_provider?.toLowerCase().includes('ceir')
+                ? 'telecom_location'
+                : (directive.target_provider?.toLowerCase().includes('isp') || directive.target_provider?.toLowerCase().includes('jio') || directive.target_provider?.toLowerCase().includes('google') || directive.target_provider?.toLowerCase().includes('tor') ? 'cyber_crime' : 'financial_fraud')
+            ),
+            receiver_email: directive.receiver_email || 'nodal.compliance@provider.in',
+            request_type: directive.request_type || directive.legal_statute_ref || 'SECTION_94_BNSS',
+            status: directive.status || 'READY_TO_DISPATCH',
+            legal_statute_ref: directive.legal_statute_ref || 'Section 94 BNSS',
+            created_at: new Date().toISOString(),
+            source_module: 'MODULE_5_RESPONSE_ANALYTICS'
+          };
+
+          const existsIdx = existing.findIndex((d: any) =>
+            d.id === formattedDirective.id ||
+            (d.target_id === formattedDirective.target_id && d.target_provider === formattedDirective.target_provider && d.objective === formattedDirective.objective)
+          );
+
+          const updatedList = existsIdx >= 0
+            ? existing.map((d: any, idx: number) => idx === existsIdx ? { ...d, ...formattedDirective } : d)
+            : [...existing, formattedDirective];
+
+          const currentStep = state.completedStepByCase[caseRef] || 0;
+          const nextStep = Math.max(currentStep, 4);
+
+          const updatedCases = state.cases.map(c =>
+            c.case_number === caseRef
+              ? { ...c, completed_step: Math.max(c.completed_step || 0, nextStep), dispatched_directives: updatedList }
+              : c
+          );
+
+          const updatedActive = state.activeCase?.case_number === caseRef
+            ? { ...state.activeCase, completed_step: Math.max(state.activeCase.completed_step || 0, nextStep), dispatched_directives: updatedList }
+            : state.activeCase;
+
+          // Sync directive update to PostgreSQL DB
+          api.post('/api/cases', {
+            case_number: caseRef,
+            completed_step: nextStep,
+            dispatched_directives: updatedList
+          }).catch(err => console.warn('[-] DB directive sync error:', err.message));
+
+          return {
+            cases: updatedCases,
+            activeCase: updatedActive,
+            completedStepByCase: {
+              ...state.completedStepByCase,
+              [caseRef]: nextStep
+            },
+            dispatchedDirectivesByCase: {
+              ...state.dispatchedDirectivesByCase,
+              [caseRef]: updatedList
             }
           };
         });

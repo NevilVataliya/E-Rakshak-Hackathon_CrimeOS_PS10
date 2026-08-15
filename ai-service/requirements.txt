@@ -33,3 +33,5 @@ pandas
 google-generativeai
 phonenumbers>=8.13.0
 deep-translator>=1.11.4
+openpyxl>=3.1.0
+networkx>=3.0

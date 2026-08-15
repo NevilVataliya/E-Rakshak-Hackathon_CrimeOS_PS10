@@ -343,6 +343,8 @@ app.get('/api/cases', authenticateToken, async (req, res) => {
         completed_step: plan.completed_step || 1,
         dispatched_directives: plan.dispatched_directives || [],
         response_analytics: plan.response_analytics || null,
+        response_analytics_history: plan.response_analytics_history || [],
+        response_analytics_by_type: plan.response_analytics_by_type || {},
         module_summaries: plan.module_summaries || {},
         global_summary: plan.global_summary || null,
         investigation_data: plan.investigation_data || null,
@@ -997,8 +999,38 @@ app.post('/api/analytics/upload-and-parse', authenticateToken, upload.single('fi
             existingPlan = {};
           }
         }
+
+        const cat = analyticsData.response_type || req.body?.response_type || 'BANK_STATEMENT';
+        const docName = analyticsData.provider_name || req.file?.originalname || `${cat}_Doc_${Date.now().toString().slice(-4)}`;
+        analyticsData.doc_id = analyticsData.doc_id || `DOC-${Date.now().toString().slice(-6)}`;
+        analyticsData.file_name = docName;
+        analyticsData.ingested_at = analyticsData.ingested_at || new Date().toISOString();
+        analyticsData.category = cat;
+
+        // 1. Update response_analytics_by_type
+        if (!existingPlan.response_analytics_by_type) existingPlan.response_analytics_by_type = {};
+        if (!existingPlan.response_analytics_by_type[cat]) existingPlan.response_analytics_by_type[cat] = [];
+        const catList = existingPlan.response_analytics_by_type[cat];
+        const existingIdx = catList.findIndex(d => (d.file_name && d.file_name === docName) || d.doc_id === analyticsData.doc_id);
+        if (existingIdx >= 0) {
+          catList[existingIdx] = analyticsData;
+        } else {
+          catList.unshift(analyticsData);
+        }
+
+        // 2. Update response_analytics_history
+        if (!existingPlan.response_analytics_history) existingPlan.response_analytics_history = [];
+        const histIdx = existingPlan.response_analytics_history.findIndex(d => (d.file_name && d.file_name === docName) || d.doc_id === analyticsData.doc_id);
+        if (histIdx >= 0) {
+          existingPlan.response_analytics_history[histIdx] = analyticsData;
+        } else {
+          existingPlan.response_analytics_history.unshift(analyticsData);
+        }
+
+        // 3. Set active
         existingPlan.response_analytics = analyticsData;
         existingPlan.completed_step = Math.max(existingPlan.completed_step || 1, 5);
+
         await pool.query(
           `UPDATE cases SET investigation_plan = $1, updated_at = CURRENT_TIMESTAMP WHERE case_number = $2`,
           [JSON.stringify(existingPlan), caseNumber]
@@ -1061,8 +1093,38 @@ app.post('/api/analytics/parse-response', authenticateToken, upload.single('file
             existingPlan = {};
           }
         }
+
+        const cat = analyticsData.response_type || req.body?.response_type || 'BANK_STATEMENT';
+        const docName = analyticsData.provider_name || req.file?.originalname || `${cat}_Doc_${Date.now().toString().slice(-4)}`;
+        analyticsData.doc_id = analyticsData.doc_id || `DOC-${Date.now().toString().slice(-6)}`;
+        analyticsData.file_name = docName;
+        analyticsData.ingested_at = analyticsData.ingested_at || new Date().toISOString();
+        analyticsData.category = cat;
+
+        // 1. Update response_analytics_by_type
+        if (!existingPlan.response_analytics_by_type) existingPlan.response_analytics_by_type = {};
+        if (!existingPlan.response_analytics_by_type[cat]) existingPlan.response_analytics_by_type[cat] = [];
+        const catList = existingPlan.response_analytics_by_type[cat];
+        const existingIdx = catList.findIndex(d => (d.file_name && d.file_name === docName) || d.doc_id === analyticsData.doc_id);
+        if (existingIdx >= 0) {
+          catList[existingIdx] = analyticsData;
+        } else {
+          catList.unshift(analyticsData);
+        }
+
+        // 2. Update response_analytics_history
+        if (!existingPlan.response_analytics_history) existingPlan.response_analytics_history = [];
+        const histIdx = existingPlan.response_analytics_history.findIndex(d => (d.file_name && d.file_name === docName) || d.doc_id === analyticsData.doc_id);
+        if (histIdx >= 0) {
+          existingPlan.response_analytics_history[histIdx] = analyticsData;
+        } else {
+          existingPlan.response_analytics_history.unshift(analyticsData);
+        }
+
+        // 3. Set active
         existingPlan.response_analytics = analyticsData;
         existingPlan.completed_step = Math.max(existingPlan.completed_step || 1, 5);
+
         await pool.query(
           `UPDATE cases SET investigation_plan = $1, updated_at = CURRENT_TIMESTAMP WHERE case_number = $2`,
           [JSON.stringify(existingPlan), caseNumber]
