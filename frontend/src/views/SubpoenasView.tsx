@@ -606,7 +606,7 @@ export default function SubpoenasView() {
 
   // Selected Email Reply for Review & Followback Drafting
   const activeCaseRef = activeCase?.case_number || autoCaseNumber || 'CR-2026-9914';
-  const currentReplies = processedRepliesByCase[activeCaseRef] || processedReplies || [];
+  const currentReplies = (activeCaseRef ? processedRepliesByCase[activeCaseRef] : []) || [];
   const [selectedReply, setSelectedReply] = useState<any>(null);
   const [editedSubject, setEditedSubject] = useState('');
   const [editedBody, setEditedBody] = useState('');
@@ -694,17 +694,21 @@ export default function SubpoenasView() {
 
   const handleRunReplySimulation = async () => {
     const caseRef = activeCase?.case_number || autoCaseNumber || 'CR-2026-9914';
+    const targetAcct = autoTargetId || (activeCase?.entities?.bank_accounts?.[0] ? (typeof activeCase.entities.bank_accounts[0] === 'object' ? activeCase.entities.bank_accounts[0].account_number : activeCase.entities.bank_accounts[0]) : '5010023411');
+    const lossAmt = activeCase?.entities?.monetary_loss || 200000;
+    const secondaryMule = `${targetAcct.slice(0, 4)}99${targetAcct.slice(6) || '1029'}`;
+
     setIsSimulatingReply(true);
     try {
       const res = await ingestSimulatedReply({
         case_number: caseRef,
         sender_email: simSender || autoReceiverEmail || 'nodal.compliance@authority.bank',
         subject: simSubject || `Re: Statutory Notice [CrimeOS-REF: ${caseRef}]`,
-        body_text: simBody || `Dear Investigating Officer,\n\nPlease find attached transaction ledger for target ${autoTargetId || 'account'}.\n\nRegards,\nNodal Officer`,
+        body_text: simBody || `Dear Investigating Officer,\n\nPlease find attached transaction ledger for target ${targetAcct}.\n\nRegards,\nNodal Officer`,
         attachments: [
           {
             filename: simFilename || `reply_${caseRef}.csv`,
-            content: `TxnID,Date,FromAcc,ToAcc,Amount,Type\nTXN901,2026-07-20,311102010008711,257735040901,900000,RTGS\nTXN902,2026-07-21,257735040901,1006104000176743,500000,UPI`,
+            content: `TxnID,Date,FromAcc,ToAcc,Amount,Type\nTXN-${caseRef}-01,2026-07-20,Complainant_Account,${targetAcct},${lossAmt},RTGS\nTXN-${caseRef}-02,2026-07-21,${targetAcct},${secondaryMule},${Math.round(lossAmt * 0.75)},IMPS`,
             format: 'csv'
           }
         ]

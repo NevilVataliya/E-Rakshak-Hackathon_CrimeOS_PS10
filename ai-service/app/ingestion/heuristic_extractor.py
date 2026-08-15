@@ -28,28 +28,51 @@ def _normalize_indic_digits(num_str: str) -> str:
     return ''.join(_INDIC_DIGIT_MAP.get(ch, ch) for ch in num_str)
 
 
+# Comprehensive pattern for prefix, suffix, and Gujarati/Hindi digits + decimals
+MONEY_REGEX = re.compile(
+    r'(?:'
+    # Pattern 1: Currency prefix followed by amount (e.g., ₹ 500.00, Rs. 1,000, રૂ. ૯,૦૦,૦૦૦)
+    r'(?:(?:\b(?:rs\.?|inr|rupees|રુપયે|रुपये)\b|રૂ\.?|रू\.?|₹)[.\s]*)'
+    r'([\d,\u0966-\u096F\u0AE6-\u0AEF]+(?:\.\d{1,2})?)'
+    r'|'
+    # Pattern 2: Amount followed by currency suffix or /- (e.g., 500/- , 1000 રૂપિયા, ૯,૦૦,૦૦૦/-)
+    r'([\d,\u0966-\u096F\u0AE6-\u0AEF]+(?:\.\d{1,2})?)'
+    r'(?:[.\s]*(?:(?:/-|\b(?:rs\.?|inr|rupees|રૂપિયા|રૂ|રુપયે|रुपये|रू)\b|₹)))'
+    r')',
+    re.IGNORECASE
+)
+
+
+def extract_monetary_amounts(text: str) -> List[float]:
+    """Extract all valid monetary amounts from text supporting Indic digits and /- suffixes."""
+    matches = MONEY_REGEX.findall(text)
+    raw_amount_strings = [g1 or g2 for g1, g2 in matches if (g1 or g2)]
+    amounts = []
+    for raw_str in raw_amount_strings:
+        num_ascii = _normalize_indic_digits(raw_str)
+        if '.' in num_ascii:
+            int_part, dec_part = num_ascii.split('.', 1)
+            clean_int = re.sub(r'[^\d]', '', int_part)
+            clean_dec = re.sub(r'[^\d]', '', dec_part)[:2]
+            if clean_int.isdigit():
+                val = float(f"{clean_int}.{clean_dec}")
+                if val > 0:
+                    amounts.append(val)
+        else:
+            clean_int = re.sub(r'[^\d]', '', num_ascii)
+            if clean_int.isdigit() and int(clean_int) > 0:
+                amounts.append(float(int(clean_int)))
+    return amounts
+
+
 def _parse_indic_amount(raw: str) -> float:
     """
-    Parse monetary amounts that may contain Gujarati/Hindi digits (e.g. રૂ.૯,૦૦,૦૦૦).
+    Parse maximum monetary amount from text that may contain Gujarati/Hindi digits.
     Handles Indian number format (lakhs/crores) correctly: ૯,૦૦,૦૦૦ = 9,00,000.
     Returns 0.0 if no valid amount found.
     """
-    # Match currency prefix/suffix with optional commas and Indic digits
-    # e.g. "રૂ.૯,૦૦,૦૦૦", "₹9,00,000", "Rs. 85,000", "85000 રૂપિયા"
-    patterns = [
-        r'(?:rs\.?|inr|₹|રૂપિયા|રૂ|रुपये|रू|rupees)[.\s]*([\d,\u0A80-\u0AFF\u0900-\u097F]+)',
-        r'([\d,\u0A80-\u0AFF\u0900-\u097F]+)[.\s]*(?:rs\.?|inr|₹|રૂપિયા|રૂ|रुपये|रू|rupees)',
-    ]
-    for pat in patterns:
-        m = re.search(pat, raw, re.IGNORECASE)
-        if m:
-            num_raw = m.group(1)
-            num_ascii = _normalize_indic_digits(num_raw)
-            # Remove Indian-style grouping commas: 9,00,000 -> 900000
-            digits_only = re.sub(r'[^\d]', '', num_ascii)
-            if digits_only.isdigit():
-                return float(int(digits_only))
-    return 0.0
+    amounts = extract_monetary_amounts(raw)
+    return max(amounts) if amounts else 0.0
 
 # Indian city names for location extraction heuristic
 _INDIAN_CITIES = [

@@ -89,7 +89,11 @@ class InboxMonitorAgent:
 
         return incoming_mail
 
-    def check_inbox_once(self, target_case_number: Optional[str] = None) -> List[Dict[str, Any]]:
+    def check_inbox_once(
+        self,
+        target_case_number: Optional[str] = None,
+        since_timestamp: Optional[Any] = None
+    ) -> List[Dict[str, Any]]:
         """
         Polls both the simulated queue and real IMAP inbox (if credentials present) once.
         Returns list of processed replies.
@@ -99,7 +103,7 @@ class InboxMonitorAgent:
         # 1. Process simulated queue
         for mail_item in list(self._simulated_inbox):
             if not mail_item.get("processed"):
-                result = self._process_single_mail(mail_item)
+                result = self._process_single_mail(mail_item, target_case_number=target_case_number)
                 if result:
                     processed_list.append(result)
 
@@ -112,7 +116,10 @@ class InboxMonitorAgent:
             try:
                 self.username = imap_user
                 self.password = imap_pass
-                imap_results = self._poll_real_imap(target_case_number=target_case_number)
+                imap_results = self._poll_real_imap(
+                    target_case_number=target_case_number,
+                    since_timestamp=since_timestamp
+                )
                 processed_list.extend(imap_results)
             except Exception as e:
                 logger.warning(f"IMAP Polling warning: {e}")
@@ -141,16 +148,9 @@ class InboxMonitorAgent:
         print(f"   [INBOX MATCH] Matched Case Reference: '{case_number}'")
         mail_item["processed"] = True
 
-        # Save attachment / body to cyberproj data/evidence directory using cyberproj_resolver
+        # Upload attachments to Supabase Cloud Storage (pure cloud architecture, no local disk clutter)
         import hashlib
-        from .cyberproj_resolver import get_cyberproj_services
         from app.services.supabase_storage import upload_to_supabase_storage
-
-        cyberproj_svcs = get_cyberproj_services()
-        cyberproj_path = cyberproj_svcs.get("cyberproj_path") or os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        
-        CYBERPROJ_DATA = os.path.join(cyberproj_path, "data", "evidence", case_number)
-        os.makedirs(CYBERPROJ_DATA, exist_ok=True)
 
         email_hash = hashlib.sha256(f"{case_number}_{sender_email}_{subject}_{body_text}".encode()).hexdigest()[:12]
 
@@ -161,19 +161,8 @@ class InboxMonitorAgent:
                 raw_bytes = content if isinstance(content, bytes) else str(content).encode("utf-8")
                 att_hash = hashlib.sha256(raw_bytes).hexdigest()[:10]
                 safe_fname = f"{att_hash}_{re.sub(r'[^a-zA-Z0-9_.-]', '_', raw_name)}"
-                fpath = os.path.join(CYBERPROJ_DATA, safe_fname)
 
-                # Write to local cache only if not already existing
-                if not os.path.exists(fpath):
-                    mode = "wb" if isinstance(content, bytes) else "w"
-                    encoding = None if isinstance(content, bytes) else "utf-8"
-                    try:
-                        with open(fpath, mode, encoding=encoding) as f:
-                            f.write(content)
-                    except Exception as e:
-                        logger.warning(f"Failed to save evidence attachment {safe_fname}: {e}")
-
-                # Upload to Supabase with x-upsert (prevents duplicate storage consumption)
+                # Upload to Supabase Storage with x-upsert (pure cloud storage, zero local disk clutter)
                 try:
                     cloud_res = upload_to_supabase_storage(raw_bytes, f"evidence/{case_number}/{safe_fname}")
                     att["storage_url"] = cloud_res.get("storage_url")
@@ -181,23 +170,12 @@ class InboxMonitorAgent:
                 except Exception as e:
                     logger.warning(f"Failed cloud upload for {safe_fname}: {e}")
 
-                att["file_path"] = fpath
                 att["filename"] = safe_fname
         elif body_text:
-            fname = f"reply_{email_hash}.txt"
-            fpath = os.path.join(CYBERPROJ_DATA, fname)
-            if not os.path.exists(fpath):
-                try:
-                    with open(fpath, "w", encoding="utf-8") as f:
-                        f.write(body_text)
-                except Exception as e:
-                    logger.warning(f"Failed to save body text evidence: {e}")
-
             attachments.append({
-                "filename": fname,
+                "filename": f"reply_{email_hash}.txt",
                 "content": body_text,
                 "format": "text",
-                "file_path": fpath,
                 "sha256": email_hash
             })
 
@@ -254,8 +232,12 @@ class InboxMonitorAgent:
         res = "".join(parts)
         return " ".join(res.split())
 
-    def _poll_real_imap(self, target_case_number: Optional[str] = None) -> List[Dict[str, Any]]:
-        """IMAP inbox fetch for live production server with fast RFC3501 range fetch."""
+    def _poll_real_imap(
+        self,
+        target_case_number: Optional[str] = None,
+        since_timestamp: Optional[Any] = None
+    ) -> List[Dict[str, Any]]:
+        """IMAP inbox fetch for live production server with fast RFC3501 range fetch and timestamp filtering."""
         processed = []
         try:
             mail = imaplib.IMAP4_SSL(self.imap_host, self.imap_port)
@@ -281,12 +263,43 @@ class InboxMonitorAgent:
                 mail.logout()
                 return processed
 
+            # Parse since_timestamp if provided
+            since_dt = None
+            if since_timestamp:
+                try:
+                    from datetime import datetime, timezone
+                    if isinstance(since_timestamp, (int, float)):
+                        since_dt = datetime.fromtimestamp(since_timestamp, tz=timezone.utc)
+                    elif isinstance(since_timestamp, str):
+                        clean_ts = since_timestamp.replace('Z', '+00:00')
+                        since_dt = datetime.fromisoformat(clean_ts)
+                        if since_dt.tzinfo is None:
+                            since_dt = since_dt.replace(tzinfo=timezone.utc)
+                except Exception as parse_e:
+                    logger.warning(f"Failed to parse since_timestamp {since_timestamp}: {parse_e}")
+
             for item in fetch_data:
                 if not isinstance(item, tuple) or len(item) < 2:
                     continue
 
                 raw_email = item[1]
                 msg = email.message_from_bytes(raw_email)
+
+                # Filter out historical emails received before case creation/dispatch
+                if since_dt:
+                    date_str = msg.get("Date", "")
+                    if date_str:
+                        try:
+                            from email.utils import parsedate_to_datetime
+                            from datetime import timezone
+                            email_dt = parsedate_to_datetime(date_str)
+                            if email_dt.tzinfo is None:
+                                email_dt = email_dt.replace(tzinfo=timezone.utc)
+                            if email_dt < since_dt:
+                                # Skip older emails from previous test runs
+                                continue
+                        except Exception:
+                            pass
 
                 subject = self._decode_header_full(msg.get("Subject", ""))
                 sender = self._decode_header_full(msg.get("From", ""))

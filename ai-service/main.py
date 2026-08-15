@@ -514,6 +514,7 @@ class ParseAnalyticsRequest(BaseModel):
     reply_id: Optional[str] = None
     file_path: Optional[str] = None
     file_content: Optional[str] = None
+    case_entities: Optional[Dict[str, Any]] = None
 
 @app.post("/api/analytics/parse-response")
 async def parse_response_endpoint(req: ParseAnalyticsRequest):
@@ -534,9 +535,80 @@ async def parse_response_endpoint(req: ParseAnalyticsRequest):
         provider_name=p_name,
         response_type=req.response_type or "BANK_STATEMENT",
         file_path_or_content=content,
-        case_number=case_no
+        case_number=case_no,
+        case_entities=req.case_entities
     )
     return res
+
+@app.post("/api/analytics/upload-and-parse")
+async def upload_and_parse_response_file(
+    file: UploadFile = File(...),
+    case_number: str = Form("CR-2026-9910"),
+    response_type: str = Form("BANK_STATEMENT"),
+    case_entities: Optional[str] = Form(None)
+):
+    from app.workflow_automator.analytics_agent import AnalyticsAgent
+    from app.workflow_automator.certificate_generator import generate_section_63_bsa_certificate
+
+    agent = AnalyticsAgent()
+
+    # Save uploaded file
+    file_bytes = await file.read()
+    file_name = file.filename or f"response_{response_type.lower()}.csv"
+    save_path = os.path.join(UPLOAD_DIR, f"{case_number.replace('/', '_')}_{file_name}")
+    with open(save_path, "wb") as f:
+        f.write(file_bytes)
+
+    parsed_entities = None
+    if case_entities:
+        try:
+            parsed_entities = json.loads(case_entities)
+        except Exception:
+            pass
+
+    # Process and parse
+    res = agent.analyze_response(
+        provider_name=file_name,
+        response_type=response_type,
+        file_path_or_content=save_path,
+        case_number=case_number,
+        case_entities=parsed_entities
+    )
+
+    # Attach Section 63 BSA certificate automatically
+    cert = generate_section_63_bsa_certificate(
+        case_number=case_number,
+        evidence_type=response_type,
+        file_name=file_name,
+        file_content_or_bytes=file_bytes,
+        summary_findings=res.get("executive_summary", "")
+    )
+    res["section_63_certificate"] = cert
+    return res
+
+class CertificateRequest(BaseModel):
+    case_number: str
+    evidence_type: str = "BANK_STATEMENT"
+    file_name: Optional[str] = None
+    file_content: Optional[str] = None
+    officer_name: Optional[str] = "PSI Inspector V. K. Patel"
+    police_station: Optional[str] = "Surat Cyber Crime Police Station, Gujarat"
+    summary_findings: Optional[str] = None
+
+@app.post("/api/analytics/generate-certificate")
+async def generate_certificate_endpoint(req: CertificateRequest):
+    from app.workflow_automator.certificate_generator import generate_section_63_bsa_certificate
+    content = req.file_content or f"Electronic Evidence Record for Case {req.case_number} Type {req.evidence_type}"
+    cert = generate_section_63_bsa_certificate(
+        case_number=req.case_number,
+        evidence_type=req.evidence_type,
+        file_name=req.file_name or f"{req.evidence_type.lower()}_evidence.csv",
+        file_content_or_bytes=content,
+        officer_name=req.officer_name or "PSI Inspector V. K. Patel",
+        police_station=req.police_station or "Surat Cyber Crime Police Station, Gujarat",
+        summary_findings=req.summary_findings or ""
+    )
+    return cert
 
 # ── HIERARCHICAL SUMMARIZER AGENT ENDPOINTS ───────────────────────────────────
 
@@ -572,6 +644,7 @@ async def summarize_global_endpoint(req: GlobalSummaryRequest):
 
 class CheckInboxRequest(BaseModel):
     case_number: Optional[str] = None
+    since_timestamp: Optional[Any] = None
     smtp_credentials: Optional[Dict[str, Any]] = None
 
 class IngestReplyRequest(BaseModel):
@@ -628,7 +701,10 @@ async def check_inbox_endpoint(req: CheckInboxRequest):
     if user and pwd:
         try:
             inbox_agent = InboxMonitorAgent(imap_host=host, imap_port=port if port != 587 else 993, username=user, password=pwd)
-            raw_mails = inbox_agent.check_inbox_once(target_case_number=req.case_number)
+            raw_mails = inbox_agent.check_inbox_once(
+                target_case_number=req.case_number,
+                since_timestamp=req.since_timestamp
+            )
 
             # Deduplicate incoming mails by sender + subject, keeping top 5 most recent
             seen_keys = set()

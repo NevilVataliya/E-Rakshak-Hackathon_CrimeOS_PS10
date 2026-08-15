@@ -344,7 +344,7 @@ def synthesis_node(state: AgentState) -> dict:
 
     # 2. Telegram FZ-LLC Subpoena (Targeted for Telegram handles & group links)
     telegram_targets = [h for h in handles if 't.me' in h.lower() or h.startswith('@')]
-    has_telegram = bool(telegram_targets) or "telegram" in comp_lower
+    has_telegram = bool(telegram_targets) or "telegram" in comp_lower or "ટેલીગ્રામ" in comp_lower or "t.me" in comp_lower
 
     if has_telegram:
         tg_target_str = ", ".join(telegram_targets) if telegram_targets else (handles[0] if handles else "Suspect Telegram Account")

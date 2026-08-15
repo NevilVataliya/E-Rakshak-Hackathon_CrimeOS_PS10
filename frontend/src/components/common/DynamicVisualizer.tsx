@@ -1,5 +1,5 @@
 import React from 'react';
-import { TrendingUp, CreditCard, Clock, Activity, AlertTriangle, ShieldCheck, MapPin, ArrowRight, Lightbulb, Zap } from 'lucide-react';
+import { TrendingUp, CreditCard, Clock, Activity, AlertTriangle, ShieldCheck, MapPin, ArrowRight, Lightbulb, Zap, ShieldAlert, Cpu } from 'lucide-react';
 
 export interface VisualizationConfig {
   recommended_chart_type?: 'MONEY_TRAIL_FLOW' | 'HOURLY_ACTIVITY_BAR' | 'LINE_TREND' | 'PIE_DONUT' | 'DYNAMIC_BAR_CHART' | 'RISK_GAUGE' | 'TOWER_CELL_DISTRIBUTION' | 'NONE' | string;
@@ -16,83 +16,88 @@ interface Props {
 }
 
 export default function DynamicVisualizer({ config }: Props) {
-  if (!config || !config.recommended_chart_type || config.recommended_chart_type === 'NONE') {
+  if (!config || !config.recommended_chart_type || config.recommended_chart_type === 'NONE' || !config.chart_data || config.chart_data.length === 0) {
     return null;
   }
 
   const chartType = config.recommended_chart_type;
-  const title = config.chart_title || 'Visual Analytics Plot';
+  const title = config.chart_title || 'Visual Evidence Plot';
   const insights = config.chart_insights || '';
   const data = config.chart_data || [];
 
   return (
-    <div className="rounded border border-indigo-300 dark:border-indigo-500/30 bg-white dark:bg-[#0a0f1d] p-3 space-y-2.5 my-2 shadow-sm">
-      <div className="flex items-center justify-between border-b border-slate-200 dark:border-white/10 pb-2">
+    <div className="rounded-xl border border-indigo-200 dark:border-indigo-500/30 bg-white dark:bg-[#0a0f1d] p-4 space-y-3 my-2 shadow-md">
+      <div className="flex items-center justify-between border-b border-slate-200 dark:border-white/10 pb-2.5">
         <div className="flex items-center gap-2">
           <TrendingUp className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-          <span className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider font-mono">
+          <span className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-wider font-mono">
             {title}
           </span>
         </div>
-        <span className="text-[10px] font-mono bg-emerald-50 dark:bg-emerald-500/20 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-500/30 px-2 py-0.5 rounded font-bold">
-          GROUNDED DATA (0-HALLUCINATION)
+        <span className="text-[10px] font-mono bg-emerald-50 dark:bg-emerald-500/20 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-500/30 px-2.5 py-0.5 rounded-full font-bold flex items-center gap-1">
+          <ShieldCheck className="h-3 w-3" />
+          GROUNDED FORENSIC DATA
         </span>
       </div>
 
       {insights && (
-        <p className="text-[11px] text-slate-800 dark:text-slate-300 font-mono italic bg-slate-50 dark:bg-white/5 p-2 rounded border border-slate-200 dark:border-white/5 flex items-center gap-1.5">
-          <Lightbulb className="h-3.5 w-3.5 text-amber-500 shrink-0" />
-          <span><strong>Forensic Insight:</strong> {insights}</span>
-        </p>
+        <div className="text-[11px] text-slate-800 dark:text-slate-200 font-mono bg-amber-50 dark:bg-amber-500/10 p-2.5 rounded-lg border border-amber-200 dark:border-amber-500/20 flex items-start gap-2">
+          <Lightbulb className="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+          <div>
+            <strong className="text-amber-900 dark:text-amber-300">Forensic Pattern Insight: </strong>
+            <span>{insights}</span>
+          </div>
+        </div>
       )}
 
-      {/* Render chart based on type */}
+      {/* 1. Money Trail Flow */}
       {chartType === 'MONEY_TRAIL_FLOW' && (
         <div className="space-y-2 pt-1 font-mono">
           {data.length > 0 ? (
             data.map((item: any, idx: number) => (
-              <div key={idx} className="flex items-center justify-between bg-slate-50 dark:bg-[#050811] p-2 rounded border border-slate-200 dark:border-white/10 text-xs shadow-sm">
-                <div className="flex items-center gap-2">
-                  <span className="w-5 h-5 rounded-full bg-emerald-100 dark:bg-emerald-500/20 text-emerald-900 dark:text-emerald-300 flex items-center justify-center text-[10px] font-bold border border-emerald-300 dark:border-emerald-500/30">
+              <div key={idx} className="flex flex-col sm:flex-row sm:items-center justify-between bg-slate-50 dark:bg-[#050811] p-3 rounded-lg border border-slate-200 dark:border-white/10 text-xs shadow-sm gap-2">
+                <div className="flex items-center gap-2.5 flex-wrap">
+                  <span className="w-6 h-6 rounded-full bg-emerald-100 dark:bg-emerald-500/20 text-emerald-900 dark:text-emerald-300 flex items-center justify-center text-[11px] font-black border border-emerald-300 dark:border-emerald-500/30 shrink-0">
                     {item.step || idx + 1}
                   </span>
-                  <span className="text-slate-800 dark:text-slate-300 font-medium">{item.source}</span>
-                  <ArrowRight className="h-3.5 w-3.5 text-slate-400 dark:text-slate-500" />
-                  <span className="text-emerald-800 dark:text-emerald-300 font-bold">{item.target}</span>
+                  <span className="text-slate-700 dark:text-slate-300 font-bold bg-white dark:bg-slate-800 px-2 py-0.5 rounded border border-slate-200 dark:border-white/10">{item.source}</span>
+                  <ArrowRight className="h-4 w-4 text-emerald-600 dark:text-emerald-400 shrink-0 animate-pulse" />
+                  <span className="text-emerald-800 dark:text-emerald-300 font-black bg-emerald-50 dark:bg-emerald-950/40 px-2.5 py-0.5 rounded border border-emerald-300 dark:border-emerald-500/30">{item.target}</span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-[10px] text-slate-600 dark:text-slate-400 font-sans">{item.bank}</span>
-                  <span className="text-amber-900 dark:text-amber-300 font-bold bg-amber-50 dark:bg-amber-500/10 px-2 py-0.5 rounded border border-amber-300 dark:border-amber-500/20">
+                <div className="flex items-center gap-2 self-end sm:self-center">
+                  <span className="text-[10px] text-slate-500 dark:text-slate-400 font-mono bg-slate-100 dark:bg-slate-800/80 px-2 py-0.5 rounded">{item.bank}</span>
+                  <span className="text-emerald-900 dark:text-emerald-300 font-black bg-emerald-100 dark:bg-emerald-500/20 px-2.5 py-1 rounded-md border border-emerald-300 dark:border-emerald-500/30 text-xs">
                     {item.amount}
                   </span>
                 </div>
               </div>
             ))
           ) : (
-            <div className="text-xs text-slate-500 p-2">Money trail flow data visualized across accounts.</div>
+            <div className="text-xs text-slate-500 p-3 text-center">No money trail hops registered in response dataset.</div>
           )}
         </div>
       )}
 
+      {/* 2. Hourly Activity Bar Chart with Midnight Anomaly Highlighter */}
       {chartType === 'HOURLY_ACTIVITY_BAR' && (
-        <div className="space-y-1.5 pt-1">
+        <div className="space-y-2 pt-1 font-mono">
           {data.map((item: any, idx: number) => {
             const calls = item.calls || item.count || 0;
-            const maxCalls = 600;
-            const percentage = Math.min(100, Math.max(10, (calls / maxCalls) * 100));
+            const maxCalls = 500;
+            const percentage = Math.min(100, Math.max(12, (calls / maxCalls) * 100));
             const isNight = item.risk === 'High' || (item.hour && item.hour.includes('Night'));
 
             return (
               <div key={idx} className="space-y-1 text-xs font-mono">
-                <div className="flex justify-between text-[11px] text-slate-800 dark:text-slate-300">
-                  <span>{item.hour || item.category || `Period ${idx+1}`}</span>
-                  <span className={isNight ? 'text-rose-700 dark:text-rose-400 font-bold flex items-center gap-1' : 'text-slate-600 dark:text-slate-400'}>
-                    {calls} calls {isNight && <><Zap className="h-3 w-3 text-rose-500 shrink-0" /> [NIGHT ANOMALY]</>}
+                <div className="flex justify-between text-[11px]">
+                  <span className="text-slate-800 dark:text-slate-200 font-semibold">{item.hour || item.category || `Period ${idx+1}`}</span>
+                  <span className={isNight ? 'text-rose-700 dark:text-rose-400 font-black flex items-center gap-1' : 'text-slate-600 dark:text-slate-400 font-bold'}>
+                    {calls} calls {isNight && <><Zap className="h-3.5 w-3.5 text-rose-500 shrink-0 animate-bounce" /> [NIGHT BURST ANOMALY]</>}
                   </span>
                 </div>
-                <div className="w-full bg-slate-200 dark:bg-[#050811] h-3 rounded-full overflow-hidden border border-slate-300 dark:border-white/5">
+                <div className="w-full bg-slate-200 dark:bg-[#050811] h-3.5 rounded-full overflow-hidden border border-slate-300 dark:border-white/5">
                   <div
-                    className={`h-full rounded-full transition-all ${isNight ? 'bg-gradient-to-r from-rose-600 to-amber-500' : 'bg-blue-600'}`}
+                    className={`h-full rounded-full transition-all duration-500 ${isNight ? 'bg-gradient-to-r from-rose-600 via-amber-500 to-rose-500' : 'bg-gradient-to-r from-blue-600 to-indigo-500'}`}
                     style={{ width: `${percentage}%` }}
                   />
                 </div>
@@ -102,25 +107,28 @@ export default function DynamicVisualizer({ config }: Props) {
         </div>
       )}
 
+      {/* 3. Time Series Velocity Line Trend */}
       {chartType === 'LINE_TREND' && (
         <div className="space-y-2 pt-1 font-mono">
-          <div className="grid grid-cols-5 gap-1.5 text-center text-xs">
+          <div className="grid grid-cols-5 gap-2 text-center text-xs">
             {data.map((item: any, idx: number) => (
-              <div key={idx} className="bg-slate-50 dark:bg-[#050811] p-2 rounded border border-slate-200 dark:border-white/10 shadow-sm">
-                <div className="text-[10px] text-slate-600 dark:text-slate-400">{item.timestamp || item.category || `T-${idx}`}</div>
-                <div className="text-sm font-bold text-indigo-700 dark:text-indigo-300 mt-1">{item.connections || item.value || 0}</div>
+              <div key={idx} className="bg-slate-50 dark:bg-[#050811] p-2.5 rounded-lg border border-slate-200 dark:border-white/10 shadow-sm">
+                <div className="text-[10px] font-bold text-slate-500 dark:text-slate-400">{item.timestamp || item.category || `T-${idx}`}</div>
+                <div className="text-base font-black text-indigo-700 dark:text-indigo-300 mt-1">{item.connections || item.value || 0}</div>
+                <div className="text-[9px] text-slate-400">conns</div>
               </div>
             ))}
           </div>
         </div>
       )}
 
+      {/* 4. Categorical / Cell Tower Distribution */}
       {(chartType === 'DYNAMIC_BAR_CHART' || chartType === 'PIE_DONUT' || chartType === 'RISK_GAUGE' || chartType === 'TOWER_CELL_DISTRIBUTION') && (
         <div className="space-y-1.5 pt-1 font-mono">
           {data.map((item: any, idx: number) => (
-            <div key={idx} className="flex items-center justify-between bg-slate-50 dark:bg-[#050811] p-2 rounded border border-slate-200 dark:border-white/10 text-xs shadow-sm">
-              <span className="text-slate-800 dark:text-slate-300">{item.location || item.factor || item.category || item.party || `Item ${idx+1}`}</span>
-              <span className="text-indigo-700 dark:text-indigo-300 font-bold">
+            <div key={idx} className="flex items-center justify-between bg-slate-50 dark:bg-[#050811] p-2.5 rounded-lg border border-slate-200 dark:border-white/10 text-xs shadow-sm">
+              <span className="text-slate-800 dark:text-slate-200 font-semibold">{item.location || item.factor || item.category || item.party || `Item ${idx+1}`}</span>
+              <span className="text-indigo-700 dark:text-indigo-300 font-bold bg-indigo-50 dark:bg-indigo-500/10 px-2 py-0.5 rounded border border-indigo-200 dark:border-indigo-500/20">
                 {item.frequency ? `${item.frequency} hits` : (item.score ? `Score: ${item.score}` : (item.calls ? `${item.calls} calls` : JSON.stringify(item)))}
               </span>
             </div>

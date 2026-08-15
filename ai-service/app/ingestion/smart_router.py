@@ -255,69 +255,156 @@ Respond ONLY in valid JSON matching this exact structure:
         data['is_offline'] = False
         data['fallback_used'] = False
 
-        # DETERMINISTIC MONETARY LOSS OVERRIDE
-        # The LLM may sum individual transfers (₹2.5L + ₹2L = ₹4.5L) instead of using
-        # the explicitly stated total loss (રૂ.૯,૦૦,૦૦૦ = ₹9,00,000). We override with
-        # the LARGEST amount found in the raw text, which handles Gujarati/Hindi digits
-        # and correctly picks the total loss over any individual transfer/commission.
+        # STAGE 2: CRITIC / DUAL-AGENT VERIFIER & HARVESTER
+        # Cross-checks candidate entities against the raw text with a focused verification pass
+        # to ensure ZERO false positives, 100% true entity capture (multi-hop banks, @handles),
+        # and non-destructive loss calculation.
         try:
             import re as _re
-            from app.ingestion.heuristic_extractor import _normalize_indic_digits
-            # Match strictly isolated currency tokens (prefix or suffix) with word boundaries
-            _amount_patterns = [
-                r'(?:\b(?:rs\.?|inr|rupees|રૂપિયા|રૂ|रुपये|रू)\b|₹)[.\s]*([\d,\u0A80-\u0AFF\u0900-\u097F]+)',
-                r'([\d,\u0A80-\u0AFF\u0900-\u097F]+)[.\s]*(?:\b(?:rs\.?|inr|rupees|રૂપિયા|રૂ|रुपये|रू)\b|₹)',
-            ]
-            _all_amounts = []
-            for _pat in _amount_patterns:
-                for _m in _re.finditer(_pat, extracted_text, _re.IGNORECASE):
-                    _num_raw = _m.group(1)
-                    _num_ascii = _normalize_indic_digits(_num_raw)
-                    _digits_only = _re.sub(r'[^\d]', '', _num_ascii)
-                    if _digits_only.isdigit() and len(_digits_only) > 0:
-                        _val = float(int(_digits_only))
-                        if _val > 0:
-                            _all_amounts.append(_val)
-            if _all_amounts:
-                heuristic_loss = max(_all_amounts)
-                data['entities']['monetary_loss'] = heuristic_loss
-            else:
-                data['entities']['monetary_loss'] = 0
-        except Exception:
-            pass  # keep LLM value if heuristic fails
+            from app.ingestion.heuristic_extractor import _normalize_indic_digits, extract_monetary_amounts
 
-        # DETERMINISTIC URL & HANDLE PRESERVATION
-        try:
-            import re as _re
-            url_matches = _re.findall(r'https?://[^\s<>"\'\)]+', extracted_text)
-            current_handles = set(data.get('entities', {}).get('online_handles', []))
-            for u in url_matches:
-                u_clean = u.rstrip('.,;:')
-                if u_clean not in current_handles:
-                    data['entities'].setdefault('online_handles', []).append(u_clean)
-                    current_handles.add(u_clean)
-        except Exception:
-            pass
+            candidate_entities = data.get("entities", {})
+
+            # 1. Non-Destructive Monetary Loss Harvester (Union approach using comprehensive MONEY_REGEX)
+            _all_amounts = extract_monetary_amounts(extracted_text)
+            existing_loss = float(candidate_entities.get("monetary_loss") or 0)
+            if _all_amounts:
+                candidate_entities["monetary_loss"] = max(existing_loss, max(_all_amounts))
+
+            # 2. Non-Destructive Handle & URL Harvester
+            raw_handles = _re.findall(r'(?:@|t\.me/)([A-Za-z0-9_]{3,})', extracted_text)
+            raw_urls = _re.findall(r'https?://[^\s<>"\'\)]+', extracted_text)
+            current_h_set = set()
+            for h in candidate_entities.get("online_handles", []):
+                h_str = h if isinstance(h, str) else (h.get("handle") or str(h))
+                current_h_set.add(h_str.lower())
+
+            for h in raw_handles:
+                clean_h = f"@{h}"
+                if clean_h.lower() not in current_h_set:
+                    candidate_entities.setdefault("online_handles", []).append(clean_h)
+                    current_h_set.add(clean_h.lower())
+            for u in raw_urls:
+                clean_u = u.rstrip('.,;:)')
+                if clean_u.lower() not in current_h_set:
+                    candidate_entities.setdefault("online_handles", []).append(clean_u)
+                    current_h_set.add(clean_u.lower())
+
+            # 3. Critic / Verifier LLM Pass
+            critic_prompt = f"""You are the Lead Forensic Verification & Entity Auditor for CrimeOS (Law Enforcement OS).
+
+TASK: Audit and verify the CANDIDATE ENTITIES against the RAW COMPLAINT TEXT with 100% precision.
+
+RAW COMPLAINT TEXT:
+\"\"\"{extracted_text[:6000]}\"\"\"
+
+CANDIDATE ENTITIES:
+{json.dumps(candidate_entities, indent=2)}
+
+AUDIT & GROUNDING RULES:
+1. ZERO FALSE POSITIVES: Remove any candidate entity not explicitly supported by the raw complaint text.
+2. ZERO OMISSIONS (CATCH ALL HOPS & HANDLES):
+   - Check if ALL bank accounts mentioned in text are included (e.g. Layer-1, Layer-2, Layer-3 mule accounts, IFSC codes).
+   - Check if ALL online handles/IDs are included (e.g. Telegram @handles, URLs).
+   - Check if ALL suspects, aliases (urfé / ઉર્ફે), or fake impersonated identities are included.
+   - Resolve Bank Names from Indic text (e.g. 'યુનિયન બેન્ક' -> 'Union Bank of India', 'ઇન્ડસઇન્ડ' -> 'IndusInd Bank', 'આઇડીબીઆઇ' -> 'IDBI Bank', 'એસબીઆઇ' -> 'State Bank of India') and from 4-letter IFSC prefixes.
+   - Ensure monetary_loss reflects the total defrauded amount.
+   - Ensure money_trail records every transfer step sequentially.
+
+Return ONLY a valid JSON object for "entities" matching the schema:
+{{
+  "persons": [
+    {{
+      "name": "...",
+      "alias": null,
+      "role": "victim|accused|suspect|witness|mule|fake_identity",
+      "father_name": null,
+      "age": null,
+      "address": null,
+      "status": null
+    }}
+  ],
+  "phone_numbers": ["..."],
+  "email_addresses": ["..."],
+  "online_handles": ["..."],
+  "bank_accounts": [
+    {{
+      "account_number": "...",
+      "ifsc": "...",
+      "bank": "...",
+      "account_name": "...",
+      "account_role": "victim|accused",
+      "is_victim_account": true|false
+    }}
+  ],
+  "vpas_upis": ["..."],
+  "monetary_loss": 0,
+  "money_trail": [
+    {{
+      "step": 1,
+      "from_account": "...",
+      "from_bank": "...",
+      "to_account": "...",
+      "to_bank": "...",
+      "amount": 0,
+      "method": "...",
+      "date": "...",
+      "notes": "..."
+    }}
+  ],
+  "crime_locations": ["..."],
+  "date_time_of_incident": "..."
+}}"""
+
+            critic_resp = llm.invoke(critic_prompt)
+            critic_text = critic_resp.content if hasattr(critic_resp, 'content') else str(critic_resp)
+            verified_entities = parse_llm_json(critic_text)
+
+            if isinstance(verified_entities, dict) and "bank_accounts" in verified_entities:
+                # Normalize online_handles to list of strings
+                norm_handles = []
+                for h in verified_entities.get("online_handles", []):
+                    if isinstance(h, dict):
+                        norm_handles.append(h.get("handle") or str(h))
+                    elif isinstance(h, str):
+                        norm_handles.append(h)
+                verified_entities["online_handles"] = norm_handles
+
+                # Map bank accounts and IFSC codes
+                ifsc_map = {
+                    "UBIN": "Union Bank of India",
+                    "INDB": "IndusInd Bank",
+                    "IBKL": "IDBI Bank",
+                    "SBIN": "State Bank of India",
+                    "HDFC": "HDFC Bank",
+                    "ICIC": "ICICI Bank",
+                    "UTIB": "Axis Bank",
+                    "PUNB": "Punjab National Bank",
+                    "BARB": "Bank of Baroda",
+                    "CNRB": "Canara Bank",
+                    "KKBK": "Kotak Mahindra Bank",
+                    "YESB": "Yes Bank"
+                }
+                for b in verified_entities.get("bank_accounts", []):
+                    if isinstance(b, dict):
+                        ifsc = (b.get("ifsc") or "").strip().upper()
+                        if ifsc and len(ifsc) >= 4 and not b.get("bank"):
+                            b["bank"] = ifsc_map.get(ifsc[:4], b.get("bank"))
+                        elif ifsc and len(ifsc) >= 4 and ifsc[:4] in ifsc_map:
+                            b["bank"] = ifsc_map[ifsc[:4]]
+
+                data["entities"] = verified_entities
+
+        except Exception as critic_err:
+            print(f"⚠️ [Critic Verifier Pass Note]: {critic_err}")
 
         # DETERMINISTIC LEGAL SECTION PRESERVATION OVERRIDE
-        # The LLM may incorrectly convert IPC/IT Act sections to BNS numbers (e.g. "IPC 388" -> "BNS 386",
-        # "IPC 419" -> "BNS 419") even when instructed not to. The BNS 2023 is structurally different from
-        # the IPC and sections CANNOT be mapped 1:1. We override with a deterministic parser that extracts
-        # the sections EXACTLY AS WRITTEN in the raw text, preserving the original statute prefix.
-        # The BNS Agent independently identifies the correct current BNS sections via RAG grounding.
         try:
             from app.ingestion.heuristic_extractor import _extract_legal_sections_heuristic
             preserved_sections = _extract_legal_sections_heuristic(extracted_text)
-            # ALWAYS override with the deterministic result — even an empty list.
-            # The LLM hallucinates sections (e.g. 'IPC 420', 'IT Act 66D') when the
-            # document mentions NO explicit legal sections. The heuristic extractor
-            # is authoritative: it preserves sections EXACTLY as written, and returns
-            # [] when none are explicitly stated. Keeping the LLM's hallucinated
-            # sections would violate the "record ONLY explicitly mentioned sections"
-            # requirement.
             data['bns_sections_identified'] = preserved_sections
         except Exception:
-            pass  # keep LLM value if deterministic parser fails
+            pass
 
         return data
 

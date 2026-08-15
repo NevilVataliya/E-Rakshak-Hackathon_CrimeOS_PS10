@@ -974,17 +974,20 @@ export const useCaseStore = create<CaseState>()(
       replyLoading: false,
 
       checkInboxForReplies: async (caseNumber?: string, smtpCredentials?: any) => {
-        const targetCase = caseNumber || get().activeCase?.case_number;
+        const activeCaseObj = get().activeCase;
+        const targetCase = caseNumber || activeCaseObj?.case_number;
+        const sinceTimestamp = activeCaseObj?.created_at || undefined;
         set({ replyLoading: true });
         try {
           const res = await api.post('/api/email/check-inbox', {
             case_number: targetCase,
+            since_timestamp: sinceTimestamp,
             smtp_credentials: smtpCredentials
           });
           if (res.data && Array.isArray(res.data.replies)) {
             const replies = res.data.replies;
             set((state) => {
-              const existing = (targetCase && state.processedRepliesByCase[targetCase]) || state.processedReplies || [];
+              const existing = (targetCase && state.processedRepliesByCase[targetCase]) || [];
               const existingIds = new Set(existing.map((r: any) => r.id));
               const newItems = replies.filter((r: any) => !existingIds.has(r.id));
               const merged = [...newItems, ...existing];
@@ -1021,7 +1024,7 @@ export const useCaseStore = create<CaseState>()(
           const replyObj = res.data?.reply;
           if (replyObj) {
             const targetCase = payload.case_number;
-            const existing = get().processedRepliesByCase[targetCase] || get().processedReplies || [];
+            const existing = (targetCase ? get().processedRepliesByCase[targetCase] : []) || [];
             const updated = [replyObj, ...existing];
 
             if (targetCase) {
@@ -1053,7 +1056,8 @@ export const useCaseStore = create<CaseState>()(
         try {
           await api.post('/api/email/send-followback', payload);
           const targetCase = payload.case_number;
-          const updated = get().processedReplies.map(r =>
+          const existing = (targetCase ? (get().processedRepliesByCase[targetCase] || []) : []);
+          const updated = existing.map(r =>
             (r.case_number === payload.case_number && r.sender_email === payload.recipient_email)
               ? { ...r, status: 'FOLLOWBACK_SENT', followback_sent_at: new Date().toLocaleTimeString() }
               : r
@@ -1124,13 +1128,15 @@ export const useCaseStore = create<CaseState>()(
       },
 
       clearModule5EmailData: () => {
-        set({
+        set((state) => ({
           processedReplies: [],
           processedRepliesByCase: {},
           responseAnalyticsByCase: {},
           dispatchedDirectivesByCase: {},
-          legalRequests: []
-        });
+          legalRequests: [],
+          activeCase: state.activeCase ? { ...state.activeCase, response_analytics: undefined } : null,
+          cases: state.cases.map(c => ({ ...c, response_analytics: undefined }))
+        }));
       },
 
       startNewComplaint: () => {
