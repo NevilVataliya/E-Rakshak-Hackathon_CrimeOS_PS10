@@ -98,8 +98,8 @@ export default function ModuleSummarizerModal({
             <>
               {/* Executive Paragraph Brief */}
               <div className="rounded-xl border border-blue-200 dark:border-blue-500/20 bg-blue-50 dark:bg-blue-500/5 p-4 space-y-2 shadow-sm">
-                <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-cyan-800 dark:text-cyan-400 font-mono">
-                  <Shield className="h-4 w-4 text-cyan-600 dark:text-cyan-400" />
+                <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-blue-900 dark:text-cyan-300 font-mono">
+                  <Shield className="h-4 w-4 text-blue-600 dark:text-cyan-400" />
                   <span>{t('summarizer.briefing_header', 'Executive Module Briefing')}</span>
                 </div>
                 <p className="text-slate-900 dark:text-slate-200 leading-relaxed font-medium">
@@ -129,13 +129,13 @@ export default function ModuleSummarizerModal({
               {currentSummary.actions_taken && currentSummary.actions_taken.length > 0 && (
                 <div className="space-y-2">
                   <h4 className="text-xs font-extrabold uppercase tracking-wider text-slate-700 dark:text-slate-400 font-mono flex items-center gap-2">
-                    <FileText className="h-4 w-4 text-cyan-600 dark:text-cyan-400" />
+                    <FileText className="h-4 w-4 text-blue-600 dark:text-cyan-400" />
                     <span>{t('summarizer.actions_taken', 'Actions & Directives Issued')}</span>
                   </h4>
                   <ul className="space-y-1.5 bg-slate-50 dark:bg-[#050811] p-3.5 rounded-xl border border-slate-200 dark:border-white/5 shadow-sm">
                     {currentSummary.actions_taken.map((action: string, idx: number) => (
                       <li key={idx} className="flex items-start gap-2 text-slate-800 dark:text-slate-300 text-xs">
-                        <Check className="h-3.5 w-3.5 text-cyan-600 dark:text-cyan-400 shrink-0 mt-0.5" />
+                        <Check className="h-3.5 w-3.5 text-blue-600 dark:text-cyan-400 shrink-0 mt-0.5" />
                         <span><TranslatedText text={action} /></span>
                       </li>
                     ))}

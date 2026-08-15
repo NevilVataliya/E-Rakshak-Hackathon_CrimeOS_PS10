@@ -1,6 +1,6 @@
 import React from 'react';
 import { Command } from 'cmdk';
-import { Search, FileText, Network, Bot, Send, BarChart3, FileCheck2, ShieldCheck, Gavel, Smartphone } from 'lucide-react';
+import { Search, FileText, Network, Bot, Send, BarChart3, ShieldCheck, Gavel } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 interface CommandPaletteDialogProps {
@@ -56,7 +56,7 @@ export default function CommandPaletteDialog({ open, onOpenChange }: CommandPale
                 className="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-xs text-slate-800 dark:text-slate-200 hover:bg-blue-50 dark:hover:bg-blue-600/20 hover:text-blue-900 dark:hover:text-blue-300"
               >
                 <FileText className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
-                <span>Module 1: Multimodal Intake & Waveform ASR / OCR Inspector</span>
+                <span>Module 1: Multimodal Intake & Document OCR Inspector</span>
               </Command.Item>
 
               <Command.Item
@@ -64,7 +64,7 @@ export default function CommandPaletteDialog({ open, onOpenChange }: CommandPale
                 className="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-xs text-slate-800 dark:text-slate-200 hover:bg-amber-50 dark:hover:bg-amber-600/20 hover:text-amber-900 dark:hover:text-amber-300"
               >
                 <Network className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
-                <span>Module 2: Qdrant Serial Offender Topology Link Graph</span>
+                <span>Module 2: Cross-FIR Linkage & Offender Topology Graph</span>
               </Command.Item>
 
               <Command.Item
@@ -72,7 +72,7 @@ export default function CommandPaletteDialog({ open, onOpenChange }: CommandPale
                 className="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-xs text-slate-800 dark:text-slate-200 hover:bg-blue-50 dark:hover:bg-blue-600/20 hover:text-blue-900 dark:hover:text-blue-300"
               >
                 <Bot className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
-                <span>Module 3: LangGraph Multi-Agent SOP Execution Matrix</span>
+                <span>Module 3: Multi-Agent Legal & SOP Investigation Studio</span>
               </Command.Item>
 
               <Command.Item
@@ -80,7 +80,7 @@ export default function CommandPaletteDialog({ open, onOpenChange }: CommandPale
                 className="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-xs text-slate-800 dark:text-slate-200 hover:bg-emerald-50 dark:hover:bg-emerald-600/20 hover:text-emerald-900 dark:hover:text-emerald-300"
               >
                 <Send className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
-                <span>Module 4: Turnkey Subpoena Builder & PDF Email Hub</span>
+                <span>Module 4: Statutory Requisition Builder & Dispatch Studio</span>
               </Command.Item>
 
               <Command.Item
@@ -88,7 +88,7 @@ export default function CommandPaletteDialog({ open, onOpenChange }: CommandPale
                 className="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-xs text-slate-800 dark:text-slate-200 hover:bg-blue-50 dark:hover:bg-blue-600/20 hover:text-blue-900 dark:hover:text-blue-300"
               >
                 <BarChart3 className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
-                <span>Module 5: High-Scale CDR Pattern Analytics Studio</span>
+                <span>Module 5: Forensic Response & CDR Pattern Analytics Studio</span>
               </Command.Item>
             </Command.Group>
 

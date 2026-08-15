@@ -11,20 +11,55 @@ import {
   MarkerType,
   type Connection
 } from '@xyflow/react';
-import { Network, ArrowRight, ShieldCheck, Loader2, Search, Phone, CreditCard, Building, AlertTriangle, RefreshCw, Sparkles, Lock } from 'lucide-react';
+import { Network, ArrowRight, ShieldCheck, Loader2, Search, Phone, CreditCard, Building, AlertTriangle, Sparkles, Lock } from 'lucide-react';
 import { useCaseStore } from '../store/caseStore';
 import { LinkageMatch, LinkageStats } from '../types';
 import ModuleSummarizerModal from '../components/common/ModuleSummarizerModal';
-import TranslatedText from '../components/common/TranslatedText';
 
 // --- Node & Edge Color Mapping by Entity Type ---
-const entityStyle: Record<string, { bg: string; color: string; border: string; stroke: string }> = {
-  phone: { bg: '#0d1322', color: '#38bdf8', border: '#0284c7', stroke: '#38bdf8' },
-  vpa: { bg: '#f59e0b20', color: '#fbbf24', border: '#f59e0b', stroke: '#f59e0b' },
-  bank_account: { bg: '#6366f120', color: '#a5b4fc', border: '#6366f1', stroke: '#6366f1' },
-  manual: { bg: '#8b5cf620', color: '#c4b5fd', border: '#8b5cf6', stroke: '#8b5cf6' },
-  fir: { bg: '#0d1322', color: '#60a5fa', border: '#3b82f6', stroke: '#3b82f6' },
-  linked_fir: { bg: '#f43f5e20', color: '#fda4af', border: '#f43f5e', stroke: '#f43f5e' }
+const entityStyle: Record<string, { bg: string; color: string; border: string; stroke: string; shadow: string }> = {
+  phone: {
+    bg: '#0f172a',
+    color: '#38bdf8',
+    border: '#0284c7',
+    stroke: '#0284c7',
+    shadow: '0 4px 14px rgba(2, 132, 199, 0.3)'
+  },
+  vpa: {
+    bg: '#0f172a',
+    color: '#fbbf24',
+    border: '#f59e0b',
+    stroke: '#f59e0b',
+    shadow: '0 4px 14px rgba(245, 158, 11, 0.3)'
+  },
+  bank_account: {
+    bg: '#0f172a',
+    color: '#c7d2fe',
+    border: '#6366f1',
+    stroke: '#6366f1',
+    shadow: '0 4px 14px rgba(99, 102, 241, 0.3)'
+  },
+  manual: {
+    bg: '#0f172a',
+    color: '#e9d5ff',
+    border: '#9333ea',
+    stroke: '#9333ea',
+    shadow: '0 4px 14px rgba(147, 51, 234, 0.3)'
+  },
+  fir: {
+    bg: '#0f172a',
+    color: '#93c5fd',
+    border: '#3b82f6',
+    stroke: '#3b82f6',
+    shadow: '0 4px 14px rgba(59, 130, 246, 0.35)'
+  },
+  linked_fir: {
+    bg: '#0f172a',
+    color: '#fecdd3',
+    border: '#ef4444',
+    stroke: '#ef4444',
+    shadow: '0 4px 14px rgba(239, 68, 68, 0.35)'
+  }
 };
 
 function buildGraphFromMatches(matches: LinkageMatch[], caseNumber?: string) {
@@ -43,7 +78,17 @@ function buildGraphFromMatches(matches: LinkageMatch[], caseNumber?: string) {
     type: 'default',
     data: { label: `Active Case: ${caseNumber}` },
     position: { x: matches && matches.length > 0 ? 80 : 380, y: 200 },
-    style: { background: firStyle.bg, color: firStyle.color, border: `1px solid ${firStyle.border}`, borderRadius: '8px', fontSize: '11px', fontWeight: 'bold', padding: '10px' }
+    style: {
+      background: firStyle.bg,
+      color: firStyle.color,
+      border: `2px solid ${firStyle.border}`,
+      borderRadius: '10px',
+      fontSize: '11px',
+      fontWeight: 'bold',
+      padding: '10px 14px',
+      boxShadow: firStyle.shadow,
+      fontFamily: 'monospace'
+    }
   });
 
   if (!matches || matches.length === 0) {
@@ -67,13 +112,23 @@ function buildGraphFromMatches(matches: LinkageMatch[], caseNumber?: string) {
         type: 'default',
         data: { label: `${typeLabel}: ${match.entity_value}`, matchData: match },
         position: { x: 380, y: 60 + entityIndex * 120 },
-        style: { background: es.bg, color: es.color, border: `1px solid ${es.border}`, borderRadius: '8px', fontSize: '11px', fontWeight: 'bold', padding: '10px' }
+        style: {
+          background: es.bg,
+          color: es.color,
+          border: `2px solid ${es.border}`,
+          borderRadius: '10px',
+          fontSize: '11px',
+          fontWeight: 'bold',
+          padding: '10px 14px',
+          boxShadow: es.shadow,
+          fontFamily: 'monospace'
+        }
       });
       edges.push({
         id: `e-fir-${entityKey}`,
         source: 'fir-main',
         target: entityKey,
-        style: { stroke: es.stroke },
+        style: { stroke: es.stroke, strokeWidth: 2 },
         markerEnd: { type: MarkerType.ArrowClosed, color: es.stroke }
       });
       entityIndex++;
@@ -88,7 +143,17 @@ function buildGraphFromMatches(matches: LinkageMatch[], caseNumber?: string) {
         type: 'default',
         data: { label: `${match.matched_fir} (${match.police_station})`, matchData: match },
         position: { x: 700, y: 60 + caseIndex * 120 },
-        style: { background: cs.bg, color: cs.color, border: `1px solid ${cs.border}`, borderRadius: '8px', fontSize: '11px', fontWeight: 'bold', padding: '10px' }
+        style: {
+          background: cs.bg,
+          color: cs.color,
+          border: `2px solid ${cs.border}`,
+          borderRadius: '10px',
+          fontSize: '11px',
+          fontWeight: 'bold',
+          padding: '10px 14px',
+          boxShadow: cs.shadow,
+          fontFamily: 'monospace'
+        }
       });
       caseIndex++;
     }
@@ -96,15 +161,18 @@ function buildGraphFromMatches(matches: LinkageMatch[], caseNumber?: string) {
     // Edge from entity to linked case
     const entityKey2 = `${match.entity_type}-${match.entity_value}`;
     const edgeId = `e-${entityKey2}-${caseKey}-${idx}`;
-    const es = entityStyle[match.entity_type] || entityStyle.manual;
     const pctLabel = `${Math.round(match.confidence * 100)}% Match`;
     edges.push({
       id: edgeId,
       source: entityKey2,
       target: caseKey,
       label: pctLabel,
+      labelStyle: { fill: '#ffffff', fontWeight: 700, fontSize: 10, fontFamily: 'monospace' },
+      labelBgStyle: { fill: '#0f172a', fillOpacity: 0.95, stroke: entityStyle.linked_fir.stroke, strokeWidth: 1 },
+      labelBgPadding: [6, 3],
+      labelBgBorderRadius: 4,
       animated: match.confidence >= 0.85,
-      style: { stroke: entityStyle.linked_fir.stroke },
+      style: { stroke: entityStyle.linked_fir.stroke, strokeWidth: 2 },
       markerEnd: { type: MarkerType.ArrowClosed, color: entityStyle.linked_fir.stroke }
     });
   });
@@ -138,7 +206,6 @@ export default function LinkageView() {
     linkageLoading,
     linkageError,
     runLinkageSearch,
-    clearLinkage,
     setSelectedInspectorItem
   } = useCaseStore();
 
@@ -271,7 +338,7 @@ export default function LinkageView() {
 
   if (isModuleLocked) {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center p-6 text-center bg-[#F8FAFC] dark:bg-[#050811] select-none">
+      <div className="flex-1 flex flex-col items-center justify-center p-6 text-center bg-[#F8FAFC] dark:bg-[#050811]">
         <div className="max-w-md rounded-2xl border border-slate-300 dark:border-white/10 bg-white dark:bg-[#0d1322] p-8 shadow-2xl space-y-4">
           <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-400">
             <Lock className="h-7 w-7 text-amber-400" />
@@ -297,7 +364,7 @@ export default function LinkageView() {
   }
 
   return (
-    <div className="flex-1 flex flex-col p-4 overflow-hidden gap-3 select-none bg-[#F8FAFC] dark:bg-[#050811]">
+    <div className="flex-1 flex flex-col p-4 overflow-hidden gap-3 bg-[#F8FAFC] dark:bg-[#050811]">
 
       {/* Header */}
       <div className="flex items-center justify-between border-b border-slate-200 dark:border-white/10 pb-3 shrink-0">
@@ -320,27 +387,27 @@ export default function LinkageView() {
         <div className="flex items-center gap-2">
           <button
             onClick={() => setSummarizerOpen(true)}
-            className="flex items-center gap-1.5 rounded border border-amber-500 bg-amber-500 px-3 py-1.5 text-xs font-bold text-slate-950 hover:bg-amber-600 transition-colors shadow-sm"
+            className="flex items-center gap-1.5 rounded-lg border border-amber-500 dark:border-amber-500/40 bg-amber-400 dark:bg-amber-500/20 px-3 py-1.5 text-xs font-bold text-slate-950 dark:text-amber-300 hover:bg-amber-500 dark:hover:bg-amber-500/30 transition-colors shadow-sm cursor-pointer"
           >
-            <Sparkles className="h-3.5 w-3.5" />
+            <Sparkles className="h-3.5 w-3.5 text-slate-950 dark:text-amber-300" />
             <span>{t('nav.summary', 'AI Module Summary')}</span>
           </button>
 
           <button
             onClick={handleAutoSearch}
             disabled={linkageLoading}
-            className="flex items-center gap-1.5 rounded border border-blue-300 bg-blue-50 px-3 py-1.5 text-xs font-bold text-blue-950 hover:bg-blue-100 transition-colors disabled:opacity-50"
+            className="flex items-center gap-1.5 rounded bg-blue-600 px-3.5 py-1.5 text-xs font-bold text-white hover:bg-blue-500 transition-colors disabled:opacity-50 shadow-sm"
           >
-            {linkageLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Search className="h-3.5 w-3.5" />}
+            {linkageLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin text-white" /> : <Search className="h-3.5 w-3.5 text-white" />}
             <span>Scan for Linked Cases</span>
           </button>
 
           <button
             onClick={() => navigate('/investigation')}
-            className="flex items-center gap-1.5 rounded bg-[#0A2540] px-3.5 py-1.5 text-xs font-bold text-white hover:bg-slate-800 transition-colors shadow-sm"
+            className="flex items-center gap-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white px-3.5 py-1.5 text-xs font-bold shadow-md hover:shadow-lg transition-all cursor-pointer"
           >
-            <span>Proceed to Investigation Studio</span>
-            <ArrowRight className="h-4 w-4 text-amber-400" />
+            <span>{t('linkage.proceed_to_investigation', 'Proceed to Investigation Studio')}</span>
+            <ArrowRight className="h-4 w-4 text-white" />
           </button>
         </div>
       </div>
@@ -525,10 +592,10 @@ export default function LinkageView() {
 
           <button
             onClick={() => navigate('/investigation')}
-            className="flex w-full items-center justify-center gap-2 rounded bg-emerald-600 p-2.5 text-xs font-bold text-white hover:bg-emerald-500 transition-colors mt-auto"
+            className="flex w-full items-center justify-center gap-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white p-2.5 text-xs font-bold transition-all shadow-md hover:shadow-lg mt-auto cursor-pointer"
           >
-            <span>Proceed to Investigation Studio</span>
-            <ArrowRight className="h-4 w-4" />
+            <span>{t('linkage.proceed_to_investigation', 'Proceed to Investigation Studio')}</span>
+            <ArrowRight className="h-4 w-4 text-white" />
           </button>
         </div>
 

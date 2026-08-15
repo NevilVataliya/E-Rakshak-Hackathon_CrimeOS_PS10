@@ -92,7 +92,7 @@ export default function GlobalSummarizerModal({ isOpen, onClose }: GlobalSummari
               {/* Executive Summary Card */}
               <div className="rounded-2xl border border-cyan-300 dark:border-cyan-500/30 bg-gradient-to-br from-cyan-50 to-blue-50 dark:from-[#0b162c] dark:to-[#070e1c] p-5 shadow-xl space-y-3">
                 <div className="flex items-center justify-between border-b border-cyan-200 dark:border-white/10 pb-3">
-                  <span className="text-xs font-extrabold uppercase tracking-wider text-cyan-800 dark:text-cyan-400 font-mono flex items-center gap-2">
+                  <span className="text-xs font-extrabold uppercase tracking-wider text-cyan-900 dark:text-cyan-300 font-mono flex items-center gap-2">
                     <Sparkles className="h-4 w-4 text-cyan-600 dark:text-cyan-400" />
                     <span>{t('summarizer.chief_briefing', 'Chief Investigation Briefing')}</span>
                   </span>
@@ -149,7 +149,7 @@ export default function GlobalSummarizerModal({ isOpen, onClose }: GlobalSummari
               {masterSummary.recommended_next_step && (
                 <div className="rounded-xl border border-blue-300 dark:border-blue-500/30 bg-blue-50 dark:bg-blue-500/10 p-4 flex items-center justify-between gap-4 shadow-sm">
                   <div className="space-y-1">
-                    <span className="text-xs font-bold text-cyan-800 dark:text-cyan-400 font-mono uppercase">
+                    <span className="text-xs font-bold text-blue-900 dark:text-cyan-300 font-mono uppercase">
                       {t('summarizer.next_directive', 'Recommended Next Directive')}
                     </span>
                     <p className="text-xs font-semibold text-slate-900 dark:text-slate-200">

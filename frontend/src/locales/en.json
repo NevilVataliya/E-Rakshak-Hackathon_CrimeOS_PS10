@@ -83,7 +83,7 @@
     "total_loss": "Total Fraud Loss",
     "legal_sections": "Applicable Legal Sections",
     "crime_category": "Crime Classification",
-    "proceed_to_linkage": "Proceed to Serial Linkage Analysis"
+    "proceed_to_linkage": "Register Case & Proceed to Linkage"
   },
   "linkage": {
     "title": "Serial Linkage & Cross-Case Correlation",
@@ -114,7 +114,7 @@
     "statutory_notices": "Generated Statutory Legal Requisitions",
     "btn_view_pdf": "View Legal Notice PDF",
     "btn_approve_dispatch": "Approve & Dispatch via Secure SMTP",
-    "proceed_to_subpoenas": "Proceed to Subpoena Manager"
+    "proceed_to_subpoenas": "Proceed to Subpoenas & Notices"
   },
   "subpoenas": {
     "title": "Subpoenas & Section 94 BNSS Directives",
@@ -138,6 +138,7 @@
     "ai_module_summary": "AI Module Summary",
     "sec_63_cert": "Sec 63 BSA Certificate",
     "reset_module": "Reset Module 5",
+    "master_briefing": "Master Case Briefing",
     "inbound_replies": "Module 4 Inbound Provider Responses",
     "ingested_docs": "Ingested Evidence Documents",
     "ingest_another": "+ Ingest Another Document",

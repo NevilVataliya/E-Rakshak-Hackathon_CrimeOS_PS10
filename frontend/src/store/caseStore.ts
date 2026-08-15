@@ -739,7 +739,7 @@ export const useCaseStore = create<CaseState>()(
           });
           resultingData = res.data;
         } catch (err: any) {
-          const errorMsg = err.response?.data?.detail || err.response?.data?.error || err.message || 'LangGraph investigation graph execution failed';
+          const errorMsg = err.response?.data?.detail || err.response?.data?.error || err.message || 'Investigation workflow analysis failed. Please try again.';
           console.error('[-] Agent Studio Execution Error:', errorMsg);
 
           let enableFallbacks = false;

@@ -1,12 +1,16 @@
 import React from 'react';
-import { ShieldCheck, Database, Gavel, BookOpen, Phone, CreditCard, Building, AlertTriangle, MapPin, User, Network, FileText, Target, Clock, ArrowRight } from 'lucide-react';
+import { ShieldCheck, Database, Gavel, BookOpen, Phone, CreditCard, Building, AlertTriangle, MapPin, User, Network, Target, ArrowRight } from 'lucide-react';
 import { useCaseStore } from '../../store/caseStore';
 
 function ConfidenceBadge({ confidence }: { confidence: number }) {
   const pct = Math.round(confidence * 100);
-  const color = pct >= 85 ? 'emerald' : pct >= 70 ? 'amber' : 'rose';
+  const colorClass = pct >= 85
+    ? 'border-emerald-500/40 bg-emerald-500/15 text-emerald-700 dark:text-emerald-300'
+    : pct >= 70
+    ? 'border-amber-500/40 bg-amber-500/15 text-amber-700 dark:text-amber-300'
+    : 'border-rose-500/40 bg-rose-500/15 text-rose-700 dark:text-rose-300';
   return (
-    <span className={`inline-flex items-center gap-1 rounded border border-${color}-500/40 bg-${color}-500/15 px-1.5 py-0.5 text-[10px] font-mono font-bold text-${color}-300`}>
+    <span className={`inline-flex items-center gap-1 rounded border px-1.5 py-0.5 text-[10px] font-mono font-bold ${colorClass}`}>
       {pct}% Match
     </span>
   );
@@ -14,7 +18,7 @@ function ConfidenceBadge({ confidence }: { confidence: number }) {
 
 function SectionLabel({ label }: { label: string }) {
   return (
-    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block pb-1.5 border-b border-white/5 mb-2">
+    <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block pb-1.5 border-b border-slate-200 dark:border-white/5 mb-2 font-mono">
       {label}
     </span>
   );
@@ -24,19 +28,19 @@ function renderComplaintEntities(data: any) {
   return (
     <div className="space-y-3">
       {/* Complaint Header */}
-      <div className="rounded border border-blue-500/30 bg-blue-500/10 p-2.5 space-y-1.5">
+      <div className="rounded border border-blue-500/30 bg-blue-50 dark:bg-blue-500/10 p-2.5 space-y-1.5">
         <div className="flex items-center justify-between">
-          <span className="text-[10px] font-bold text-blue-300 uppercase tracking-wider">
+          <span className="text-[10px] font-bold text-blue-700 dark:text-blue-300 uppercase tracking-wider">
             Complaint Extraction
           </span>
           {data.severity_score && (
-            <span className="rounded bg-rose-500/20 text-rose-300 px-1.5 py-0.5 text-[10px] font-bold font-mono">
+            <span className="rounded bg-rose-500/20 text-rose-700 dark:text-rose-300 px-1.5 py-0.5 text-[10px] font-bold font-mono">
               Sev: {data.severity_score}/10
             </span>
           )}
         </div>
         {data.complaint_number && (
-          <p className="font-mono text-[11px] font-bold text-white">{data.complaint_number}</p>
+          <p className="font-mono text-[11px] font-bold text-slate-900 dark:text-white">{data.complaint_number}</p>
         )}
       </div>
 
@@ -44,17 +48,17 @@ function renderComplaintEntities(data: any) {
       {(data.crime_category || data.crime_sub_type) && (
         <div className="space-y-1">
           <SectionLabel label="Crime Classification" />
-          <div className="rounded border border-white/10 bg-[#050811] p-2 space-y-1.5">
+          <div className="rounded border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-[#050811] p-2 space-y-1.5">
             {data.crime_category && (
               <div className="flex items-center justify-between">
-                <span className="text-[11px] text-slate-400">Category</span>
-                <span className="rounded border border-blue-500/30 bg-blue-500/10 px-1.5 py-0.5 text-[10px] font-mono font-bold text-blue-300">{data.crime_category}</span>
+                <span className="text-[11px] text-slate-500 dark:text-slate-400">Category</span>
+                <span className="rounded border border-blue-500/30 bg-blue-50 dark:bg-blue-500/10 px-1.5 py-0.5 text-[10px] font-mono font-bold text-blue-700 dark:text-blue-300">{data.crime_category}</span>
               </div>
             )}
             {data.crime_sub_type && (
               <div className="flex items-center justify-between">
-                <span className="text-[11px] text-slate-400">Sub-Type</span>
-                <span className="text-[11px] font-semibold text-white">{data.crime_sub_type}</span>
+                <span className="text-[11px] text-slate-500 dark:text-slate-400">Sub-Type</span>
+                <span className="text-[11px] font-semibold text-slate-900 dark:text-white">{data.crime_sub_type}</span>
               </div>
             )}
           </div>
@@ -65,7 +69,7 @@ function renderComplaintEntities(data: any) {
       {data.translated_text && (
         <div className="space-y-1">
           <SectionLabel label="Translated Narrative" />
-          <p className="rounded border border-white/10 bg-[#050811] p-2 text-[11px] text-slate-300 leading-relaxed font-sans">
+          <p className="rounded border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-[#050811] p-2 text-[11px] text-slate-700 dark:text-slate-300 leading-relaxed font-sans">
             {data.translated_text}
           </p>
         </div>
@@ -78,42 +82,42 @@ function renderComplaintEntities(data: any) {
           <div className="space-y-1.5">
             {/* Persons */}
             {data.entities.persons?.map((p: any, i: number) => (
-              <div key={`p-${i}`} className="flex items-center gap-2 rounded border border-white/10 bg-[#050811] px-2.5 py-1.5">
-                <User className="h-3 w-3 text-violet-400 shrink-0" />
+              <div key={`p-${i}`} className="flex items-center gap-2 rounded border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-[#050811] px-2.5 py-1.5">
+                <User className="h-3 w-3 text-violet-600 dark:text-violet-400 shrink-0" />
                 <div className="flex-1 min-w-0">
-                  <span className="text-[11px] font-semibold text-white block truncate">{p.name}</span>
-                  <span className="text-[10px] text-violet-300 font-mono uppercase">{p.role}</span>
+                  <span className="text-[11px] font-semibold text-slate-900 dark:text-white block truncate">{p.name}</span>
+                  <span className="text-[10px] text-violet-700 dark:text-violet-300 font-mono uppercase">{p.role}</span>
                 </div>
               </div>
             ))}
 
             {/* Phone Numbers */}
             {data.entities.phone_numbers?.map((phone: string, i: number) => (
-              <div key={`ph-${i}`} className="flex items-center gap-2 rounded border border-cyan-500/30 bg-cyan-500/10 px-2.5 py-1.5">
-                <Phone className="h-3 w-3 text-cyan-400 shrink-0" />
-                <span className="text-[11px] font-mono font-bold text-cyan-200">{phone}</span>
+              <div key={`ph-${i}`} className="flex items-center gap-2 rounded border border-cyan-500/30 bg-cyan-50 dark:bg-cyan-500/10 px-2.5 py-1.5">
+                <Phone className="h-3 w-3 text-cyan-600 dark:text-cyan-400 shrink-0" />
+                <span className="text-[11px] font-mono font-bold text-cyan-800 dark:text-cyan-200">{phone}</span>
               </div>
             ))}
 
             {/* UPI VPAs */}
             {data.entities.vpas_upis?.map((vpa: string, i: number) => (
-              <div key={`v-${i}`} className="flex items-center gap-2 rounded border border-amber-500/30 bg-amber-500/10 px-2.5 py-1.5">
-                <CreditCard className="h-3 w-3 text-amber-400 shrink-0" />
-                <span className="text-[11px] font-mono font-bold text-amber-200">{vpa}</span>
+              <div key={`v-${i}`} className="flex items-center gap-2 rounded border border-amber-500/30 bg-amber-50 dark:bg-amber-500/10 px-2.5 py-1.5">
+                <CreditCard className="h-3 w-3 text-amber-600 dark:text-amber-400 shrink-0" />
+                <span className="text-[11px] font-mono font-bold text-amber-800 dark:text-amber-200">{vpa}</span>
               </div>
             ))}
 
             {/* Bank Accounts */}
             {data.entities.bank_accounts?.map((b: any, i: number) => (
-              <div key={`b-${i}`} className="rounded border border-indigo-500/30 bg-indigo-500/10 px-2.5 py-1.5 space-y-0.5">
+              <div key={`b-${i}`} className="rounded border border-indigo-500/30 bg-indigo-50 dark:bg-indigo-500/10 px-2.5 py-1.5 space-y-0.5">
                 <div className="flex items-center gap-2">
-                  <Building className="h-3 w-3 text-indigo-400 shrink-0" />
-                  <span className="text-[11px] font-mono font-bold text-indigo-200">
+                  <Building className="h-3 w-3 text-indigo-600 dark:text-indigo-400 shrink-0" />
+                  <span className="text-[11px] font-mono font-bold text-indigo-800 dark:text-indigo-200">
                     {typeof b === 'object' ? b.account_number : b}
                   </span>
                 </div>
                 {typeof b === 'object' && (
-                  <div className="ml-5 text-[10px] text-slate-400 font-mono space-y-0.5">
+                  <div className="ml-5 text-[10px] text-slate-600 dark:text-slate-400 font-mono space-y-0.5">
                     {b.bank && <div>{b.bank}</div>}
                     {b.ifsc && <div>IFSC: {b.ifsc}</div>}
                     {b.account_name && <div>Name: {b.account_name}</div>}
@@ -124,9 +128,9 @@ function renderComplaintEntities(data: any) {
 
             {/* Monetary Loss */}
             {data.entities.monetary_loss != null && (
-              <div className="flex items-center gap-2 rounded border border-rose-500/30 bg-rose-500/10 px-2.5 py-1.5">
-                <AlertTriangle className="h-3 w-3 text-rose-400 shrink-0" />
-                <span className="text-[11px] font-mono font-bold text-rose-200">Loss: ₹{data.entities.monetary_loss.toLocaleString('en-IN')}</span>
+              <div className="flex items-center gap-2 rounded border border-rose-500/30 bg-rose-50 dark:bg-rose-500/10 px-2.5 py-1.5">
+                <AlertTriangle className="h-3 w-3 text-rose-600 dark:text-rose-400 shrink-0" />
+                <span className="text-[11px] font-mono font-bold text-rose-800 dark:text-rose-200">Loss: ₹{data.entities.monetary_loss.toLocaleString('en-IN')}</span>
               </div>
             )}
           </div>
@@ -140,25 +144,25 @@ function renderSOPCitation(data: any) {
   return (
     <div className="space-y-3">
       {/* Step Header */}
-      <div className="rounded border border-blue-500/30 bg-blue-500/10 p-2.5 space-y-1">
+      <div className="rounded border border-blue-500/30 bg-blue-50 dark:bg-blue-500/10 p-2.5 space-y-1">
         <div className="flex items-center gap-2">
           {data.step_number && (
-            <span className="flex h-5 w-5 items-center justify-center rounded bg-blue-600/30 text-[10px] font-bold text-blue-300 font-mono shrink-0">
+            <span className="flex h-5 w-5 items-center justify-center rounded bg-blue-100 dark:bg-blue-600/30 text-[10px] font-bold text-blue-700 dark:text-blue-300 font-mono shrink-0">
               {data.step_number}
             </span>
           )}
-          <span className="text-[10px] font-bold text-blue-300 uppercase tracking-wider">
+          <span className="text-[10px] font-bold text-blue-700 dark:text-blue-300 uppercase tracking-wider">
             SOP Directive
           </span>
         </div>
-        <h3 className="text-xs font-bold text-white leading-snug">{data.title}</h3>
+        <h3 className="text-xs font-bold text-slate-900 dark:text-white leading-snug">{data.title}</h3>
       </div>
 
       {/* Description */}
       {data.description && (
         <div className="space-y-1">
           <SectionLabel label="Action Description" />
-          <p className="rounded border border-white/10 bg-[#050811] p-2 text-[11px] text-slate-300 leading-relaxed font-sans">
+          <p className="rounded border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-[#050811] p-2 text-[11px] text-slate-700 dark:text-slate-300 leading-relaxed font-sans">
             {data.description}
           </p>
         </div>
@@ -168,23 +172,23 @@ function renderSOPCitation(data: any) {
       {(data.document_name || data.sop_reference) && (
         <div className="space-y-1">
           <SectionLabel label="Source Document" />
-          <div className="rounded border border-amber-500/30 bg-amber-500/10 p-2.5 space-y-2">
+          <div className="rounded border border-amber-500/30 bg-amber-50 dark:bg-amber-500/10 p-2.5 space-y-2">
             {data.document_name && (
-              <div className="flex items-center gap-1.5 text-[11px] font-mono font-bold text-amber-300">
-                <BookOpen className="h-3.5 w-3.5 text-amber-400 shrink-0" />
+              <div className="flex items-center gap-1.5 text-[11px] font-mono font-bold text-amber-800 dark:text-amber-300">
+                <BookOpen className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400 shrink-0" />
                 <span className="truncate">{data.document_name}</span>
               </div>
             )}
             {data.page_number && (
               <div className="flex items-center justify-between text-[11px]">
-                <span className="text-slate-400">Page Number</span>
-                <span className="font-mono font-bold text-white bg-white/10 px-1.5 py-0.5 rounded">{data.page_number}</span>
+                <span className="text-slate-500 dark:text-slate-400">Page Number</span>
+                <span className="font-mono font-bold text-slate-900 dark:text-white bg-slate-100 dark:bg-white/10 px-1.5 py-0.5 rounded">{data.page_number}</span>
               </div>
             )}
             {data.sop_reference && (
               <div className="flex items-center justify-between text-[11px]">
-                <span className="text-slate-400">SOP Reference</span>
-                <span className="font-mono font-bold text-emerald-300 text-[10px]">{data.sop_reference}</span>
+                <span className="text-slate-500 dark:text-slate-400">SOP Reference</span>
+                <span className="font-mono font-bold text-emerald-700 dark:text-emerald-300 text-[10px]">{data.sop_reference}</span>
               </div>
             )}
           </div>
@@ -195,10 +199,10 @@ function renderSOPCitation(data: any) {
       {data.section_path && (
         <div className="space-y-1">
           <SectionLabel label="Section Path" />
-          <div className="rounded border border-indigo-500/30 bg-indigo-500/10 p-2.5">
+          <div className="rounded border border-indigo-500/30 bg-indigo-50 dark:bg-indigo-500/10 p-2.5">
             <div className="flex items-start gap-1.5">
-              <MapPin className="h-3 w-3 text-indigo-400 shrink-0 mt-0.5" />
-              <span className="text-[11px] font-mono text-indigo-200 leading-relaxed">{data.section_path}</span>
+              <MapPin className="h-3 w-3 text-indigo-600 dark:text-indigo-400 shrink-0 mt-0.5" />
+              <span className="text-[11px] font-mono text-indigo-800 dark:text-indigo-200 leading-relaxed">{data.section_path}</span>
             </div>
           </div>
         </div>
@@ -208,8 +212,8 @@ function renderSOPCitation(data: any) {
       {data.raw_citation_text && (
         <div className="space-y-1">
           <SectionLabel label="Verbatim Citation" />
-          <div className="rounded border border-emerald-500/30 bg-emerald-500/10 p-2.5">
-            <p className="text-[11px] text-emerald-100 italic leading-relaxed font-serif">
+          <div className="rounded border border-emerald-500/30 bg-emerald-50 dark:bg-emerald-500/10 p-2.5">
+            <p className="text-[11px] text-emerald-900 dark:text-emerald-100 italic leading-relaxed font-serif">
               "{data.raw_citation_text}"
             </p>
           </div>
@@ -223,19 +227,19 @@ function renderTopologyNode(data: any) {
   return (
     <div className="space-y-3">
       {/* Node Identity */}
-      <div className="rounded border border-amber-500/30 bg-amber-500/10 p-2.5 space-y-1.5">
-        <span className="text-[10px] font-bold text-amber-300 uppercase tracking-wider">
+      <div className="rounded border border-amber-500/30 bg-amber-50 dark:bg-amber-500/10 p-2.5 space-y-1.5">
+        <span className="text-[10px] font-bold text-amber-700 dark:text-amber-300 uppercase tracking-wider">
           Linked Entity
         </span>
-        <p className="text-xs font-bold text-white">{data.label || data.entity_value || 'Unknown'}</p>
+        <p className="text-xs font-bold text-slate-900 dark:text-white">{data.label || data.entity_value || 'Unknown'}</p>
       </div>
 
       {/* Match Confidence */}
       {data.similarity_match && (
         <div className="space-y-1">
           <SectionLabel label="Match Confidence" />
-          <div className="rounded border border-emerald-500/30 bg-emerald-500/10 p-2.5">
-            <p className="text-[11px] font-mono font-bold text-emerald-300">{data.similarity_match}</p>
+          <div className="rounded border border-emerald-500/30 bg-emerald-50 dark:bg-emerald-500/10 p-2.5">
+            <p className="text-[11px] font-mono font-bold text-emerald-800 dark:text-emerald-300">{data.similarity_match}</p>
           </div>
         </div>
       )}
@@ -244,8 +248,8 @@ function renderTopologyNode(data: any) {
       {data.linked_fir && (
         <div className="space-y-1">
           <SectionLabel label="Linked FIR" />
-          <div className="rounded border border-rose-500/30 bg-rose-500/10 p-2.5">
-            <p className="text-[11px] font-mono font-bold text-rose-200">{data.linked_fir}</p>
+          <div className="rounded border border-rose-500/30 bg-rose-50 dark:bg-rose-500/10 p-2.5">
+            <p className="text-[11px] font-mono font-bold text-rose-800 dark:text-rose-200">{data.linked_fir}</p>
           </div>
         </div>
       )}
@@ -254,10 +258,10 @@ function renderTopologyNode(data: any) {
       {data.action_recommended && (
         <div className="space-y-1">
           <SectionLabel label="Recommended Action" />
-          <div className="rounded border border-blue-500/30 bg-blue-500/10 p-2.5">
+          <div className="rounded border border-blue-500/30 bg-blue-50 dark:bg-blue-500/10 p-2.5">
             <div className="flex items-start gap-1.5">
-              <ArrowRight className="h-3 w-3 text-blue-400 shrink-0 mt-0.5" />
-              <p className="text-[11px] text-blue-200 leading-relaxed">{data.action_recommended}</p>
+              <ArrowRight className="h-3 w-3 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" />
+              <p className="text-[11px] text-blue-800 dark:text-blue-200 leading-relaxed">{data.action_recommended}</p>
             </div>
           </div>
         </div>
@@ -270,31 +274,34 @@ function renderLinkageNode(data: any) {
   const entityIcons: Record<string, typeof Phone> = {
     phone: Phone, vpa: CreditCard, bank_account: Building, manual: Target
   };
-  const entityColors: Record<string, string> = {
-    phone: 'cyan', vpa: 'amber', bank_account: 'indigo', manual: 'violet'
+  const entityStyles: Record<string, { border: string; bg: string; text: string }> = {
+    phone: { border: 'border-cyan-500/30', bg: 'bg-cyan-50 dark:bg-cyan-500/10', text: 'text-cyan-700 dark:text-cyan-300' },
+    vpa: { border: 'border-amber-500/30', bg: 'bg-amber-50 dark:bg-amber-500/10', text: 'text-amber-700 dark:text-amber-300' },
+    bank_account: { border: 'border-indigo-500/30', bg: 'bg-indigo-50 dark:bg-indigo-500/10', text: 'text-indigo-700 dark:text-indigo-300' },
+    manual: { border: 'border-violet-500/30', bg: 'bg-violet-50 dark:bg-violet-500/10', text: 'text-violet-700 dark:text-violet-300' }
   };
   const Icon = entityIcons[data.entity_type] || Network;
-  const color = entityColors[data.entity_type] || 'blue';
+  const style = entityStyles[data.entity_type] || { border: 'border-blue-500/30', bg: 'bg-blue-50 dark:bg-blue-500/10', text: 'text-blue-700 dark:text-blue-300' };
 
   return (
     <div className="space-y-3">
       {/* Entity Header */}
-      <div className={`rounded border border-${color}-500/30 bg-${color}-500/10 p-2.5 space-y-1.5`}>
+      <div className={`rounded border ${style.border} ${style.bg} p-2.5 space-y-1.5`}>
         <div className="flex items-center justify-between">
-          <span className={`text-[10px] font-bold text-${color}-300 uppercase tracking-wider flex items-center gap-1`}>
+          <span className={`text-[10px] font-bold ${style.text} uppercase tracking-wider flex items-center gap-1`}>
             <Icon className="h-3 w-3" /> {data.entity_type?.replace('_', ' ') || 'Entity'}
           </span>
           {data.confidence != null && <ConfidenceBadge confidence={data.confidence} />}
         </div>
-        <p className="text-xs font-mono font-bold text-white">{data.entity_value}</p>
+        <p className="text-xs font-mono font-bold text-slate-900 dark:text-white">{data.entity_value}</p>
       </div>
 
       {/* Match Type */}
       {data.match_type && (
         <div className="space-y-1">
           <SectionLabel label="Match Classification" />
-          <div className="rounded border border-white/10 bg-[#050811] p-2">
-            <span className="text-[11px] font-mono font-bold text-emerald-300">{data.match_type}</span>
+          <div className="rounded border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-[#050811] p-2">
+            <span className="text-[11px] font-mono font-bold text-emerald-700 dark:text-emerald-300">{data.match_type}</span>
           </div>
         </div>
       )}
@@ -303,23 +310,23 @@ function renderLinkageNode(data: any) {
       {(data.matched_case || data.matched_fir) && (
         <div className="space-y-1">
           <SectionLabel label="Linked Case" />
-          <div className="rounded border border-rose-500/30 bg-rose-500/10 p-2.5 space-y-1">
+          <div className="rounded border border-rose-500/30 bg-rose-50 dark:bg-rose-500/10 p-2.5 space-y-1">
             {data.matched_case && (
               <div className="flex items-center justify-between text-[11px]">
-                <span className="text-slate-400">Case No.</span>
-                <span className="font-mono font-bold text-rose-200">{data.matched_case}</span>
+                <span className="text-slate-500 dark:text-slate-400">Case No.</span>
+                <span className="font-mono font-bold text-rose-700 dark:text-rose-200">{data.matched_case}</span>
               </div>
             )}
             {data.matched_fir && (
               <div className="flex items-center justify-between text-[11px]">
-                <span className="text-slate-400">FIR No.</span>
-                <span className="font-mono font-bold text-rose-200">{data.matched_fir}</span>
+                <span className="text-slate-500 dark:text-slate-400">FIR No.</span>
+                <span className="font-mono font-bold text-rose-700 dark:text-rose-200">{data.matched_fir}</span>
               </div>
             )}
             {data.police_station && (
               <div className="flex items-center justify-between text-[11px]">
-                <span className="text-slate-400">Station</span>
-                <span className="font-semibold text-white text-[10px]">{data.police_station}</span>
+                <span className="text-slate-500 dark:text-slate-400">Station</span>
+                <span className="font-semibold text-slate-900 dark:text-white text-[10px]">{data.police_station}</span>
               </div>
             )}
           </div>
@@ -330,7 +337,7 @@ function renderLinkageNode(data: any) {
       {data.description && (
         <div className="space-y-1">
           <SectionLabel label="Intelligence Summary" />
-          <p className="rounded border border-white/10 bg-[#050811] p-2 text-[11px] text-slate-300 leading-relaxed">
+          <p className="rounded border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-[#050811] p-2 text-[11px] text-slate-700 dark:text-slate-300 leading-relaxed">
             {data.description}
           </p>
         </div>
@@ -340,10 +347,10 @@ function renderLinkageNode(data: any) {
       {data.recommended_action && (
         <div className="space-y-1">
           <SectionLabel label="Recommended Action" />
-          <div className="rounded border border-blue-500/30 bg-blue-500/10 p-2.5">
+          <div className="rounded border border-blue-500/30 bg-blue-50 dark:bg-blue-500/10 p-2.5">
             <div className="flex items-start gap-1.5">
-              <ArrowRight className="h-3 w-3 text-blue-400 shrink-0 mt-0.5" />
-              <p className="text-[11px] text-blue-200 leading-relaxed">{data.recommended_action}</p>
+              <ArrowRight className="h-3 w-3 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" />
+              <p className="text-[11px] text-blue-800 dark:text-blue-200 leading-relaxed">{data.recommended_action}</p>
             </div>
           </div>
         </div>
@@ -391,7 +398,7 @@ export default function InspectorDrawer() {
   const { activeCase, selectedInspectorItem } = useCaseStore();
 
   return (
-    <aside className="w-80 h-full border-l border-slate-200 dark:border-white/10 bg-white dark:bg-[#0d1322] text-slate-900 dark:text-slate-100 flex flex-col shrink-0 select-none overflow-hidden shadow-sm">
+    <aside className="w-80 h-full border-l border-slate-200 dark:border-white/10 bg-white dark:bg-[#0d1322] text-slate-900 dark:text-slate-100 flex flex-col shrink-0 overflow-hidden shadow-sm">
       
       {/* Header */}
       <div className="h-10 border-b border-slate-200 dark:border-white/10 px-3 flex items-center justify-between bg-slate-50 dark:bg-[#080d1a] shrink-0">

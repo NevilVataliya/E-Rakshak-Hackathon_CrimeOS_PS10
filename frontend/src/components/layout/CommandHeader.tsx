@@ -113,16 +113,16 @@ export default function CommandHeader() {
               <div className="flex h-5 w-5 items-center justify-center rounded-full bg-amber-500 text-[10px] font-bold text-slate-950 font-mono">
                 {t('brand.io_label', 'IO')}
               </div>
-              <span className="text-xs font-bold truncate max-w-[130px]">{user?.full_name || 'PSI Inspector V. K. Patel'}</span>
+              <span className="text-xs font-bold truncate max-w-[130px]">{user?.full_name || 'PSI V. K. Patel'}</span>
               <ChevronDown className="h-3 w-3 text-slate-300" />
             </button>
 
             {dropdownOpen && (
               <div className="absolute right-0 mt-1.5 w-56 rounded border border-slate-200 dark:border-white/10 bg-white dark:bg-[#0d1322] p-2 shadow-xl text-slate-900 dark:text-slate-100 z-50">
                 <div className="px-2 py-1.5 border-b border-slate-100 dark:border-white/10 text-xs">
-                  <p className="font-bold text-slate-900 dark:text-white">{user?.full_name || 'PSI Inspector V. K. Patel'}</p>
+                  <p className="font-bold text-slate-900 dark:text-white">{user?.full_name || 'PSI V. K. Patel'}</p>
                   <p className="text-[10px] font-bold text-amber-600 dark:text-amber-400 font-mono mt-0.5">{user?.role || 'Investigating Officer (IO)'}</p>
-                  <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">{user?.police_station || 'Surat Cyber Crime Station'}</p>
+                  <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">{user?.police_station || 'Surat Cyber Crime Police Station'}</p>
                 </div>
                 <button
                   onClick={() => {

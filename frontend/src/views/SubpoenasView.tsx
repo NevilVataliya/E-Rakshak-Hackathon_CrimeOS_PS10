@@ -2,10 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Send,
-  FileText,
   Mail,
   CheckCircle,
-  Clock,
   FileCheck2,
   Loader2,
   Eye,
@@ -13,18 +11,14 @@ import {
   ArrowRight,
   Plus,
   ShieldCheck,
-  XCircle,
   AlertTriangle,
-  FileSpreadsheet,
   Cpu,
   RefreshCw,
   UserCheck,
   Bot,
-  Sliders,
   FolderPlus,
   ListChecks,
   AlertCircle,
-  Key,
   Settings,
   X
 } from 'lucide-react';
@@ -33,9 +27,6 @@ import PDFPreviewModal from '../components/common/PDFPreviewModal';
 import ModuleSummarizerModal from '../components/common/ModuleSummarizerModal';
 import { useCaseStore } from '../store/caseStore';
 import { useLangStore } from '../store/langStore';
-import { SubpoenaNotice } from '../types';
-
-import DynamicVisualizer from '../components/common/DynamicVisualizer';
 
 export interface DirectiveItem {
   id: string;
@@ -393,7 +384,7 @@ export default function SubpoenasView() {
     const caseRef = autoCaseNumber || activeCase?.case_number || 'CR-2026-XXXX';
     const trackingToken = `[CrimeOS-REF: ${caseRef}]`;
     const subject = `URGENT STATUTORY DIRECTIVE: ${obj} - Target ${tgtId} [Case: ${caseRef}] ${trackingToken}`;
-    const body = `To,\nThe Nodal Officer / Fraud Control & Operations\n${finalEntityName}\n\nSTATUTORY DIRECTIVE UNDER ${statuteRef.toUpperCase()}\n\nCase FIR / Ref: ${caseRef}\nTarget Identifier: ${tgtId || 'N/A'}\nDomain Category: ${domain.toUpperCase()}\n\nWHEREAS an active police investigation is underway regarding ${obj},\nyou are hereby directed to take immediate statutory action for target identifier ${tgtId}.\n\nPlease acknowledge receipt and submit compliance documentation to the undersigned unit.\n\nInvestigating Officer: PSI Inspector V. K. Patel\nSurat Cyber Crime Police Station\nEmail: officer.cyber@police.gov.in`;
+    const body = `To,\nThe Nodal Officer / Fraud Control & Operations\n${finalEntityName}\n\nSTATUTORY DIRECTIVE UNDER ${statuteRef.toUpperCase()}\n\nCase FIR / Ref: ${caseRef}\nTarget Identifier: ${tgtId || 'N/A'}\nDomain Category: ${domain.toUpperCase()}\n\nWHEREAS an active police investigation is underway regarding ${obj},\nyou are hereby directed to take immediate statutory action for target identifier ${tgtId}.\n\nPlease acknowledge receipt and submit compliance documentation to the undersigned unit.\n\nInvestigating Officer: PSI V. K. Patel\nSurat Cyber Crime Police Station\nEmail: officer.cyber@police.gov.in`;
 
     const resObj = {
       template_id: selectedTmplId,
@@ -632,7 +623,7 @@ export default function SubpoenasView() {
   const handleCheckInbox = async () => {
     const creds = getSmtpCredsPayload();
     const res = await checkInboxForReplies(activeCaseRef, creds);
-    setToastMsg(`Checked inbox! Fetched & classified ${res?.replies_count || 0} authority replies via Groq LLM.`);
+    setToastMsg(`Checked inbox! Fetched & classified ${res?.replies_count || 0} authority replies via AI Analysis.`);
     setTimeout(() => setToastMsg(''), 5000);
   };
 
@@ -705,7 +696,6 @@ export default function SubpoenasView() {
 
       const replyObj = res?.reply;
       const isComplete = replyObj?.is_complete;
-      const providerUsed = replyObj?.llm_provider || 'Groq AI';
 
       // Update directive status in checklist
       setDirectives((prev) => {
@@ -719,9 +709,9 @@ export default function SubpoenasView() {
       });
 
       if (isComplete) {
-        setToastMsg(`[${providerUsed}] Reply Classified as CASE_COMPLETE (Full Compliance). Marked complete — no followback email needed.`);
+        setToastMsg(`Reply Classified as CASE_COMPLETE (Full Compliance). Marked complete — no followback email needed.`);
       } else {
-        setToastMsg(`[${providerUsed}] Reply Classified as ${replyObj?.classification || 'PARTIAL'}. Generated contextual followback draft for human review.`);
+        setToastMsg(`Reply Classified as ${replyObj?.classification || 'PARTIAL'}. Generated contextual followback draft for human review.`);
       }
       setSimModalOpen(false);
       setActiveTab('email_response');
@@ -734,11 +724,10 @@ export default function SubpoenasView() {
   };
 
 
-  const activeSubpoenasList = (investigationData as any)?.legal_requests || (activeCase as any)?.legal_requests || storeLegalRequests;
   const missingFieldsList = getMissingFields();
 
   return (
-    <div className="flex-1 flex flex-col p-4 overflow-hidden gap-3 select-none bg-[#F8FAFC] dark:bg-[#050811]">
+    <div className="flex-1 flex flex-col p-4 overflow-hidden gap-3 bg-[#F8FAFC] dark:bg-[#050811]">
 
       {/* Top Header */}
       <div className="flex items-center justify-between border-b border-slate-200 dark:border-white/10 pb-3 shrink-0">
@@ -755,10 +744,10 @@ export default function SubpoenasView() {
         <div className="flex items-center gap-2">
           <button
             onClick={() => setSummarizerOpen(true)}
-            className="flex items-center gap-1.5 rounded border border-blue-500/40 bg-blue-500/10 px-3 py-1.5 text-xs font-bold text-cyan-700 dark:text-cyan-300 hover:bg-blue-500/20 transition-colors shadow-sm"
+            className="flex items-center gap-1.5 rounded-lg border border-amber-500 dark:border-amber-500/40 bg-amber-400 dark:bg-amber-500/20 px-3 py-1.5 text-xs font-bold text-slate-950 dark:text-amber-300 hover:bg-amber-500 dark:hover:bg-amber-500/30 transition-colors shadow-sm cursor-pointer"
           >
-            <Sparkles className="h-3.5 w-3.5 text-cyan-600 dark:text-cyan-400" />
-            <span>AI Module Summary</span>
+            <Sparkles className="h-3.5 w-3.5 text-slate-950 dark:text-amber-300" />
+            <span>{t('nav.summary', 'AI Module Summary')}</span>
           </button>
 
           <button
@@ -787,10 +776,10 @@ export default function SubpoenasView() {
 
           <button
             onClick={() => navigate('/analytics')}
-            className="flex items-center gap-1.5 rounded bg-blue-600 px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-blue-500 transition-colors shadow-sm"
+            className="flex items-center gap-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white px-3.5 py-1.5 text-xs font-bold shadow-md hover:shadow-lg transition-all cursor-pointer"
           >
-            <span>{t('stepper.analytics', 'Module 5: Response Analytics')}</span>
-            <ArrowRight className="h-4 w-4" />
+            <span>{t('subpoenas.proceed_to_analytics', 'Proceed to Response Analytics')}</span>
+            <ArrowRight className="h-4 w-4 text-white" />
           </button>
         </div>
       </div>
@@ -910,16 +899,16 @@ export default function SubpoenasView() {
                         </div>
 
                           {isDispatched ? (
-                            <span className="rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-2 py-0.5 text-[10px] font-bold flex items-center gap-1">
-                              <CheckCircle className="h-3 w-3" /> DISPATCHED
+                            <span className="rounded bg-emerald-100 dark:bg-emerald-500/20 text-emerald-900 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-500/30 px-2 py-0.5 text-[10px] font-bold flex items-center gap-1">
+                              <CheckCircle className="h-3 w-3 text-emerald-600 dark:text-emerald-400" /> DISPATCHED
                             </span>
                           ) : isReady ? (
-                            <span className="rounded bg-blue-500/20 text-blue-300 border border-blue-500/30 px-2 py-0.5 text-[10px] font-bold flex items-center gap-1">
-                              <ShieldCheck className="h-3 w-3" /> READY TO SEND
+                            <span className="rounded bg-blue-100 dark:bg-blue-500/20 text-blue-900 dark:text-blue-300 border border-blue-300 dark:border-blue-500/30 px-2 py-0.5 text-[10px] font-bold flex items-center gap-1">
+                              <ShieldCheck className="h-3 w-3 text-blue-600 dark:text-blue-400" /> READY TO SEND
                             </span>
                           ) : (
-                            <span className="rounded bg-rose-500/20 text-rose-300 border border-rose-500/30 px-2 py-0.5 text-[10px] font-bold flex items-center gap-1">
-                              <AlertCircle className="h-3 w-3" /> MISSING DETAILS
+                            <span className="rounded bg-rose-100 dark:bg-rose-500/20 text-rose-900 dark:text-rose-300 border border-rose-300 dark:border-rose-500/30 px-2 py-0.5 text-[10px] font-bold flex items-center gap-1">
+                              <AlertCircle className="h-3 w-3 text-rose-600 dark:text-rose-400" /> MISSING DETAILS
                             </span>
                           )}
                         </div>
@@ -958,25 +947,25 @@ export default function SubpoenasView() {
                     </h3>
                   </div>
 
-                  <span className="text-[10px] font-mono text-slate-400">
-                    Domain: <strong className="text-amber-300">{autoDomain.toUpperCase()}</strong>
+                  <span className="text-[10px] font-mono text-slate-500 dark:text-slate-400">
+                    Domain: <strong className="text-amber-700 dark:text-amber-300">{autoDomain.toUpperCase()}</strong>
                   </span>
                 </div>
 
                 {/* Missing Details Warning Banner (Strict NO-HARDCODED Fallback Rule) */}
                 {missingFieldsList.length > 0 && (
-                  <div className="p-3 rounded border border-rose-500/50 bg-rose-500/10 space-y-1.5 animate-fadeIn">
-                    <div className="flex items-center gap-2 text-rose-300 text-xs font-bold uppercase tracking-wider font-mono">
-                      <AlertTriangle className="h-4 w-4 text-rose-400 shrink-0" />
+                  <div className="p-3 rounded-lg border border-rose-300 dark:border-rose-500/40 bg-rose-50 dark:bg-rose-950/30 space-y-1.5 animate-fadeIn shadow-sm">
+                    <div className="flex items-center gap-2 text-rose-900 dark:text-rose-300 text-xs font-bold uppercase tracking-wider font-mono">
+                      <AlertTriangle className="h-4 w-4 text-rose-600 dark:text-rose-400 shrink-0" />
                       <span>REQUIRED DETAILS MISSING FOR STATUTORY TEMPLATE:</span>
                     </div>
-                    <p className="text-xs text-rose-200 leading-relaxed font-mono">
+                    <p className="text-xs text-rose-950 dark:text-rose-200 leading-relaxed font-mono">
                       Please enter the missing values below to enable statutory template rendering and real email dispatch:
                     </p>
                     <div className="flex flex-wrap gap-1.5 pt-1">
                       {missingFieldsList.map((field, i) => (
-                        <span key={i} className="rounded bg-rose-950 border border-rose-500/40 text-rose-300 px-2 py-0.5 text-[10px] font-mono font-bold flex items-center gap-1">
-                          <AlertCircle className="h-3 w-3 text-rose-400 shrink-0" />
+                        <span key={i} className="rounded bg-rose-100 dark:bg-rose-950 border border-rose-300 dark:border-rose-500/40 text-rose-900 dark:text-rose-300 px-2 py-0.5 text-[10px] font-mono font-bold flex items-center gap-1">
+                          <AlertCircle className="h-3 w-3 text-rose-600 dark:text-rose-400 shrink-0" />
                           <span>{field}</span>
                         </span>
                       ))}
@@ -1101,18 +1090,18 @@ export default function SubpoenasView() {
                 )}
 
                 {/* Action Buttons for Active Directive */}
-                <div className="pt-2 flex items-center justify-between border-t border-white/10">
-                  <span className="text-xs text-slate-400 flex items-center gap-1.5 font-mono">
-                    <ShieldCheck className="h-4 w-4 text-emerald-400" />
-                    <span>Tracking Token: <strong>[CrimeOS-REF: {autoCaseNumber || activeCase?.case_number}]</strong></span>
+                <div className="pt-2 flex items-center justify-between border-t border-slate-200 dark:border-white/10">
+                  <span className="text-xs text-slate-600 dark:text-slate-400 flex items-center gap-1.5 font-mono">
+                    <ShieldCheck className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                    <span>Tracking Token: <strong className="text-slate-900 dark:text-white">[CrimeOS-REF: {autoCaseNumber || activeCase?.case_number}]</strong></span>
                   </span>
 
                   <div className="flex items-center gap-2">
                     <button
                       onClick={() => handlePreview(`/api/requests/download/Notice_Section_94_BNSS_${autoCaseNumber}.pdf`)}
-                      className="px-3 py-2 rounded bg-blue-600/20 border border-blue-500/30 text-blue-300 text-xs font-semibold hover:bg-blue-600/30 transition-colors flex items-center gap-1.5"
+                      className="px-3 py-2 rounded-lg bg-blue-50 dark:bg-blue-600/20 border border-blue-300 dark:border-blue-500/30 text-blue-900 dark:text-blue-300 text-xs font-semibold hover:bg-blue-100 dark:hover:bg-blue-600/30 transition-colors flex items-center gap-1.5 shadow-sm"
                     >
-                      <Eye className="h-3.5 w-3.5" />
+                      <Eye className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
                       <span>PDF Notice</span>
                     </button>
 
@@ -1165,7 +1154,7 @@ export default function SubpoenasView() {
             </div>
 
             <p className="text-[11px] text-slate-600 dark:text-slate-400 mb-3 shrink-0">
-              Groq LLM automatically parses email replies for FIR <strong className="text-amber-700 dark:text-amber-400">{activeCaseRef}</strong>, classifies data completeness, and drafts followback emails for human officer review & SMTP dispatch.
+              AI Legal Engine automatically parses email replies for FIR <strong className="text-amber-700 dark:text-amber-400">{activeCaseRef}</strong>, classifies data completeness, and drafts followback emails for human officer review & SMTP dispatch.
             </p>
 
             <div className="flex-1 overflow-y-auto space-y-2 pr-1 min-h-0">
@@ -1174,7 +1163,7 @@ export default function SubpoenasView() {
                   <UserCheck className="h-8 w-8 text-amber-600 dark:text-amber-400 opacity-80 mx-auto mb-1" />
                   <p className="font-bold text-slate-900 dark:text-white uppercase tracking-wider">No Replies Ingested for Case {activeCaseRef}</p>
                   <p className="text-[11px] text-slate-600 dark:text-slate-400 max-w-sm mx-auto leading-relaxed">
-                    Click <strong className="text-amber-700 dark:text-amber-400">"Check Inbox for Replies"</strong> above or <strong className="text-purple-700 dark:text-purple-400">"Test Response Ingestion"</strong> to test Groq LLM email classification.
+                    Click <strong className="text-amber-700 dark:text-amber-400">"Check Inbox for Replies"</strong> above or <strong className="text-purple-700 dark:text-purple-400">"Test Response Ingestion"</strong> to test sovereign email classification.
                   </p>
                 </div>
               ) : (
@@ -1194,11 +1183,9 @@ export default function SubpoenasView() {
                       <div className="flex items-center justify-between mb-1.5">
                         <span className="font-mono text-xs font-bold text-amber-800 dark:text-amber-400 flex items-center gap-1.5">
                           {item.id}
-                          {item.llm_provider && (
-                            <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-purple-100 dark:bg-purple-500/20 text-purple-800 dark:text-purple-300 border border-purple-300 dark:border-purple-500/30">
-                              {item.llm_provider}
-                            </span>
-                          )}
+                          <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-purple-100 dark:bg-purple-500/20 text-purple-800 dark:text-purple-300 border border-purple-300 dark:border-purple-500/30">
+                            AI Analyzed
+                          </span>
                         </span>
 
                         {isComp ? (
@@ -1244,11 +1231,9 @@ export default function SubpoenasView() {
                   <div>
                     <div className="flex items-center gap-2">
                       <span className="text-xs font-bold text-amber-700 dark:text-amber-400 font-mono uppercase">{selectedReply.id}</span>
-                      {selectedReply.llm_provider && (
-                        <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-purple-100 dark:bg-purple-500/20 text-purple-800 dark:text-purple-300 border border-purple-300 dark:border-purple-500/30">
-                          {selectedReply.llm_provider}
-                        </span>
-                      )}
+                      <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-purple-100 dark:bg-purple-500/20 text-purple-800 dark:text-purple-300 border border-purple-300 dark:border-purple-500/30">
+                        AI Verified
+                      </span>
                     </div>
                     <h3 className="text-xs font-extrabold text-slate-900 dark:text-white">Email Reply Analysis & Followback Studio</h3>
                   </div>
@@ -1357,7 +1342,7 @@ export default function SubpoenasView() {
                   <div className="pt-2.5 border-t border-slate-200 dark:border-white/10 flex items-center justify-between shrink-0 bg-white dark:bg-[#0d1322]">
                     <span className="text-[11px] text-slate-500 font-mono flex items-center gap-1.5">
                       <ShieldCheck className="h-3.5 w-3.5 text-emerald-500" />
-                      <span>Authorized Officer: <strong>PSI Inspector V. K. Patel</strong></span>
+                      <span>Authorized Officer: <strong>PSI V. K. Patel</strong></span>
                     </span>
 
                     <button

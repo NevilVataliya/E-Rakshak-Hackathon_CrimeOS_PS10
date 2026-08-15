@@ -1,5 +1,6 @@
 import React from 'react';
 import { X, Download, FileText, ShieldCheck } from 'lucide-react';
+import api from '../../services/api';
 
 interface PDFPreviewModalProps {
   open: boolean;
@@ -10,6 +11,8 @@ interface PDFPreviewModalProps {
 
 export default function PDFPreviewModal({ open, onClose, pdfUrl, title = 'Section 94 BNSS Legal Notice' }: PDFPreviewModalProps) {
   if (!open) return null;
+
+  const downloadUrl = pdfUrl.startsWith('http') ? pdfUrl : `${api.defaults.baseURL || ''}${pdfUrl}`;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 dark:bg-slate-950/80 backdrop-blur-md transition-all">
@@ -25,7 +28,7 @@ export default function PDFPreviewModal({ open, onClose, pdfUrl, title = 'Sectio
 
           <button
             onClick={onClose}
-            className="rounded p-1 text-slate-400 hover:bg-slate-800 hover:text-white transition-colors"
+            className="rounded p-1 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white transition-colors"
           >
             <X className="h-4 w-4" />
           </button>
@@ -39,7 +42,7 @@ export default function PDFPreviewModal({ open, onClose, pdfUrl, title = 'Sectio
 
           <div>
             <h3 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">
-              Official ReportLab Statutory PDF Rendered
+              Official Statutory Legal Notice PDF (BNSS Grounded)
             </h3>
             <p className="text-[11px] text-slate-600 dark:text-slate-400 mt-1">
               Formatted under Section 94 BNSS, 2023 with digital seal of Station House Officer.
@@ -47,7 +50,7 @@ export default function PDFPreviewModal({ open, onClose, pdfUrl, title = 'Sectio
           </div>
 
           <a
-            href={`http://localhost:4000${pdfUrl}`}
+            href={downloadUrl}
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-2 rounded bg-emerald-600 px-4 py-2 text-xs font-bold text-white hover:bg-emerald-500 transition-colors shadow-sm"

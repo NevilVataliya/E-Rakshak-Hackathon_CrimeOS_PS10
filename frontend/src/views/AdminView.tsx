@@ -1,5 +1,5 @@
 import React from 'react';
-import { ShieldCheck, History, Key } from 'lucide-react';
+import { History, Key } from 'lucide-react';
 import { useCaseStore } from '../store/caseStore';
 import { useAuthStore } from '../store/authStore';
 
@@ -11,7 +11,7 @@ export default function AdminView() {
     { role: 'IO (Investigating Officer)', perm: 'Ingest complaints, Run Agent Studio, Generate Legal Requests', count: 18 },
     { role: 'SHO (Station House Officer)', perm: 'Approve & Dispatch Legal Requests, View Station Audit Logs', count: 4 },
     { role: 'Legal Advisor', perm: 'Review BNS/BSA grounding, Validate Section 94 notices', count: 2 },
-    { role: 'System Admin', perm: 'Full RBAC, Vector store re-indexing, System Configuration', count: 1 }
+    { role: 'System Admin', perm: 'Full RBAC, Intelligence Index Synchronization, System Configuration', count: 1 }
   ];
 
   // Dynamically compile audit logs from real case timeline events across active cases
@@ -39,11 +39,11 @@ export default function AdminView() {
   });
 
   const auditLogs = dynamicLogs.length > 0 ? dynamicLogs.slice(0, 15) : [
-    { time: new Date().toLocaleTimeString('en-US', { hour12: false }), user: `${user?.full_name || 'PSI Inspector'} (IO)`, action: 'SYSTEM_AUDIT_LEDGER_INITIALIZED', case_no: activeCase?.case_number || 'CR-2026-ACTIVE' }
+    { time: new Date().toLocaleTimeString('en-US', { hour12: false }), user: `${user?.full_name || 'PSI V. K. Patel'} (IO)`, action: 'SYSTEM_AUDIT_LEDGER_INITIALIZED', case_no: activeCase?.case_number || 'CR-2026-ACTIVE' }
   ];
 
   return (
-    <div className="flex-1 flex flex-col p-4 overflow-hidden gap-3 select-none bg-[#F8FAFC] dark:bg-[#050811]">
+    <div className="flex-1 flex flex-col p-4 overflow-hidden gap-3 bg-[#F8FAFC] dark:bg-[#050811]">
       
       {/* Header */}
       <div className="flex items-center justify-between border-b border-slate-200 dark:border-white/10 pb-3 shrink-0">

@@ -35,7 +35,7 @@ function ProtectedLayout() {
   }
 
   return (
-    <div className="h-screen w-screen bg-[#F8FAFC] dark:bg-[#050811] text-slate-900 dark:text-slate-100 flex flex-col font-sans overflow-hidden select-none">
+    <div className="h-screen w-screen bg-[#F8FAFC] dark:bg-[#050811] text-slate-900 dark:text-slate-100 flex flex-col font-sans overflow-hidden">
       <CommandHeader />
       {location.pathname !== '/' && <TacticalStepperHeader />}
       <div className="flex flex-1 overflow-hidden">

@@ -22,7 +22,7 @@ export default function LoginView() {
   };
 
   return (
-    <div className="h-screen w-screen flex flex-col items-center justify-center bg-slate-100 dark:bg-[#050811] p-4 select-none relative">
+    <div className="h-screen w-screen flex flex-col items-center justify-center bg-slate-100 dark:bg-[#050811] p-4 relative">
       
       {/* Top Floating Language Switcher */}
       <div className="absolute top-4 right-4 z-50">
@@ -82,10 +82,10 @@ export default function LoginView() {
                 onChange={(e) => setUsername(e.target.value)}
                 className="h-10 w-full rounded border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-[#050811] px-3 text-xs font-semibold text-slate-900 dark:text-slate-100 focus:bg-white dark:focus:bg-[#080d1a] focus:border-amber-500 outline-none"
               >
-                <option value="io_patel" className="bg-white dark:bg-[#0d1322]">PSI Inspector V. K. Patel (Investigating Officer)</option>
-                <option value="sho_sharma" className="bg-white dark:bg-[#0d1322]">PI Senior Inspector R. S. Sharma (Station House Officer)</option>
+                <option value="io_patel" className="bg-white dark:bg-[#0d1322]">PSI V. K. Patel (Investigating Officer)</option>
+                <option value="sho_sharma" className="bg-white dark:bg-[#0d1322]">PI R. S. Sharma (Station House Officer)</option>
                 <option value="legal_desai" className="bg-white dark:bg-[#0d1322]">Adv. A. M. Desai (State CID Legal Advisor)</option>
-                <option value="admin_crimeos" className="bg-white dark:bg-[#0d1322]">System Administrator (State Cyber Command)</option>
+                <option value="admin_crimeos" className="bg-white dark:bg-[#0d1322]">System Administrator (Surat Cyber Command)</option>
               </select>
             </div>
 

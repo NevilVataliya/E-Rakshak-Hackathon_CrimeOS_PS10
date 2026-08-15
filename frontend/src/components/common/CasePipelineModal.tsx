@@ -7,7 +7,6 @@ import {
   Bot,
   Send,
   BarChart3,
-  FileCheck2,
   CheckCircle2,
   ArrowRight,
   ShieldCheck,
@@ -63,7 +62,7 @@ export default function CasePipelineModal({ open, onClose, policeCase }: CasePip
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 dark:bg-black/80 backdrop-blur-sm p-4 overflow-y-auto select-none">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 dark:bg-black/80 backdrop-blur-sm p-4 overflow-y-auto">
       <div className="relative w-full max-w-3xl rounded-xl border border-slate-300 dark:border-white/10 bg-white dark:bg-[#0d1322] text-slate-900 dark:text-slate-100 shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
         
         {/* Modal Header */}
@@ -85,10 +84,10 @@ export default function CasePipelineModal({ open, onClose, policeCase }: CasePip
             </h2>
             <div className="flex items-center gap-4 text-[11px] text-slate-300 font-sans">
               <span className="flex items-center gap-1">
-                <User className="h-3 w-3 text-slate-500" /> {policeCase.assigned_io}
+                <User className="h-3 w-3 text-slate-400" /> {policeCase.assigned_io}
               </span>
               <span className="flex items-center gap-1">
-                <MapPin className="h-3 w-3 text-slate-500" /> {policeCase.police_station}
+                <MapPin className="h-3 w-3 text-slate-400" /> {policeCase.police_station}
               </span>
             </div>
           </div>
@@ -103,8 +102,8 @@ export default function CasePipelineModal({ open, onClose, policeCase }: CasePip
 
         {/* Modal Content - Pipeline Steps List */}
         <div className="flex-1 overflow-y-auto p-4 space-y-3">
-          <p className="text-xs text-slate-400 mb-2">
-            Select an investigation pipeline step below for case <code className="text-blue-300 font-mono">{policeCase.case_number}</code>. Steps must be completed sequentially:
+          <p className="text-xs text-slate-600 dark:text-slate-400 mb-2">
+            Select an investigation pipeline step below for case <code className="text-blue-600 dark:text-blue-300 font-mono font-bold">{policeCase.case_number}</code>. Steps must be completed sequentially:
           </p>
 
           <div className="space-y-2.5">
@@ -120,24 +119,24 @@ export default function CasePipelineModal({ open, onClose, policeCase }: CasePip
                   key={item.id}
                   className={`rounded-xl border p-3 flex items-center justify-between transition-all ${
                     isCompleted
-                      ? 'border-emerald-500/30 bg-emerald-500/5 hover:border-emerald-500/50'
+                      ? 'border-emerald-500/30 bg-emerald-50 dark:bg-emerald-500/5 hover:border-emerald-500/50'
                       : isUnlocked
-                      ? 'border-blue-500/40 bg-blue-500/10 hover:border-blue-400'
-                      : 'border-white/5 bg-[#050811] opacity-60'
+                      ? 'border-blue-500/40 bg-blue-50 dark:bg-blue-500/10 hover:border-blue-400'
+                      : 'border-slate-200 dark:border-white/5 bg-slate-50 dark:bg-[#050811] opacity-70'
                   }`}
                 >
                   <div className="flex items-start gap-3 flex-1 min-w-0 pr-3">
                     <span
                       className={`flex h-7 w-7 items-center justify-center rounded-lg text-xs font-bold font-mono shrink-0 ${
                         isCompleted
-                          ? 'bg-emerald-600/20 text-emerald-400 border border-emerald-500/40'
+                          ? 'bg-emerald-100 dark:bg-emerald-600/20 text-emerald-700 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-500/40'
                           : isUnlocked
-                          ? 'bg-blue-600/20 text-blue-400 border border-blue-500/40'
-                          : 'bg-slate-800/80 text-slate-500 border border-white/10'
+                          ? 'bg-blue-100 dark:bg-blue-600/20 text-blue-700 dark:text-blue-400 border border-blue-300 dark:border-blue-500/40'
+                          : 'bg-slate-200 dark:bg-slate-800/80 text-slate-500 border border-slate-300 dark:border-white/10'
                       }`}
                     >
                       {isCompleted ? (
-                        <CheckCircle2 className="h-4 w-4 text-emerald-400" />
+                        <CheckCircle2 className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
                       ) : isLocked ? (
                         <Lock className="h-3.5 w-3.5 text-slate-500" />
                       ) : (
@@ -147,29 +146,29 @@ export default function CasePipelineModal({ open, onClose, policeCase }: CasePip
 
                     <div className="space-y-0.5 flex-1 min-w-0">
                       <div className="flex items-center gap-2">
-                        <Icon className={`h-4 w-4 shrink-0 ${isLocked ? 'text-slate-500' : 'text-blue-400'}`} />
-                        <h3 className={`text-xs font-bold truncate ${isLocked ? 'text-slate-400' : 'text-white'}`}>
+                        <Icon className={`h-4 w-4 shrink-0 ${isLocked ? 'text-slate-400' : 'text-blue-600 dark:text-blue-400'}`} />
+                        <h3 className={`text-xs font-bold truncate ${isLocked ? 'text-slate-500 dark:text-slate-400' : 'text-slate-900 dark:text-white'}`}>
                           {item.title}
                         </h3>
 
                         {isCompleted ? (
-                          <span className="text-[9px] font-mono font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 px-1.5 py-0.2 rounded shrink-0">
+                          <span className="text-[9px] font-mono font-bold text-emerald-800 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-500/10 border border-emerald-300 dark:border-emerald-500/30 px-1.5 py-0.2 rounded shrink-0">
                             Completed
                           </span>
                         ) : isUnlocked ? (
-                          <span className="text-[9px] font-mono font-bold text-blue-400 bg-blue-500/10 border border-blue-500/30 px-1.5 py-0.2 rounded shrink-0">
+                          <span className="text-[9px] font-mono font-bold text-blue-800 dark:text-blue-400 bg-blue-100 dark:bg-blue-500/10 border border-blue-300 dark:border-blue-500/30 px-1.5 py-0.2 rounded shrink-0">
                             Unlocked & Ready
                           </span>
                         ) : (
-                          <span className="text-[9px] font-mono font-bold text-slate-400 bg-slate-800/80 border border-white/10 px-1.5 py-0.2 rounded shrink-0 flex items-center gap-1">
+                          <span className="text-[9px] font-mono font-bold text-slate-600 dark:text-slate-400 bg-slate-200 dark:bg-slate-800/80 border border-slate-300 dark:border-white/10 px-1.5 py-0.2 rounded shrink-0 flex items-center gap-1">
                             <Lock className="h-2.5 w-2.5 text-slate-500" /> Locked (Complete Step {stepNum - 1} First)
                           </span>
                         )}
                       </div>
-                      <p className="text-[11px] text-slate-300 font-mono truncate">
+                      <p className="text-[11px] text-slate-600 dark:text-slate-300 font-mono truncate">
                         {item.subtitle}
                       </p>
-                      <p className="text-[10px] text-slate-400 leading-normal">
+                      <p className="text-[10px] text-slate-500 dark:text-slate-400 leading-normal">
                         {item.desc}
                       </p>
                     </div>
@@ -178,9 +177,9 @@ export default function CasePipelineModal({ open, onClose, policeCase }: CasePip
                   {isLocked ? (
                     <button
                       disabled
-                      className="flex items-center gap-1.5 rounded-lg bg-slate-800/80 border border-white/10 px-3 py-1.5 text-xs font-semibold text-slate-500 cursor-not-allowed opacity-60 shrink-0"
+                      className="flex items-center gap-1.5 rounded-lg bg-slate-100 dark:bg-slate-800/80 border border-slate-300 dark:border-white/10 px-3 py-1.5 text-xs font-semibold text-slate-400 dark:text-slate-500 cursor-not-allowed opacity-60 shrink-0"
                     >
-                      <Lock className="h-3.5 w-3.5 text-slate-500" />
+                      <Lock className="h-3.5 w-3.5 text-slate-400 dark:text-slate-500" />
                       <span>Locked</span>
                     </button>
                   ) : (

@@ -20,7 +20,6 @@ import PDFPreviewModal from '../components/common/PDFPreviewModal';
 import ModuleSummarizerModal from '../components/common/ModuleSummarizerModal';
 import { useCaseStore } from '../store/caseStore';
 import { GroundedSOPStep } from '../types';
-import TranslatedText from '../components/common/TranslatedText';
 
 export default function InvestigationView() {
   const { t } = useTranslation();
@@ -55,7 +54,7 @@ export default function InvestigationView() {
   };
 
   return (
-    <div className="flex-1 flex flex-col p-4 overflow-hidden gap-3 select-none bg-[#F8FAFC] dark:bg-[#050811]">
+    <div className="flex-1 flex flex-col p-4 overflow-hidden gap-3 bg-[#F8FAFC] dark:bg-[#050811]">
 
       {/* Header Bar */}
       <div className="flex items-center justify-between border-b border-slate-200 dark:border-white/10 pb-3 shrink-0">
@@ -71,27 +70,27 @@ export default function InvestigationView() {
         <div className="flex items-center gap-2">
           <button
             onClick={() => setSummarizerOpen(true)}
-            className="flex items-center gap-1.5 rounded border border-amber-500 bg-amber-500 px-3 py-1.5 text-xs font-bold text-slate-950 hover:bg-amber-600 transition-colors shadow-sm"
+            className="flex items-center gap-1.5 rounded-lg border border-amber-500 dark:border-amber-500/40 bg-amber-400 dark:bg-amber-500/20 px-3 py-1.5 text-xs font-bold text-slate-950 dark:text-amber-300 hover:bg-amber-500 dark:hover:bg-amber-500/30 transition-colors shadow-sm cursor-pointer"
           >
-            <Sparkles className="h-3.5 w-3.5" />
+            <Sparkles className="h-3.5 w-3.5 text-slate-950 dark:text-amber-300" />
             <span>{t('nav.summary', 'AI Module Summary')}</span>
           </button>
 
           <button
             onClick={handleRunAgentStudio}
             disabled={loading}
-            className="flex items-center gap-1.5 rounded border border-blue-300 bg-blue-50 px-3 py-1.5 text-xs font-bold text-blue-950 hover:bg-blue-100 transition-colors disabled:opacity-50 shadow-sm"
+            className="flex items-center gap-1.5 rounded bg-blue-600 px-3.5 py-1.5 text-xs font-bold text-white hover:bg-blue-500 transition-colors disabled:opacity-50 shadow-sm"
           >
-            {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
+            {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin text-white" /> : <Sparkles className="h-3.5 w-3.5 text-amber-300" />}
             <span>{steps.length > 0 ? t('investigation.btn_run_agents', 'Re-Generate Investigation Path') : t('investigation.btn_run_agents', 'Generate Investigation Path')}</span>
           </button>
 
           <button
             onClick={() => navigate('/subpoenas')}
-            className="flex items-center gap-1.5 rounded bg-[#0A2540] dark:bg-blue-600 px-3.5 py-1.5 text-xs font-bold text-white hover:bg-slate-800 dark:hover:bg-blue-500 transition-colors shadow-sm"
+            className="flex items-center gap-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white px-3.5 py-1.5 text-xs font-bold shadow-md hover:shadow-lg transition-all cursor-pointer"
           >
             <span>{t('investigation.proceed_to_subpoenas', 'Proceed to Subpoenas & Notices')}</span>
-            <ArrowRight className="h-3.5 w-3.5 text-amber-400" />
+            <ArrowRight className="h-4 w-4 text-white" />
           </button>
         </div>
       </div>

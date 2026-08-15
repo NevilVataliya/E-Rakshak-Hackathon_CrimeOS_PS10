@@ -133,10 +133,10 @@ export default function TacticalStepperHeader() {
       <div className="flex items-center gap-1.5 shrink-0">
         <button
           onClick={() => setGlobalSumOpen(true)}
-          className="flex items-center gap-1.5 rounded border border-amber-600 bg-amber-500 px-2.5 py-1 text-xs font-bold text-slate-950 hover:bg-amber-600 hover:text-white transition-all shadow-sm"
+          className="flex items-center gap-1.5 rounded-lg border border-amber-500 dark:border-amber-500/40 bg-amber-400 dark:bg-amber-500/20 px-2.5 py-1 text-xs font-bold text-slate-950 dark:text-amber-300 hover:bg-amber-500 dark:hover:bg-amber-500/30 transition-colors shadow-sm cursor-pointer"
           title={t('nav.summarize_all', 'Synthesize Master AI Executive Briefing across all completed modules')}
         >
-          <Sparkles className="h-3.5 w-3.5" />
+          <Sparkles className="h-3.5 w-3.5 text-slate-950 dark:text-amber-300" />
           <span className="hidden md:inline font-mono">{t('nav.summarize_all', 'Summarize All Modules')}</span>
           <span className="md:hidden font-mono">{t('nav.summary', 'Summary')}</span>
         </button>

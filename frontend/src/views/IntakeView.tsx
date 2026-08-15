@@ -26,14 +26,12 @@ import {
   Plus,
   Mail,
   User,
-  Users,
   MapPin,
   Calendar,
   Scale,
   Shield,
   CheckCircle2,
   Globe,
-  ExternalLink,
   Clock,
   ListChecks,
   DollarSign
@@ -42,7 +40,6 @@ import api from '../services/api';
 import ModuleSummarizerModal from '../components/common/ModuleSummarizerModal';
 import { useCaseStore } from '../store/caseStore';
 import { BankAccountEntity, AttachedFileMeta } from '../types';
-import TranslatedText from '../components/common/TranslatedText';
 
 export default function IntakeView() {
   const { t } = useTranslation();
@@ -226,6 +223,14 @@ export default function IntakeView() {
     }
   };
 
+  const handleClearForm = () => {
+    setRawText('');
+    setAttachedFiles([]);
+    setPersistedFiles([]);
+    setExtractedResult(null);
+    setErrorMessage(null);
+  };
+
   const [isRegisteringCase, setIsRegisteringCase] = useState(false);
 
   const handleCreateCase = async () => {
@@ -245,7 +250,7 @@ export default function IntakeView() {
   const totalFilesCount = persistedFiles.length;
 
   return (
-    <div className="flex-1 flex flex-col p-4 overflow-hidden gap-4 select-none bg-[#F8FAFC] dark:bg-[#050811]">
+    <div className="flex-1 flex flex-col p-4 overflow-hidden gap-4 bg-[#F8FAFC] dark:bg-[#050811]">
 
       {/* Header with Mode Status Badge */}
       <div className="flex items-center justify-between border-b border-slate-200 dark:border-white/10 pb-3 shrink-0">
@@ -272,65 +277,82 @@ export default function IntakeView() {
               ) : (
                 <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-300 dark:border-emerald-500/40 bg-emerald-50 dark:bg-emerald-500/10 px-2.5 py-0.5 text-[11px] font-bold text-emerald-900 dark:text-emerald-300 font-mono">
                   <Wifi className="h-3 w-3 text-emerald-700 dark:text-emerald-400" />
-                  HYBRID CLOUD MODE
+                  {t('common.online_hybrid', 'SOVEREIGN AGENT ACTIVE')}
                 </span>
               )
             )}
           </div>
           <p className="text-xs text-slate-600 dark:text-slate-400 mt-0.5">
-            {t('intake.subtitle', 'Submit complaints in Gujarati, Hindi, or English. Attach PDFs, Word documents (.docx), evidence images, or voice recordings.')}
+            {t('intake.subtitle', 'Multimodal complaint ingestion with automatic entity extraction, Gujarati/Hindi translation & audio ASR.')}
           </p>
         </div>
 
         <div className="flex items-center gap-2">
-          <button
-            onClick={() => {
-              startNewComplaint();
-              setRawText('');
-              setAttachedFiles([]);
-              setPersistedFiles([]);
-              setExtractedResult(null);
-              setErrorMessage(null);
-            }}
-            className="flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3.5 py-1.5 text-xs font-bold text-white hover:bg-emerald-500 transition-all shadow-md"
-          >
-            <Plus className="h-3.5 w-3.5" />
-            <span>{t('dashboard.create_case', 'Register New Complaint')}</span>
-          </button>
+          {activeCase && (
+            <button
+              onClick={() => {
+                startNewComplaint();
+                setRawText('');
+                setAttachedFiles([]);
+                setPersistedFiles([]);
+                setExtractedResult(null);
+                setErrorMessage(null);
+              }}
+              className="flex items-center gap-1.5 rounded border border-slate-300 dark:border-white/10 bg-white dark:bg-[#0d1322] px-3 py-1.5 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors shadow-sm"
+              title="Start a fresh complaint registration"
+            >
+              <Plus className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
+              <span>{t('dashboard.create_case', 'New Complaint')}</span>
+            </button>
+          )}
 
           <button
             onClick={() => setSummarizerOpen(true)}
-            className="flex items-center gap-1.5 rounded-lg border border-blue-500/40 bg-blue-500/10 px-3 py-1.5 text-xs font-bold text-cyan-300 hover:bg-blue-500/20 transition-all shadow-sm"
+            className="flex items-center gap-1.5 rounded-lg border border-amber-500 dark:border-amber-500/40 bg-amber-400 dark:bg-amber-500/20 px-3 py-1.5 text-xs font-bold text-slate-950 dark:text-amber-300 hover:bg-amber-500 dark:hover:bg-amber-500/30 transition-colors shadow-sm cursor-pointer"
           >
-            <Sparkles className="h-3.5 w-3.5 text-cyan-400" />
+            <Sparkles className="h-3.5 w-3.5 text-slate-950 dark:text-amber-300" />
             <span>{t('nav.summary', 'AI Module Summary')}</span>
           </button>
 
           <button
-            onClick={() => {
-              setRawText('');
-              setAttachedFiles([]);
-              setPersistedFiles([]);
-              setExtractedResult(null);
-              setErrorMessage(null);
-            }}
-            className="flex items-center gap-1 text-xs font-semibold text-slate-400 hover:text-rose-400 transition-colors"
+            onClick={handleClearForm}
+            className="flex items-center gap-1.5 rounded border border-slate-300 dark:border-white/10 bg-white dark:bg-[#0d1322] px-3 py-1.5 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors shadow-sm"
           >
-            <Trash2 className="h-3.5 w-3.5" /> {t('common.cancel', 'Clear Form')}
+            <RotateCcw className="h-3.5 w-3.5 text-rose-600 dark:text-rose-400" />
+            <span>{t('intake.btn_clear', 'Clear Form')}</span>
           </button>
+
+          <button
+            onClick={handleIngest}
+            disabled={loading || (!rawText.trim() && attachedFiles.length === 0 && persistedFiles.length === 0)}
+            className="flex items-center gap-1.5 rounded bg-blue-600 px-4 py-1.5 text-xs font-bold text-white hover:bg-blue-500 transition-colors disabled:opacity-50 shadow-md cursor-pointer"
+          >
+            {loading ? <Loader2 className="h-4 w-4 animate-spin text-white" /> : <Sparkles className="h-4 w-4 text-amber-300" />}
+            <span>{loading ? t('intake.processing_agent', 'Running Extraction...') : t('intake.btn_run_agent', 'Process & Ingest Complaint')}</span>
+          </button>
+
+          {activeCase && (
+            <button
+              onClick={() => navigate('/linkage')}
+              className="flex items-center gap-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white px-3.5 py-1.5 text-xs font-bold shadow-md hover:shadow-lg transition-all cursor-pointer"
+            >
+              <span>{t('intake.proceed_to_linkage', 'Proceed to Linkage Analysis')}</span>
+              <ArrowRight className="h-4 w-4 text-white" />
+            </button>
+          )}
         </div>
       </div>
 
       {/* Offline Mode Warning Banner */}
       {systemStatus?.offline_mode && (
-        <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-2.5 flex items-center justify-between text-xs text-amber-200 font-mono shrink-0">
+        <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-2.5 flex items-center justify-between text-xs text-amber-900 dark:text-amber-200 font-mono shrink-0">
           <div className="flex items-center gap-2">
-            <Cpu className="h-4 w-4 text-amber-400 shrink-0" />
+            <Cpu className="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0" />
             <span>
-              <strong>Offline Mode Active:</strong> Running local extraction engines (PyMuPDF, python-docx, Tesseract OCR, Faster-Whisper, & Heuristic Regex).
+              <strong>Offline Mode Active:</strong> Running local sovereign extraction engines (OCR, Audio ASR & Structured Entity Extraction).
             </span>
           </div>
-          <span className="text-[10px] text-amber-400/80">Bypassing Cloud LLMs</span>
+          <span className="text-[10px] text-amber-700 dark:text-amber-400/80 font-bold">Air-Gapped Sovereign Processing</span>
         </div>
       )}
 
@@ -646,11 +668,11 @@ export default function IntakeView() {
             <button
               onClick={handleCreateCase}
               disabled={isRegisteringCase}
-              className="flex w-full items-center justify-center gap-2 rounded-lg bg-emerald-600 p-2.5 text-xs font-bold text-white hover:bg-emerald-500 transition-colors shadow-md disabled:opacity-50"
+              className="flex w-full items-center justify-center gap-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white p-2.5 text-xs font-bold transition-all shadow-md hover:shadow-lg disabled:opacity-50 cursor-pointer"
             >
-              {isRegisteringCase ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-              <span>{isRegisteringCase ? 'Registering Case...' : 'Register Case & Proceed to Linkage Analysis'}</span>
-              {!isRegisteringCase && <ArrowRight className="h-4 w-4" />}
+              {isRegisteringCase ? <Loader2 className="h-4 w-4 animate-spin text-white" /> : null}
+              <span>{isRegisteringCase ? t('intake.registering', 'Registering Case...') : t('intake.proceed_to_linkage', 'Register Case & Proceed to Linkage Analysis')}</span>
+              {!isRegisteringCase && <ArrowRight className="h-4 w-4 text-white" />}
             </button>
           )}
         </div>

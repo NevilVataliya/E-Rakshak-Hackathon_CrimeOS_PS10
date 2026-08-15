@@ -15,27 +15,27 @@ interface AuthState {
 const mockUsers: Record<string, User> = {
   io_patel: {
     username: 'io_patel',
-    full_name: 'PSI Inspector V. K. Patel',
+    full_name: 'PSI V. K. Patel',
     role: 'IO',
-    police_station: 'Surat Cyber Crime HQ'
+    police_station: 'Surat Cyber Crime Police Station'
   },
   sho_sharma: {
     username: 'sho_sharma',
-    full_name: 'PI Senior Inspector R. S. Sharma',
+    full_name: 'PI R. S. Sharma',
     role: 'SHO',
-    police_station: 'Surat Cyber Crime HQ'
+    police_station: 'Surat Cyber Crime Police Station'
   },
   legal_desai: {
     username: 'legal_desai',
     full_name: 'Adv. A. M. Desai',
     role: 'LEGAL_ADVISOR',
-    police_station: 'State Legal Cell'
+    police_station: 'State Legal Advisory Cell'
   },
   admin_crimeos: {
     username: 'admin_crimeos',
     full_name: 'System Administrator',
     role: 'ADMIN',
-    police_station: 'State Cyber Command'
+    police_station: 'Surat Cyber Crime Police Station'
   }
 };
 
@@ -58,9 +58,9 @@ export const useAuthStore = create<AuthState>()(
         }
         const found = mockUsers[username] || {
           username,
-          full_name: 'PSI Inspector V. K. Patel',
+          full_name: 'PSI V. K. Patel',
           role: 'IO',
-          police_station: 'Surat Cyber Crime HQ'
+          police_station: 'Surat Cyber Crime Police Station'
         };
         set({ token: 'mock-jwt-token-io-patel', user: found, isAuthenticated: true });
       },

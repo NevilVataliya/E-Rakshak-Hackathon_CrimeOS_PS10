@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Layers, FileCheck2, AlertTriangle, Cpu, FileUp, ShieldCheck, ListTree, Activity, Zap, CheckCircle2, RotateCcw, Loader2 } from 'lucide-react';
+import { Layers, FileCheck2, AlertTriangle, Cpu, FileUp, ShieldCheck, ListTree, Activity, Zap, RotateCcw, Loader2 } from 'lucide-react';
 import { useCaseStore } from '../store/caseStore';
 import { PoliceCase } from '../types';
 import CasePipelineModal from '../components/common/CasePipelineModal';
@@ -51,8 +51,10 @@ export default function DashboardView() {
 
   const totalSerialMatches = linkageMatches?.length || 0;
 
+  const primaryAlertCase = cases[0] || activeCase;
+
   return (
-    <div className="flex-1 flex flex-col p-4 overflow-hidden gap-4 select-none bg-[#F8FAFC] dark:bg-[#050811]">
+    <div className="flex-1 flex flex-col p-4 overflow-hidden gap-4 bg-[#F8FAFC] dark:bg-[#050811]">
 
       {/* Top Banner */}
       <div className="flex items-center justify-between border-b border-slate-200 dark:border-white/10 pb-3 shrink-0">
@@ -235,14 +237,14 @@ export default function DashboardView() {
                 <div className="flex items-start gap-2 text-slate-900 dark:text-slate-100">
                   <AlertTriangle className="h-3.5 w-3.5 text-rose-600 dark:text-rose-400 shrink-0 mt-0.5" />
                   <div>
-                    <span className="font-bold text-rose-700 dark:text-rose-400">CR-2026-9910:</span> UPI Fraud & Rs. 2 Lakh Loss. Accused A/C 30910293101 flagged.
+                    <span className="font-bold text-rose-700 dark:text-rose-400">{primaryAlertCase?.case_number || 'CR-2026-9910'}:</span> {primaryAlertCase?.crime_sub_type || 'UPI Fraud'} & Loss ₹{primaryAlertCase?.entities?.monetary_loss?.toLocaleString('en-IN') || '2,00,000'}. Priority flagged.
                   </div>
                 </div>
 
                 <div className="flex items-start gap-2 text-slate-900 dark:text-slate-100 pt-1.5 border-t border-slate-200 dark:border-white/10">
                   <AlertTriangle className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
                   <div>
-                    <span className="font-bold text-amber-800 dark:text-amber-300">Serial Link Match:</span> Suspect Line +91 98765 43210 matched across 3 Surat Cyber cases.
+                    <span className="font-bold text-amber-800 dark:text-amber-300">Serial Link Match:</span> Cross-case serial linkage active for {cases.length} registered station records.
                   </div>
                 </div>
               </div>

@@ -1,5 +1,5 @@
 import React from 'react';
-import { TrendingUp, CreditCard, Clock, Activity, AlertTriangle, ShieldCheck, MapPin, ArrowRight, Lightbulb, Zap, ShieldAlert, Cpu } from 'lucide-react';
+import { TrendingUp, ShieldCheck, ArrowRight, Lightbulb } from 'lucide-react';
 
 export interface VisualizationConfig {
   recommended_chart_type?: 'MONEY_TRAIL_FLOW' | 'HOURLY_ACTIVITY_BAR' | 'LINE_TREND' | 'PIE_DONUT' | 'DYNAMIC_BAR_CHART' | 'RISK_GAUGE' | 'TOWER_CELL_DISTRIBUTION' | 'NONE' | string;
@@ -151,14 +151,18 @@ export default function DynamicVisualizer({ config }: Props) {
       {/* 4. Categorical / Cell Tower Distribution */}
       {(chartType === 'DYNAMIC_BAR_CHART' || chartType === 'PIE_DONUT' || chartType === 'RISK_GAUGE' || chartType === 'TOWER_CELL_DISTRIBUTION') && (
         <div className="space-y-1.5 pt-1 font-mono">
-          {data.map((item: any, idx: number) => (
-            <div key={idx} className="flex items-center justify-between bg-slate-50 dark:bg-[#050811] p-2.5 rounded-lg border border-slate-200 dark:border-white/10 text-xs shadow-sm">
-              <span className="text-slate-800 dark:text-slate-200 font-semibold">{item.location || item.factor || item.category || item.party || `Item ${idx+1}`}</span>
-              <span className="text-indigo-700 dark:text-indigo-300 font-bold bg-indigo-50 dark:bg-indigo-500/10 px-2 py-0.5 rounded border border-indigo-200 dark:border-indigo-500/20">
-                {item.frequency ? `${item.frequency} hits` : (item.score ? `Score: ${item.score}` : (item.calls ? `${item.calls} calls` : JSON.stringify(item)))}
-              </span>
-            </div>
-          ))}
+          {data.map((item: any, idx: number) => {
+            const label = item.location || item.factor || item.category || item.party || item.name || `Item ${idx+1}`;
+            const val = item.frequency ? `${item.frequency} hits` : (item.score ? `Score: ${item.score}` : (item.calls ? `${item.calls} calls` : (item.count ? `${item.count} items` : (item.value ? `${item.value}` : 'Active'))));
+            return (
+              <div key={idx} className="flex items-center justify-between bg-slate-50 dark:bg-[#050811] p-2.5 rounded-lg border border-slate-200 dark:border-white/10 text-xs shadow-sm">
+                <span className="text-slate-800 dark:text-slate-200 font-semibold">{label}</span>
+                <span className="text-indigo-700 dark:text-indigo-300 font-bold bg-indigo-50 dark:bg-indigo-500/10 px-2 py-0.5 rounded border border-indigo-200 dark:border-indigo-500/20">
+                  {val}
+                </span>
+              </div>
+            );
+          })}
         </div>
       )}
     </div>

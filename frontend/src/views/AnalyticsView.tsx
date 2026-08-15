@@ -4,7 +4,6 @@ import {
   BarChart3,
   FileUp,
   CheckCircle,
-  FileText,
   PhoneCall,
   MapPin,
   Smartphone,
@@ -15,14 +14,10 @@ import {
   CreditCard,
   Globe,
   ShieldAlert,
-  Sliders,
-  Share2,
-  Cpu,
   Layers,
   Activity,
   Plus,
   Send,
-  Link,
   ShieldCheck,
   RotateCcw,
   Download,
@@ -30,11 +25,8 @@ import {
   FileSpreadsheet,
   X,
   FileCheck2,
-  AlertCircle,
   Camera,
   Building,
-  Radio,
-  Clock,
   Wifi,
   ExternalLink,
   Navigation,
@@ -44,6 +36,7 @@ import {
 import api from '../services/api';
 import { useTranslation } from 'react-i18next';
 import ModuleSummarizerModal from '../components/common/ModuleSummarizerModal';
+import GlobalSummarizerModal from '../components/common/GlobalSummarizerModal';
 import TranslatedText from '../components/common/TranslatedText';
 import { useCaseStore } from '../store/caseStore';
 import DynamicVisualizer, { VisualizationConfig } from '../components/common/DynamicVisualizer';
@@ -72,6 +65,7 @@ export default function AnalyticsView() {
   const [selectedChartType, setSelectedChartType] = useState<string>('AUTO');
   const [toastMsg, setToastMsg] = useState('');
   const [summarizerOpen, setSummarizerOpen] = useState(false);
+  const [globalSumOpen, setGlobalSumOpen] = useState(false);
 
   // Section 63 BSA Certificate Modal State
   const [certModalOpen, setCertModalOpen] = useState(false);
@@ -503,7 +497,7 @@ export default function AnalyticsView() {
         evidence_type: responseType,
         file_name: selectedFile?.name || `${responseType.toLowerCase()}_compliance_evidence.csv`,
         file_content: JSON.stringify(parsedData),
-        officer_name: 'PSI Inspector V. K. Patel',
+        officer_name: 'PSI V. K. Patel',
         police_station: 'Surat Cyber Crime Police Station, Gujarat',
         summary_findings: parsedData.executive_summary || ''
       });
@@ -552,10 +546,10 @@ export default function AnalyticsView() {
         <div className="flex items-center gap-2">
           <button
             onClick={() => setSummarizerOpen(true)}
-            className="flex items-center gap-1.5 rounded border border-blue-500/40 bg-blue-500/10 px-3 py-1.5 text-xs font-bold text-cyan-700 dark:text-cyan-300 hover:bg-blue-500/20 transition-colors shadow-sm font-mono"
+            className="flex items-center gap-1.5 rounded-lg border border-amber-500 dark:border-amber-500/40 bg-amber-400 dark:bg-amber-500/20 px-3 py-1.5 text-xs font-bold text-slate-950 dark:text-amber-300 hover:bg-amber-500 dark:hover:bg-amber-500/30 transition-colors shadow-sm cursor-pointer"
           >
-            <Sparkles className="h-3.5 w-3.5 text-cyan-600 dark:text-cyan-400" />
-            <span>{t('analytics.ai_module_summary')}</span>
+            <Sparkles className="h-3.5 w-3.5 text-slate-950 dark:text-amber-300" />
+            <span>{t('nav.summary', 'AI Module Summary')}</span>
           </button>
 
           {parsedData && (
@@ -576,10 +570,18 @@ export default function AnalyticsView() {
               setCertData(null);
               setToastMsg('Reset Module 5 analytics and cached provider data.');
             }}
-            className="flex items-center gap-1.5 rounded border border-rose-500/40 bg-rose-500/10 px-3 py-1.5 text-xs font-bold text-rose-700 dark:text-rose-300 hover:bg-rose-500/20 transition-colors shadow-sm font-mono"
+            className="flex items-center gap-1.5 rounded border border-rose-500/40 bg-rose-500/10 px-3 py-1.5 text-xs font-bold text-rose-700 dark:text-rose-300 hover:bg-rose-500/20 transition-colors shadow-sm font-mono cursor-pointer"
           >
             <RotateCcw className="h-3.5 w-3.5 text-rose-600 dark:text-rose-400" />
             <span>{t('analytics.reset_module')}</span>
+          </button>
+
+          <button
+            onClick={() => setGlobalSumOpen(true)}
+            className="flex items-center gap-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white px-3.5 py-1.5 text-xs font-bold shadow-md hover:shadow-lg transition-all cursor-pointer"
+          >
+            <ShieldCheck className="h-4 w-4 text-white" />
+            <span>{t('analytics.master_briefing', 'Master Case Briefing')}</span>
           </button>
         </div>
       </div>
@@ -593,7 +595,7 @@ export default function AnalyticsView() {
           </div>
           {toastMsg.includes('Module 4 Drafts') && (
             <button
-              onClick={() => navigate('/directives')}
+              onClick={() => navigate('/subpoenas')}
               className="px-3 py-1 rounded bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold flex items-center gap-1.5 shadow-sm transition-colors cursor-pointer shrink-0"
             >
               <span>Review in Module 4</span>
@@ -720,7 +722,7 @@ export default function AnalyticsView() {
               <button
                 type="button"
                 onClick={(e) => { e.stopPropagation(); handleLoadSampleFile('BANK_STATEMENT'); }}
-                className="px-2.5 py-1 rounded bg-emerald-50 dark:bg-emerald-500/10 hover:bg-emerald-100 text-emerald-800 dark:text-emerald-300 text-[10px] font-bold border border-emerald-300 dark:border-emerald-500/20 flex items-center gap-1 transition-colors"
+                className="px-2.5 py-1 rounded bg-emerald-50 dark:bg-emerald-500/10 hover:bg-emerald-100 dark:hover:bg-emerald-500/20 text-emerald-800 dark:text-emerald-300 text-[10px] font-bold border border-emerald-300 dark:border-emerald-500/20 flex items-center gap-1 transition-colors"
               >
                 <CreditCard className="h-3 w-3" />
                 <span>Sample Bank Ledger</span>
@@ -728,7 +730,7 @@ export default function AnalyticsView() {
               <button
                 type="button"
                 onClick={(e) => { e.stopPropagation(); handleLoadSampleFile('CDR'); }}
-                className="px-2.5 py-1 rounded bg-blue-50 dark:bg-blue-500/10 hover:bg-blue-100 text-blue-800 dark:text-blue-300 text-[10px] font-bold border border-blue-300 dark:border-blue-500/20 flex items-center gap-1 transition-colors"
+                className="px-2.5 py-1 rounded bg-blue-50 dark:bg-blue-500/10 hover:bg-blue-100 dark:hover:bg-blue-500/20 text-blue-800 dark:text-blue-300 text-[10px] font-bold border border-blue-300 dark:border-blue-500/20 flex items-center gap-1 transition-colors"
               >
                 <PhoneCall className="h-3 w-3" />
                 <span>Sample Telecom CDR</span>
@@ -736,7 +738,7 @@ export default function AnalyticsView() {
               <button
                 type="button"
                 onClick={(e) => { e.stopPropagation(); handleLoadSampleFile('IP_LOGS'); }}
-                className="px-2.5 py-1 rounded bg-indigo-50 dark:bg-indigo-500/10 hover:bg-indigo-100 text-indigo-800 dark:text-indigo-300 text-[10px] font-bold border border-indigo-300 dark:border-indigo-500/20 flex items-center gap-1 transition-colors"
+                className="px-2.5 py-1 rounded bg-indigo-50 dark:bg-indigo-500/10 hover:bg-indigo-100 dark:hover:bg-indigo-500/20 text-indigo-800 dark:text-indigo-300 text-[10px] font-bold border border-indigo-300 dark:border-indigo-500/20 flex items-center gap-1 transition-colors"
               >
                 <Globe className="h-3 w-3" />
                 <span>Sample Cyber IP Logs</span>
@@ -1721,6 +1723,12 @@ export default function AnalyticsView() {
         onClose={() => setSummarizerOpen(false)}
         moduleId="MODULE_5"
         moduleTitle="Module 5: Forensic Response Analytics"
+      />
+
+      {/* Master Global Executive Summarizer Modal */}
+      <GlobalSummarizerModal
+        isOpen={globalSumOpen}
+        onClose={() => setGlobalSumOpen(false)}
       />
     </div>
   );
