@@ -172,10 +172,10 @@ function extractEntitiesHeuristic(rawText = '') {
   const lang = /[\u0A80-\u0AFF]/.test(text) ? 'gu' : /[\u0900-\u097F]/.test(text) ? 'hi' : 'en';
 
   const phones = Array.from(new Set(text.match(/\+?\d{10,12}/g) || []));
-  const vpas = Array.from(new Set(text.match(/[a-zA-Z0-9.\-_]+@[a-zA-Z0-9.]+/g) || []));
+  const vpas = Array.from(new Set((text.match(/[a-zA-Z0-9.\-_]+@[a-zA-Z0-9.]+/g) || []).filter(v => !/@(gmail|yahoo|hotmail|outlook|gov|nic|com)\b/i.test(v))));
 
   let loss = 0;
-  const lossMatch = text.match(/(?:rs\.?|inr|₹|રૂપિયા|રૂ|rupees)\s*([\d,]+)|([\d,]+)\s*(?:rs\.?|inr|₹|રૂપિયા|રૂ|rupees)/i);
+  const lossMatch = text.match(/(?:rs\.?|inr|₹|રૂપિયા|રૂ|rupees|રુપયે|रुपये)\s*([\d,\u0966-\u096F\u0AE6-\u0AEF]+)|([\d,\u0966-\u096F\u0AE6-\u0AEF]+)\s*(?:rs\.?|inr|₹|રૂપિયા|રૂ|rupees|રુપયે|रुपये)/i);
   if (lossMatch) {
     const rawVal = (lossMatch[1] || lossMatch[2] || '0').replace(/,/g, '');
     if (!isNaN(parseInt(rawVal, 10))) {
@@ -186,26 +186,32 @@ function extractEntitiesHeuristic(rawText = '') {
   const allNums = Array.from(new Set(text.match(/\b\d{9,18}\b/g) || []));
   const bankAccounts = allNums.filter(n => !phones.includes(n) && !n.startsWith('91')).map(num => ({
     account_number: num,
-    ifsc: 'SBIN0001234',
-    bank: 'State Bank of India',
-    account_name: 'Accused Fraudster'
+    ifsc: 'UNKNOWN',
+    bank: 'Bank Account',
+    account_name: 'Accused Fraudster',
+    account_role: 'accused',
+    is_victim_account: false
   }));
 
-  if (phones.length === 0) phones.push('+91 98765 43210');
-  if (vpas.length === 0) vpas.push('scammer@paytm');
-  if (bankAccounts.length === 0) bankAccounts.push({ account_number: '30910293101', ifsc: 'SBIN0001234', bank: 'State Bank of India', account_name: 'Accused Fraudster' });
-  if (loss === 0) loss = 85000;
+  // S/O or name extraction heuristic
+  const persons = [];
+  const soMatches = text.match(/([A-Z][a-z]+(?: [A-Z][a-z]+){1,2})\s+[Ss][/\\][Oo]/);
+  if (soMatches && soMatches[1]) {
+    persons.push({ name: soMatches[1].trim(), role: 'accused' });
+  }
+
+  const isCyber = (vpas.length > 0 || /cyber|upi|online|fraud|phishing|bank|loan/i.test(text));
 
   return {
     complaint_number: `CMP-2026-${Math.floor(1000 + Math.random() * 9000)}`,
     original_language: lang,
     raw_text: text,
-    translated_text: text || 'Victim reported unauthorized transaction via fraudulent UPI link.',
-    crime_category: (vpas.length > 0 || phones.length > 0 || /cyber|upi|online|fraud/i.test(text)) ? 'CYBER' : 'CONVENTIONAL',
-    crime_sub_type: vpas.length > 0 ? 'UPI Financial Fraud' : 'Cyber Fraud Complaint',
+    translated_text: text || 'Complaint statement ingested.',
+    crime_category: isCyber ? 'CYBER' : 'CONVENTIONAL',
+    crime_sub_type: vpas.length > 0 ? 'UPI Financial Fraud' : (isCyber ? 'Cyber Financial Fraud' : 'Conventional Crime'),
     severity_score: loss >= 50000 ? 8.5 : 6.5,
     entities: {
-      persons: [{ name: 'Ramesh Patel', role: 'victim' }],
+      persons: persons,
       phone_numbers: phones,
       email_addresses: [],
       vpas_upis: vpas,

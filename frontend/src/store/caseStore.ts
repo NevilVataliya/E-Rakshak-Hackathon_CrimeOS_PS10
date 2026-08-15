@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { persist, createJSONStorage } from 'zustand/middleware';
 import { PoliceCase, InvestigationData, SubpoenaNotice, LinkageMatch, LinkageStats, AttachedFileMeta } from '../types';
 import api from '../services/api';
 
@@ -85,8 +85,76 @@ const samplePdfDataUrl = 'data:application/pdf;base64,JVBERi0xLjQKJcOkw7zDtsOfCj
 const sampleTxtDataUrl = 'data:text/plain;charset=utf-8,CrimeOS%20Evidence%20Log';
 
 const initialMockCases: PoliceCase[] = [];
-
 const initialSubpoenas: SubpoenaNotice[] = [];
+
+// Helpers to ensure localStorage is NEVER overloaded by large binary payloads
+function sanitizeIntakeDataForStorage(intakeMap: Record<string, CaseIntakeRecord>): Record<string, CaseIntakeRecord> {
+  const sanitized: Record<string, CaseIntakeRecord> = {};
+  for (const [key, record] of Object.entries(intakeMap || {})) {
+    sanitized[key] = {
+      manual_text: record.manual_text || '',
+      extracted_result: record.extracted_result || null,
+      attached_files: (record.attached_files || []).map(f => ({
+        name: f.name,
+        size: f.size,
+        type: f.type
+      }))
+    };
+  }
+  return sanitized;
+}
+
+function sanitizeCasesForStorage(cases: PoliceCase[]): PoliceCase[] {
+  return (cases || []).map(c => ({
+    ...c,
+    attached_files: (c.attached_files || []).map(f => ({
+      name: f.name,
+      size: f.size,
+      type: f.type
+    }))
+  }));
+}
+
+// Resilient localStorage wrapper with automatic error & quota handling
+const safeLocalStorage = {
+  getItem: (name: string): string | null => {
+    try {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        return window.localStorage.getItem(name);
+      }
+      return null;
+    } catch (e) {
+      console.warn('[-] Failed to read from localStorage:', e);
+      return null;
+    }
+  },
+  setItem: (name: string, value: string): void => {
+    try {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        window.localStorage.setItem(name, value);
+      }
+    } catch (e) {
+      console.warn('[-] QuotaExceeded on localStorage. Pruning non-essential cache and retrying...', e);
+      try {
+        if (typeof window !== 'undefined' && window.localStorage) {
+          window.localStorage.removeItem(name);
+          window.localStorage.setItem(name, value);
+        }
+      } catch (innerErr) {
+        console.warn('[-] LocalStorage is completely full. Running in memory-safe session mode.', innerErr);
+      }
+    }
+  },
+  removeItem: (name: string): void => {
+    try {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        window.localStorage.removeItem(name);
+      }
+    } catch (e) {
+      console.warn('[-] Failed to remove from localStorage:', e);
+    }
+  }
+};
 
 export const useCaseStore = create<CaseState>()(
   persist(
@@ -1302,10 +1370,18 @@ export const useCaseStore = create<CaseState>()(
     }),
     {
       name: 'crime-os-case-storage',
+      storage: createJSONStorage(() => safeLocalStorage),
       partialize: (state) => ({
-        cases: state.cases,
-        activeCase: state.activeCase,
-        intakeDataByCase: state.intakeDataByCase,
+        cases: sanitizeCasesForStorage(state.cases),
+        activeCase: state.activeCase ? {
+          ...state.activeCase,
+          attached_files: (state.activeCase.attached_files || []).map(f => ({
+            name: f.name,
+            size: f.size,
+            type: f.type
+          }))
+        } : null,
+        intakeDataByCase: sanitizeIntakeDataForStorage(state.intakeDataByCase),
         completedStepByCase: state.completedStepByCase,
         investigationsByCase: state.investigationsByCase,
         dispatchedDirectivesByCase: state.dispatchedDirectivesByCase,

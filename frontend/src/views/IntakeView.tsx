@@ -112,23 +112,18 @@ export default function IntakeView() {
     const newFiles = Array.from(files);
     setAttachedFiles(prev => [...prev, ...newFiles]);
 
-    // Convert each new file into AttachedFileMeta with dataUrl for downloading
-    newFiles.forEach(file => {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const dataUrl = e.target?.result as string;
-        const meta: AttachedFileMeta = {
-          name: file.name,
-          size: file.size,
-          type: file.type,
-          dataUrl
-        };
-        setPersistedFiles(prev => {
-          if (prev.some(p => p.name === file.name && p.size === file.size)) return prev;
-          return [...prev, meta];
-        });
-      };
-      reader.readAsDataURL(file);
+    // Create lightweight AttachedFileMeta with in-memory Blob URL for downloading without 5MB+ base64 overhead
+    const newMetaList: AttachedFileMeta[] = newFiles.map(file => ({
+      name: file.name,
+      size: file.size,
+      type: file.type,
+      dataUrl: URL.createObjectURL(file)
+    }));
+
+    setPersistedFiles(prev => {
+      const existingKeys = new Set(prev.map(p => `${p.name}_${p.size}`));
+      const uniqueNew = newMetaList.filter(m => !existingKeys.has(`${m.name}_${m.size}`));
+      return [...prev, ...uniqueNew];
     });
   };
 
@@ -138,6 +133,13 @@ export default function IntakeView() {
 
   const removePersistedFile = (index: number) => {
     const target = persistedFiles[index];
+    if (target?.dataUrl && target.dataUrl.startsWith('blob:')) {
+      try {
+        URL.revokeObjectURL(target.dataUrl);
+      } catch (e) {
+        // ignore
+      }
+    }
     setPersistedFiles(prev => prev.filter((_, i) => i !== index));
     if (target) {
       setAttachedFiles(prev => prev.filter(f => f.name !== target.name));
@@ -146,7 +148,7 @@ export default function IntakeView() {
 
   const handleDownloadFile = (pfile: AttachedFileMeta) => {
     if (!pfile.dataUrl) {
-      alert(`No downloadable payload available for ${pfile.name}`);
+      alert(`Download is only available during the active upload session for ${pfile.name}`);
       return;
     }
     const link = document.createElement('a');

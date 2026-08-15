@@ -35,9 +35,17 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 
 ARG HF_TOKEN
 ENV HF_TOKEN=$HF_TOKEN
+ENV MODEL_CACHE_DIR=/app/models_cache
+ENV HF_HOME=/app/models_cache
+ENV SENTENCE_TRANSFORMERS_HOME=/app/models_cache
+
+# Preload models at build time for offline readiness
+COPY preload_models.py .
+RUN python preload_models.py || true
 
 COPY . .
 
 EXPOSE 8000
 
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+

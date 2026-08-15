@@ -525,7 +525,7 @@ export default function AnalyticsView() {
   } : null;
 
   return (
-    <div className="flex-1 overflow-y-auto p-4 space-y-4 max-w-7xl mx-auto h-full flex flex-col font-sans">
+    <div className="flex-1 flex flex-col p-4 overflow-y-auto gap-4 bg-[#F8FAFC] dark:bg-[#050811] w-full font-sans">
       {/* Top Action & Navigation Header */}
       <div className="flex items-center justify-between border-b border-slate-200 dark:border-white/10 pb-3 shrink-0">
         <div>
