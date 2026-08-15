@@ -117,17 +117,20 @@ export default function SubpoenasView() {
   // Nodal Email Resolver helper
   const getNodalContact = (nameOrType: string) => {
     const nodalEmailMap: Record<string, { email: string; name: string }> = {
-      'union': { email: 'nodal.compliance@unionbankofindia.bank', name: 'Union Bank of India Nodal Legal Cell' },
-      'indusind': { email: 'compliance.nodal@indusind.com', name: 'IndusInd Bank Nodal Fraud Control Cell' },
-      'idbi': { email: 'compliance.nodal@idbi.co.in', name: 'IDBI Bank Nodal Compliance Cell' },
-      'hdfc': { email: 'nodal.fraud@hdfcbank.com', name: 'HDFC Bank Nodal Fraud Control Cell' },
-      'sbi': { email: 'compliance.nodal@sbi.co.in', name: 'State Bank of India Compliance Cell' },
-      'icici': { email: 'fraud.nodal@icicibank.com', name: 'ICICI Bank Nodal Response Cell' },
-      'axis': { email: 'nodal.fraud@axisbank.com', name: 'Axis Bank Fraud Control Cell' },
-      'airtel': { email: 'nodal@airtel.com', name: 'Airtel Nodal Compliance Division' },
+      'union': { email: 'nodal.compliance@unionbankofindia.co.in', name: 'Union Bank of India Nodal Legal Cell' },
+      'indusind': { email: 'nodal.officer@indusind.com', name: 'IndusInd Bank Nodal Fraud Control Cell' },
+      'idbi': { email: 'nodalofficer@idbi.co.in', name: 'IDBI Bank Nodal Compliance Cell' },
+      'hdfc': { email: 'nodalofficer@hdfcbank.com', name: 'HDFC Bank Nodal Fraud Control Cell' },
+      'sbi': { email: 'nodal.officer@sbi.co.in', name: 'State Bank of India Compliance Cell' },
+      'icici': { email: 'nodal.officer@icicibank.com', name: 'ICICI Bank Nodal Response Cell' },
+      'axis': { email: 'nodal.officer@axisbank.com', name: 'Axis Bank Fraud Control Cell' },
+      'airtel': { email: 'nodal.officer@airtel.com', name: 'Airtel Nodal Compliance Division' },
       'jio': { email: 'nodal.officer@jio.com', name: 'Reliance Jio LEA Cell' },
       'vodafone': { email: 'nodal.lea@vodafoneidea.com', name: 'Vodafone Idea Regulatory Cell' },
+      'idea': { email: 'nodal.lea@vodafoneidea.com', name: 'Vodafone Idea Regulatory Cell' },
+      'bsnl': { email: 'nodal.gujarat@bsnl.co.in', name: 'BSNL Cyber Crime Nodal Cell' },
       'google': { email: 'lert-requests@google.com', name: 'Google Law Enforcement Response Team' },
+      'meta': { email: 'records@meta.com', name: 'Meta Law Enforcement Operations' },
       'whatsapp': { email: 'courtorders@whatsapp.com', name: 'WhatsApp Law Enforcement Cell' },
       'telegram': { email: 'legal@telegram.org', name: 'Telegram FZ-LLC Legal Compliance Division' },
       'paytm': { email: 'nodal.officer@paytm.com', name: 'Paytm Payments Bank Nodal Office' }
@@ -998,10 +1001,33 @@ export default function SubpoenasView() {
                       type="text"
                       value={autoReceiverName}
                       onChange={(e) => handleUpdateActiveDirectiveForm('receiver_name', e.target.value)}
-                      placeholder="e.g. Union Bank / IndusInd Bank / Telegram"
+                      placeholder="e.g. Reliance Jio / Bharti Airtel / Telegram / Google"
                       className={`w-full bg-slate-50 dark:bg-[#050811] border rounded px-2.5 py-1.5 text-xs text-slate-900 dark:text-white outline-none font-semibold ${!autoReceiverName ? 'border-rose-500/60 bg-rose-50 dark:bg-rose-950/20' : 'border-slate-300 dark:border-white/10 focus:border-purple-500'
                         }`}
                     />
+                    {/* Quick Operator Selector for Telecom Directives */}
+                    {(autoDomain === 'telecom_location' || (autoReceiverName || '').toLowerCase().includes('telecom')) && (
+                      <div className="flex flex-wrap gap-1 mt-1.5">
+                        {[
+                          { label: 'Jio', name: 'Reliance Jio LEA Cell', email: 'nodal.officer@jio.com' },
+                          { label: 'Airtel', name: 'Airtel Nodal Compliance Division', email: 'nodal@airtel.com' },
+                          { label: 'Vi', name: 'Vodafone Idea Regulatory Cell', email: 'nodal.lea@vodafoneidea.com' },
+                          { label: 'BSNL', name: 'BSNL Cyber Crime Nodal Cell', email: 'nodal.gujarat@bsnl.co.in' }
+                        ].map((op) => (
+                          <button
+                            key={op.label}
+                            type="button"
+                            onClick={() => {
+                              handleUpdateActiveDirectiveForm('receiver_name', op.name);
+                              handleUpdateActiveDirectiveForm('receiver_email', op.email);
+                            }}
+                            className="px-2 py-0.5 rounded text-[10px] font-mono font-semibold bg-blue-100 dark:bg-blue-500/20 text-blue-800 dark:text-blue-300 border border-blue-300 dark:border-blue-500/30 hover:bg-blue-200 dark:hover:bg-blue-500/30 transition-colors"
+                          >
+                            + {op.label}
+                          </button>
+                        ))}
+                      </div>
+                    )}
                   </div>
 
                   <div>
@@ -1026,7 +1052,7 @@ export default function SubpoenasView() {
                       type="email"
                       value={autoReceiverEmail}
                       onChange={(e) => handleUpdateActiveDirectiveForm('receiver_email', e.target.value)}
-                      placeholder="Enter Nodal Email (e.g. compliance.nodal@indusind.com)"
+                      placeholder="Enter Nodal Email (e.g. nodal.officer@jio.com / legal@telegram.org)"
                       className={`w-full bg-slate-50 dark:bg-[#050811] border rounded px-2.5 py-1.5 text-xs text-emerald-800 dark:text-emerald-400 font-mono outline-none ${!autoReceiverEmail ? 'border-rose-500/60 bg-rose-50 dark:bg-rose-950/20' : 'border-slate-300 dark:border-white/10 focus:border-purple-500'
                         }`}
                     />

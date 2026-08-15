@@ -13,11 +13,15 @@ import os
 import re
 import time
 import json
+import hashlib
 import logging
 import requests
 from typing import Dict, Any, List, Optional
 
 logger = logging.getLogger(__name__)
+
+# Global deterministic classification cache by email_hash
+_CLASSIFICATION_CACHE: Dict[str, Dict[str, Any]] = {}
 
 CLASSIFICATION_DESCRIPTIONS = {
     "CASE_COMPLETE": "Authority has fully complied -- account frozen, documents sent, or all requested data provided.",
@@ -35,11 +39,13 @@ def _rule_based_fallback(
     subject: str,
     body_text: str,
     attachments: Optional[List[Dict[str, Any]]] = None,
-    reason: str = "Rule-based fallback"
+    reason: str = "Rule-based fallback",
+    email_hash: Optional[str] = None
 ) -> Dict[str, Any]:
     clean_body = (body_text or "").lower()
     clean_subj = (subject or "").lower()
     has_att = bool(attachments)
+    e_hash = email_hash or hashlib.sha256(f"{case_number}_{sender_email}_{subject}_{body_text}".encode()).hexdigest()[:12]
 
     clean_subject_base = re.sub(r"\s*\[CrimeOS-REF:[^\]]*\]", "", subject or "").strip()
     if not clean_subject_base.startswith("Re:"):
@@ -48,7 +54,7 @@ def _rule_based_fallback(
 
     if any(k in sender_email.lower() for k in ["mailer-daemon", "postmaster"]) or "undeliverable" in clean_subj:
         return {
-            "id": f"REPLY-{int(time.time()*1000)%100000:05d}",
+            "id": f"REPLY-{e_hash}",
             "case_number": case_number,
             "sender_email": sender_email,
             "subject": subject,
@@ -66,7 +72,7 @@ def _rule_based_fallback(
 
     if any(k in clean_body for k in ["fully complied", "account frozen", "debit freeze confirmed", "compliance report", "all data attached"]):
         return {
-            "id": f"REPLY-{int(time.time()*1000)%100000:05d}",
+            "id": f"REPLY-{e_hash}",
             "case_number": case_number,
             "sender_email": sender_email,
             "subject": subject,
@@ -93,7 +99,7 @@ def _rule_based_fallback(
     )
 
     return {
-        "id": f"REPLY-{int(time.time()*1000)%100000:05d}",
+        "id": f"REPLY-{e_hash}",
         "case_number": case_number,
         "sender_email": sender_email,
         "subject": subject,
@@ -127,6 +133,10 @@ def classify_reply_with_groq(
     Classifies authority email reply using Groq LLM (llama-3.3-70b-versatile) as Priority 1,
     Gemini Flash as Priority 2, and Rule-based as Priority 3.
     """
+    email_hash = hashlib.sha256(f"{case_number}_{sender_email}_{subject}_{body_text}".encode()).hexdigest()[:12]
+    if email_hash in _CLASSIFICATION_CACHE:
+        return _CLASSIFICATION_CACHE[email_hash]
+
     groq_key = (groq_api_key or os.environ.get("GROQ_API_KEY", "")).strip("'\" \t\r\n")
     gemini_key = (gemini_api_key or os.environ.get("GEMINI_API_KEY", "") or os.environ.get("GOOGLE_API_KEY", "")).strip("'\" \t\r\n")
 
@@ -212,8 +222,8 @@ Return ONLY valid JSON matching this exact structure:
                             "subject": parsed.get("followback_subject") or reply_subject,
                             "body": parsed.get("followback_body")
                         }
-                    return {
-                        "id": f"REPLY-{int(time.time()*1000)%100000:05d}",
+                    result = {
+                        "id": f"REPLY-{email_hash}",
                         "case_number": case_number,
                         "sender_email": sender_email,
                         "subject": subject,
@@ -228,6 +238,8 @@ Return ONLY valid JSON matching this exact structure:
                         "llm_provider": "CrimeOS Intelligence AI",
                         "status": "COMPLETED" if is_comp else "FOLLOWBACK_REQUIRED"
                     }
+                    _CLASSIFICATION_CACHE[email_hash] = result
+                    return result
             except Exception as e:
                 logger.warning(f"[EmailResponseManager] Groq model {m} call error: {e}")
 
@@ -252,8 +264,8 @@ Return ONLY valid JSON matching this exact structure:
                             "subject": parsed.get("followback_subject") or reply_subject,
                             "body": parsed.get("followback_body")
                         }
-                    return {
-                        "id": f"REPLY-{int(time.time()*1000)%100000:05d}",
+                    result = {
+                        "id": f"REPLY-{email_hash}",
                         "case_number": case_number,
                         "sender_email": sender_email,
                         "subject": subject,
@@ -268,8 +280,12 @@ Return ONLY valid JSON matching this exact structure:
                         "llm_provider": "CrimeOS Intelligence AI",
                         "status": "COMPLETED" if is_comp else "FOLLOWBACK_REQUIRED"
                     }
+                    _CLASSIFICATION_CACHE[email_hash] = result
+                    return result
             except Exception as e:
                 logger.warning(f"[EmailResponseManager] Gemini model {m} call error: {e}")
 
     # Priority 3: Rule-based Fallback
-    return _rule_based_fallback(case_number, sender_email, subject, body_text, attachments, reason="LLM services unavailable")
+    fallback_res = _rule_based_fallback(case_number, sender_email, subject, body_text, attachments, reason="LLM services unavailable", email_hash=email_hash)
+    _CLASSIFICATION_CACHE[email_hash] = fallback_res
+    return fallback_res

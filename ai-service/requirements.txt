@@ -31,3 +31,4 @@ sentence-transformers>=3.0.0
 fastembed>=0.3.1
 pandas
 google-generativeai
+phonenumbers>=8.13.0

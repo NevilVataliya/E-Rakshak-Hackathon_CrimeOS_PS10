@@ -121,7 +121,7 @@ class InboxMonitorAgent:
 
         return processed_list
 
-    def _process_single_mail(self, mail_item: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    def _process_single_mail(self, mail_item: Dict[str, Any], target_case_number: Optional[str] = None) -> Optional[Dict[str, Any]]:
         sender_email = mail_item["sender_email"]
         subject = mail_item["subject"]
         body_text = mail_item["body_text"]
@@ -130,7 +130,11 @@ class InboxMonitorAgent:
         # Extract Case Ref ID from Subject or Body
         case_number = self.extract_case_reference(subject, body_text)
         if not case_number:
-            print(f"   [INBOX IGNORED] Email from {sender_email} has no valid Case Reference tag. Ignoring non-case email.")
+            mail_item["processed"] = True
+            return None
+
+        # Filter strictly by target case if specified — do not process or write files for other cases
+        if target_case_number and case_number.upper() != target_case_number.upper():
             mail_item["processed"] = True
             return None
 
@@ -138,46 +142,70 @@ class InboxMonitorAgent:
         mail_item["processed"] = True
 
         # Save attachment / body to cyberproj data/evidence directory using cyberproj_resolver
+        import hashlib
         from .cyberproj_resolver import get_cyberproj_services
+        from app.services.supabase_storage import upload_to_supabase_storage
+
         cyberproj_svcs = get_cyberproj_services()
         cyberproj_path = cyberproj_svcs.get("cyberproj_path") or os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         
         CYBERPROJ_DATA = os.path.join(cyberproj_path, "data", "evidence", case_number)
         os.makedirs(CYBERPROJ_DATA, exist_ok=True)
 
+        email_hash = hashlib.sha256(f"{case_number}_{sender_email}_{subject}_{body_text}".encode()).hexdigest()[:12]
+
         if attachments:
             for att in attachments:
-                fname = att.get("filename", "evidence_reply.txt")
-                fpath = os.path.join(CYBERPROJ_DATA, fname)
+                raw_name = att.get("filename", "evidence_reply.bin")
                 content = att.get("content", "")
-                mode = "wb" if isinstance(content, bytes) else "w"
-                encoding = None if isinstance(content, bytes) else "utf-8"
+                raw_bytes = content if isinstance(content, bytes) else str(content).encode("utf-8")
+                att_hash = hashlib.sha256(raw_bytes).hexdigest()[:10]
+                safe_fname = f"{att_hash}_{re.sub(r'[^a-zA-Z0-9_.-]', '_', raw_name)}"
+                fpath = os.path.join(CYBERPROJ_DATA, safe_fname)
+
+                # Write to local cache only if not already existing
+                if not os.path.exists(fpath):
+                    mode = "wb" if isinstance(content, bytes) else "w"
+                    encoding = None if isinstance(content, bytes) else "utf-8"
+                    try:
+                        with open(fpath, mode, encoding=encoding) as f:
+                            f.write(content)
+                    except Exception as e:
+                        logger.warning(f"Failed to save evidence attachment {safe_fname}: {e}")
+
+                # Upload to Supabase with x-upsert (prevents duplicate storage consumption)
                 try:
-                    with open(fpath, mode, encoding=encoding) as f:
-                        f.write(content)
-                    att["file_path"] = fpath
+                    cloud_res = upload_to_supabase_storage(raw_bytes, f"evidence/{case_number}/{safe_fname}")
+                    att["storage_url"] = cloud_res.get("storage_url")
+                    att["sha256"] = cloud_res.get("sha256")
                 except Exception as e:
-                    logger.warning(f"Failed to save evidence attachment {fname}: {e}")
+                    logger.warning(f"Failed cloud upload for {safe_fname}: {e}")
+
+                att["file_path"] = fpath
+                att["filename"] = safe_fname
         elif body_text:
-            fname = f"reply_{int(time.time())}.txt"
+            fname = f"reply_{email_hash}.txt"
             fpath = os.path.join(CYBERPROJ_DATA, fname)
-            try:
-                with open(fpath, "w", encoding="utf-8") as f:
-                    f.write(body_text)
-                attachments.append({
-                    "filename": fname,
-                    "content": body_text,
-                    "format": "text",
-                    "file_path": fpath
-                })
-            except Exception as e:
-                logger.warning(f"Failed to save body text evidence: {e}")
+            if not os.path.exists(fpath):
+                try:
+                    with open(fpath, "w", encoding="utf-8") as f:
+                        f.write(body_text)
+                except Exception as e:
+                    logger.warning(f"Failed to save body text evidence: {e}")
+
+            attachments.append({
+                "filename": fname,
+                "content": body_text,
+                "format": "text",
+                "file_path": fpath,
+                "sha256": email_hash
+            })
 
         if self.on_reply_received_callback:
             self.on_reply_received_callback(case_number, sender_email, subject, body_text, attachments)
 
         return {
-            "id": f"REPLY-{int(time.time()*1000)%100000:05d}",
+            "id": f"REPLY-{email_hash}",
             "case_number": case_number,
             "sender": sender_email,
             "sender_email": sender_email,
@@ -185,7 +213,8 @@ class InboxMonitorAgent:
             "body_text": body_text,
             "body": body_text,
             "attachments": attachments,
-            "attachments_count": len(attachments)
+            "attachments_count": len(attachments),
+            "sha256": email_hash
         }
 
     def extract_case_reference(self, subject: str, body: str) -> Optional[str]:
@@ -297,10 +326,9 @@ class InboxMonitorAgent:
                     "attachments": attachments,
                     "processed": False
                 }
-                res = self._process_single_mail(mail_item)
+                res = self._process_single_mail(mail_item, target_case_number=target_case_number)
                 if res:
-                    if not target_case_number or res.get("case_number", "").upper() == target_case_number.upper():
-                        processed.append(res)
+                    processed.append(res)
 
             mail.logout()
         except Exception as e:

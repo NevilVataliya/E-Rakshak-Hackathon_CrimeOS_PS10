@@ -31,13 +31,13 @@
   "receiver_directory": {
     "hdfc": {
       "entity_name": "HDFC Bank Nodal Fraud Control Cell",
-      "email": "nodal.fraud@hdfcbank.com",
+      "email": "nodalofficer@hdfcbank.com",
       "type": "bank",
       "department": "Fraud Risk & Control Unit"
     },
     "sbi": {
       "entity_name": "State Bank of India Compliance Cell",
-      "email": "compliance.nodal@sbi.co.in",
+      "email": "nodal.officer@sbi.co.in",
       "type": "bank",
       "department": "Cyber Fraud & Anti-Money Laundering Cell"
     },
@@ -49,25 +49,25 @@
     },
     "axis": {
       "entity_name": "Axis Bank Fraud Operations & Nodal Cell",
-      "email": "nodal.fraud@axisbank.com",
+      "email": "nodal.officer@axisbank.com",
       "type": "bank",
       "department": "Fraud Prevention & Detection"
     },
     "union": {
       "entity_name": "Union Bank of India Nodal Legal Response Cell",
-      "email": "nodal.compliance@unionbankofindia.bank",
+      "email": "nodal.compliance@unionbankofindia.co.in",
       "type": "bank",
       "department": "Cyber Fraud & Legal Compliance Cell"
     },
     "indusind": {
       "entity_name": "IndusInd Bank Nodal Fraud Control Cell",
-      "email": "compliance.nodal@indusind.com",
+      "email": "nodal.officer@indusind.com",
       "type": "bank",
       "department": "Financial Crime & Legal Ops"
     },
     "idbi": {
       "entity_name": "IDBI Bank Nodal Compliance Cell",
-      "email": "compliance.nodal@idbi.co.in",
+      "email": "nodalofficer@idbi.co.in",
       "type": "bank",
       "department": "Fraud Prevention & Detection"
     },
@@ -79,7 +79,7 @@
     },
     "airtel": {
       "entity_name": "Airtel Nodal Compliance Division",
-      "email": "nodal@airtel.com",
+      "email": "nodal.officer@airtel.com",
       "type": "telecom",
       "department": "Law Enforcement Agency Response Cell"
     },
@@ -95,6 +95,12 @@
       "type": "telecom",
       "department": "Nodal Regulatory Operations"
     },
+    "bsnl": {
+      "entity_name": "Bharat Sanchar Nigam Limited (BSNL) LEA Cell",
+      "email": "nodal.gujarat@bsnl.co.in",
+      "type": "telecom",
+      "department": "Law Enforcement Coordination Cell"
+    },
     "google": {
       "entity_name": "Google Law Enforcement Response Team",
       "email": "lert-requests@google.com",
@@ -109,7 +115,7 @@
     },
     "whatsapp": {
       "entity_name": "WhatsApp Law Enforcement Response Division",
-      "email": "records@whatsapp.com",
+      "email": "courtorders@whatsapp.com",
       "type": "tech_platform",
       "department": "User Data Requisition Team"
     },

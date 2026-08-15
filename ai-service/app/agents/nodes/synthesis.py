@@ -226,17 +226,48 @@ def synthesis_node(state: AgentState) -> dict:
             "description": f"Freeze VPA {vpa} and obtain nodal merchant settlement statement"
         })
 
+    def _resolve_telecom_carrier(phone_str: str) -> str:
+        """Resolve telecom provider dynamically using phonenumbers library."""
+        try:
+            import phonenumbers
+            from phonenumbers import carrier
+            clean_num = str(phone_str).strip()
+            if not clean_num.startswith('+'):
+                if len(clean_num) == 10:
+                    clean_num = '+91' + clean_num
+                elif len(clean_num) == 12 and clean_num.startswith('91'):
+                    clean_num = '+' + clean_num
+                else:
+                    clean_num = '+91' + clean_num
+            parsed = phonenumbers.parse(clean_num)
+            c_name = carrier.name_for_number(parsed, "en")
+            if c_name:
+                c_lower = c_name.lower()
+                if 'jio' in c_lower or 'reliance' in c_lower:
+                    return "Reliance Jio Infocomm Ltd (Nodal Legal Cell)"
+                elif 'airtel' in c_lower or 'bharti' in c_lower:
+                    return "Bharti Airtel Ltd (Nodal Legal Compliance Cell)"
+                elif 'vodafone' in c_lower or 'idea' in c_lower:
+                    return "Vodafone Idea Ltd (Nodal Regulatory & LEA Cell)"
+                elif 'bsnl' in c_lower or 'bharat sanchar' in c_lower:
+                    return "BSNL (Nodal Cyber Crime Legal Cell)"
+                return f"{c_name} (Telecom Nodal Legal Cell)"
+        except Exception:
+            pass
+        return "Telecom Operator Nodal Officer"
+
     # C. Targeted Telecom CDR & Tower Data Requisitions (Distinct PDF per Phone)
     for phone in phone_numbers:
         phone_pdf_file = f"Notice_Telecom_CDR_{re.sub(r'[^0-9]', '', phone)}_{case_number}.pdf"
         phone_pdf_path = os.path.join(pdf_dir, phone_pdf_file)
+        carrier_title = _resolve_telecom_carrier(phone)
         
         try:
             generate_section_94_bnss_pdf(
                 output_path=phone_pdf_path,
                 case_data=master_fir,
                 request_details={
-                    "target_provider": "Telecom Operator Nodal Officer (Jio / Airtel / Vi)",
+                    "target_provider": carrier_title,
                     "items": [
                         f"Target Mobile Number: {phone}",
                         "CDR with Cell Tower Location Dumps & IMEI History",
@@ -249,17 +280,18 @@ def synthesis_node(state: AgentState) -> dict:
 
         legal_requests.append({
             "request_type": "SECTION_94_BNSS",
-            "target_provider": "Telecom Operator Nodal Officer",
+            "target_provider": carrier_title,
             "status": "APPROVED",
             "pdf_url": f"/api/requests/download/{phone_pdf_file}",
-            "description": f"CDR, Tower Location & CAF Requisition for suspect mobile {phone}"
+            "description": f"CDR, Tower Location & CAF Requisition for {phone} ({carrier_title})"
         })
 
-    # D. Emergency Section 79(3)(b) IT Act Content Takedown Notice & Platform Subpoena
-    # Use entity-extracted handles as primary source, fall back to regex on complaint text
+    # D. Targeted Intermediary & Platform Subpoenas (Section 94 BNSS)
     entity_handles = entities.get('online_handles') or []
+    emails = entities.get('email_addresses') or []
     regex_handles = re.findall(r'@\w+', complaint_text)
-    # Merge, deduplicate, preserve entity-extracted ones first
+    
+    # Merge, deduplicate
     all_handles_lower = set()
     merged_handles = []
     for h in entity_handles + regex_handles:
@@ -268,10 +300,20 @@ def synthesis_node(state: AgentState) -> dict:
             all_handles_lower.add(h.lower())
     handles = merged_handles
 
-    has_telegram = bool(entity_handles) or "Telegram" in complaint_text or "telegram" in complaint_text.lower()
-    has_whatsapp = "WhatsApp" in complaint_text or "whatsapp" in complaint_text.lower()
+    comp_lower = complaint_text.lower()
+    sub_lower = crime_sub_type.lower()
 
-    if "takedown" in complaint_text.lower() or "video" in complaint_text.lower() or "blackmail" in complaint_text.lower() or "sextortion" in crime_sub_type.lower():
+    # 1. Emergency Section 79(3)(b) IT Act Content Takedown (Only for hosted media/blackmail/leaks)
+    is_takedown_needed = (
+        "takedown" in comp_lower
+        or "blackmail" in comp_lower
+        or "sextortion" in sub_lower
+        or "leaked video" in comp_lower
+        or "objectionable content" in comp_lower
+        or ("video" in comp_lower and "video call" not in comp_lower and "call" not in comp_lower)
+    )
+
+    if is_takedown_needed:
         takedown_pdf_file = f"Order_Section_79_IT_Act_Takedown_{case_number}.pdf"
         takedown_pdf_path = os.path.join(pdf_dir, takedown_pdf_file)
         handle_str = ", ".join(handles) if handles else "Suspect Account Handle"
@@ -284,7 +326,7 @@ def synthesis_node(state: AgentState) -> dict:
                     "target_provider": "Meta Platforms Inc. (Instagram / Facebook) & Google LLC (YouTube)",
                     "items": [
                         f"Target Account / Handle: {handle_str}",
-                        "Emergency Removal & Disabling Access to Objectionable Videos / Content",
+                        "Emergency Removal & Disabling Access to Objectionable Content / Media",
                         "Preserve IP Login Logs & Registration Metadata for 180 days"
                     ]
                 }
@@ -297,47 +339,108 @@ def synthesis_node(state: AgentState) -> dict:
             "target_provider": "Meta Platforms & Google LLC Nodal Compliance",
             "status": "APPROVED",
             "pdf_url": f"/api/requests/download/{takedown_pdf_file}",
-            "description": f"Emergency Takedown & Blocking Order for objectionable video ({handle_str})"
+            "description": f"Emergency Takedown & Blocking Order for objectionable content ({handle_str})"
         })
 
-    if handles or has_telegram or has_whatsapp:
-        # Determine platform targets based on available signals
-        platform_targets = []
-        if has_telegram:
-            platform_targets.append("Telegram FZ-LLC (Legal Compliance)")
-        if has_whatsapp:
-            platform_targets.append("Meta Platforms Inc. (WhatsApp Legal Compliance)")
-        if not platform_targets:
-            platform_targets.append("Messaging Platform Legal Compliance")
-        platform_str = " & ".join(platform_targets)
+    # 2. Telegram FZ-LLC Subpoena (Targeted for Telegram handles & group links)
+    telegram_targets = [h for h in handles if 't.me' in h.lower() or h.startswith('@')]
+    has_telegram = bool(telegram_targets) or "telegram" in comp_lower
 
-        handle_str = ", ".join(handles) if handles else "Target Suspect Handle"
-        subpoena_pdf_file = f"Notice_Platform_Subpoena_{case_number}.pdf"
-        subpoena_pdf_path = os.path.join(pdf_dir, subpoena_pdf_file)
+    if has_telegram:
+        tg_target_str = ", ".join(telegram_targets) if telegram_targets else (handles[0] if handles else "Suspect Telegram Account")
+        tg_pdf_file = f"Notice_Telegram_Subpoena_{case_number}.pdf"
+        tg_pdf_path = os.path.join(pdf_dir, tg_pdf_file)
 
         try:
             generate_section_94_bnss_pdf(
-                output_path=subpoena_pdf_path,
+                output_path=tg_pdf_path,
                 case_data=master_fir,
                 request_details={
-                    "target_provider": platform_str,
+                    "target_provider": "Telegram FZ-LLC (Legal Compliance)",
                     "items": [
-                        f"Suspect User Handle / ID: {handle_str}",
-                        "IP Login Logs with Port Numbers & Device IMEI",
-                        "Registration Phone Number & Account Associated Email",
-                        "Message History, Group Membership & Contact List Metadata"
+                        f"Target Telegram Handle / Channel: {tg_target_str}",
+                        "User Account ID, Registration Phone Number & Associated Email",
+                        "Channel/Group Admin Creation IP & Login IP Logs with Timestamps & Port Numbers",
+                        "Account Preservation under Section 94 BNSS"
                     ]
                 }
             )
         except Exception as e:
-            print(f"[-] Subpoena PDF Gen Error: {e}")
+            print(f"[-] Telegram PDF Gen Error: {e}")
 
         legal_requests.append({
             "request_type": "PLATFORM_SUBPOENA",
-            "target_provider": platform_str,
+            "target_provider": "Telegram FZ-LLC (Legal Compliance)",
             "status": "APPROVED",
-            "pdf_url": f"/api/requests/download/{subpoena_pdf_file}",
-            "description": f"IP Login Logs & Registration Details for handle(s): {handle_str}"
+            "pdf_url": f"/api/requests/download/{tg_pdf_file}",
+            "description": f"IP Login Logs, User ID & Channel Admin Details for Telegram: {tg_target_str}"
+        })
+
+    # 3. Meta Platforms Inc. (WhatsApp / Instagram Subpoena)
+    has_whatsapp = "whatsapp" in comp_lower or "meta" in comp_lower or "instagram" in comp_lower
+    if has_whatsapp:
+        wa_target_str = ", ".join(phone_numbers) if phone_numbers else "Suspect WhatsApp Account"
+        wa_pdf_file = f"Notice_WhatsApp_Subpoena_{case_number}.pdf"
+        wa_pdf_path = os.path.join(pdf_dir, wa_pdf_file)
+
+        try:
+            generate_section_94_bnss_pdf(
+                output_path=wa_pdf_path,
+                case_data=master_fir,
+                request_details={
+                    "target_provider": "Meta Platforms Inc. (WhatsApp Legal Compliance)",
+                    "items": [
+                        f"Target WhatsApp Phone Number / Identifier: {wa_target_str}",
+                        "Account Registration Metadata, Linked Devices & Verification IP",
+                        "VoIP Video/Voice Call Session Timestamps & Associated IP Logs",
+                        "Subscriber Profile & Backup Cloud Metadata"
+                    ]
+                }
+            )
+        except Exception as e:
+            print(f"[-] WhatsApp PDF Gen Error: {e}")
+
+        legal_requests.append({
+            "request_type": "PLATFORM_SUBPOENA",
+            "target_provider": "Meta Platforms Inc. (WhatsApp Legal Compliance)",
+            "status": "APPROVED",
+            "pdf_url": f"/api/requests/download/{wa_pdf_file}",
+            "description": f"VoIP Session Logs, Device Registration & IPs for WhatsApp Number(s): {wa_target_str}"
+        })
+
+    # 4. Google LLC Subpoena (Targeted for Google Drive links & Gmail addresses)
+    google_targets = [h for h in handles if 'drive.google.com' in h.lower() or 'google' in h.lower()]
+    gmail_targets = [em for em in emails if 'gmail.com' in em.lower()]
+    has_google = bool(google_targets) or bool(gmail_targets) or "google" in comp_lower or "gmail" in comp_lower
+
+    if has_google:
+        g_items_str = ", ".join(google_targets + gmail_targets) if (google_targets or gmail_targets) else "Google Account / Drive Link"
+        google_pdf_file = f"Notice_Google_Subpoena_{case_number}.pdf"
+        google_pdf_path = os.path.join(pdf_dir, google_pdf_file)
+
+        try:
+            generate_section_94_bnss_pdf(
+                output_path=google_pdf_path,
+                case_data=master_fir,
+                request_details={
+                    "target_provider": "Google LLC (Legal Compliance)",
+                    "items": [
+                        f"Target Identifier(s): {g_items_str}",
+                        "Google Drive File Uploader Account ID & Access Log IP Timestamps",
+                        "Gmail Account Registration IP, Recovery Email & Linked Phone Number",
+                        "Account Preservation under Section 94 BNSS / BSA Section 63"
+                    ]
+                }
+            )
+        except Exception as e:
+            print(f"[-] Google PDF Gen Error: {e}")
+
+        legal_requests.append({
+            "request_type": "PLATFORM_SUBPOENA",
+            "target_provider": "Google LLC (Legal Compliance)",
+            "status": "APPROVED",
+            "pdf_url": f"/api/requests/download/{google_pdf_file}",
+            "description": f"Drive Uploader Logs, Access IPs & Account Registration for: {g_items_str}"
         })
 
     # Fallback if no specific requests built

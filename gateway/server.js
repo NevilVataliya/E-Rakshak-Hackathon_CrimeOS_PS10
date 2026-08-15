@@ -227,10 +227,18 @@ app.post(['/api/complaints/upload', '/api/ingest'], upload.any(), async (req, re
         filename: f.originalname,
         contentType: f.mimetype
       });
-      // Store file in Supabase Cloud Storage bucket
-      uploadFileToStorage(f.path, `complaints/${Date.now()}_${f.originalname}`, f.mimetype).catch(err => {
-        console.warn('[-] Cloud storage upload notice:', err.message);
-      });
+      // Store file in Supabase Cloud Storage bucket with SHA-256 deduplication
+      try {
+        const crypto = require('crypto');
+        const fileBuffer = fs.readFileSync(f.path);
+        const fileHash = crypto.createHash('sha256').update(fileBuffer).digest('hex').substring(0, 12);
+        const cleanName = (f.originalname || 'document').replace(/[^a-zA-Z0-9_.-]/g, '_');
+        uploadFileToStorage(f.path, `complaints/${fileHash}_${cleanName}`, f.mimetype).catch(err => {
+          console.warn('[-] Cloud storage upload notice:', err.message);
+        });
+      } catch (hashErr) {
+        console.warn('[-] Cloud storage hash error:', hashErr.message);
+      }
     }
 
     const aiRes = await axios.post(`${AI_SERVICE_URL}/api/ingest`, form, {
