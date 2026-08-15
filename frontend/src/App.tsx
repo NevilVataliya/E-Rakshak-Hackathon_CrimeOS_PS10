@@ -11,10 +11,19 @@ import AnalyticsView from './views/AnalyticsView';
 import AdminView from './views/AdminView';
 import LoginView from './views/LoginView';
 import { useAuthStore } from './store/authStore';
+import { useUIStore } from './store/uiStore';
+import { useCaseStore } from './store/caseStore';
 
 function ProtectedLayout() {
   const { isAuthenticated } = useAuthStore();
+  const { fetchCases } = useCaseStore();
   const location = useLocation();
+
+  React.useEffect(() => {
+    if (isAuthenticated) {
+      fetchCases();
+    }
+  }, [isAuthenticated]);
 
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
@@ -25,11 +34,11 @@ function ProtectedLayout() {
   }
 
   return (
-    <div className="h-screen w-screen bg-[#050811] text-slate-100 flex flex-col font-sans overflow-hidden select-none">
+    <div className="h-screen w-screen bg-[#F8FAFC] dark:bg-[#050811] text-slate-900 dark:text-slate-100 flex flex-col font-sans overflow-hidden select-none">
       <CommandHeader />
       {location.pathname !== '/' && <TacticalStepperHeader />}
       <div className="flex flex-1 overflow-hidden">
-        <main className="flex-1 flex flex-col bg-[#050811] overflow-hidden">
+        <main className="flex-1 flex flex-col bg-[#F8FAFC] dark:bg-[#050811] overflow-hidden">
           <Routes>
             <Route path="/" element={<DashboardView />} />
             <Route path="/intake" element={<IntakeView />} />
@@ -47,6 +56,12 @@ function ProtectedLayout() {
 }
 
 export default function App() {
+  const { theme, setTheme } = useUIStore();
+
+  React.useEffect(() => {
+    setTheme(theme);
+  }, []);
+
   return (
     <Router>
       <Routes>

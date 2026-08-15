@@ -26,6 +26,8 @@ interface CaseState {
   completedStepByCase: Record<string, number>;
   dispatchedDirectivesByCase: Record<string, any[]>;
   responseAnalyticsByCase: Record<string, any>;
+  linkageMatchesByCase: Record<string, LinkageMatch[]>;
+  linkageStatsByCase: Record<string, LinkageStats | null>;
 
   saveDispatchedDirectivesForCase: (caseNumber: string, directives: any[]) => void;
   getDirectivesForCase: (caseNumber: string) => any[];
@@ -104,6 +106,8 @@ export const useCaseStore = create<CaseState>()(
       completedStepByCase: {},
       dispatchedDirectivesByCase: {},
       responseAnalyticsByCase: {},
+      linkageMatchesByCase: {},
+      linkageStatsByCase: {},
 
       getDirectivesForCase: (caseNumber: string) => {
         return get().dispatchedDirectivesByCase[caseNumber] || [];
@@ -117,14 +121,39 @@ export const useCaseStore = create<CaseState>()(
           const merged = newDirectives.map((item: any) => {
             const key = item.id || item.title;
             const prev = existingMap.get(key);
-            // Preserve dispatched status if previously dispatched or responded
             if (prev && (prev.status === 'DISPATCHED_SMTP' || prev.status === 'RESPONSE_RECEIVED' || prev.status === 'AWAITING_PROVIDER_REPLY' || prev.status === 'DEFECTIVE_AWAITING_CURE')) {
               return { ...item, ...prev, status: prev.status, dispatched_at: prev.dispatched_at || item.dispatched_at };
             }
             return item;
           });
 
+          const currentStep = state.completedStepByCase[caseNumber] || 0;
+          const nextStep = Math.max(currentStep, 4);
+
+          const updatedCases = state.cases.map(c =>
+            c.case_number === caseNumber
+              ? { ...c, completed_step: Math.max(c.completed_step || 0, nextStep), dispatched_directives: merged }
+              : c
+          );
+
+          const updatedActive = state.activeCase?.case_number === caseNumber
+            ? { ...state.activeCase, completed_step: Math.max(state.activeCase.completed_step || 0, nextStep), dispatched_directives: merged }
+            : state.activeCase;
+
+          // Sync directives update to PostgreSQL DB
+          api.post('/api/cases', {
+            case_number: caseNumber,
+            completed_step: nextStep,
+            dispatched_directives: merged
+          }).catch(err => console.warn('[-] DB directives sync error:', err.message));
+
           return {
+            cases: updatedCases,
+            activeCase: updatedActive,
+            completedStepByCase: {
+              ...state.completedStepByCase,
+              [caseNumber]: nextStep
+            },
             dispatchedDirectivesByCase: {
               ...state.dispatchedDirectivesByCase,
               [caseNumber]: merged
@@ -134,12 +163,40 @@ export const useCaseStore = create<CaseState>()(
       },
 
       saveResponseAnalyticsForCase: (caseNumber: string, analyticsData: any) => {
-        set((state) => ({
-          responseAnalyticsByCase: {
-            ...state.responseAnalyticsByCase,
-            [caseNumber]: analyticsData
-          }
-        }));
+        set((state) => {
+          const currentStep = state.completedStepByCase[caseNumber] || 0;
+          const nextStep = Math.max(currentStep, 5);
+
+          const updatedCases = state.cases.map(c =>
+            c.case_number === caseNumber
+              ? { ...c, completed_step: 5, response_analytics: analyticsData }
+              : c
+          );
+
+          const updatedActive = state.activeCase?.case_number === caseNumber
+            ? { ...state.activeCase, completed_step: 5, response_analytics: analyticsData }
+            : state.activeCase;
+
+          // Sync analytics update to PostgreSQL DB
+          api.post('/api/cases', {
+            case_number: caseNumber,
+            completed_step: 5,
+            response_analytics: analyticsData
+          }).catch(err => console.warn('[-] DB analytics sync error:', err.message));
+
+          return {
+            cases: updatedCases,
+            activeCase: updatedActive,
+            completedStepByCase: {
+              ...state.completedStepByCase,
+              [caseNumber]: nextStep
+            },
+            responseAnalyticsByCase: {
+              ...state.responseAnalyticsByCase,
+              [caseNumber]: analyticsData
+            }
+          };
+        });
       },
 
       addDirectiveForCase: (caseNumber: string, directive: any) => {
@@ -165,12 +222,58 @@ export const useCaseStore = create<CaseState>()(
           const state: any = get();
           let payload = customPayload;
           if (!payload) {
-            if (moduleId === 'MODULE_1') payload = state.intakeDataByCase[caseNumber] || state.activeCase;
-            else if (moduleId === 'MODULE_2') payload = { matches: state.linkageMatches, stats: state.linkageStats };
-            else if (moduleId === 'MODULE_3') payload = { investigationData: state.investigationData, activeCase: state.activeCase };
-            else if (moduleId === 'MODULE_4') payload = { dispatched_directives: state.dispatchedDirectivesByCase[caseNumber], processed_replies: state.processedRepliesByCase[caseNumber] };
-            else if (moduleId === 'MODULE_5') payload = state.responseAnalyticsByCase[caseNumber] || {};
-            else if (moduleId === 'MODULE_6') payload = { timeline_events: state.timelineEvents || [] };
+            if (moduleId === 'MODULE_1') {
+              const intake = state.intakeDataByCase[caseNumber] || {};
+              const ac = state.activeCase || {};
+              payload = {
+                case_number: caseNumber,
+                complainant_name: intake.complainant_name || ac.complainant_name || 'Complainant',
+                crime_category: intake.crime_category || ac.crime_category || 'Cyber Fraud',
+                complaint_text: intake.complaint_text || intake.manual_text || ac.complaint_text || ac.description || '',
+                entities: intake.entities || intake.extracted_result?.entities || ac.entities || {},
+                attached_files_count: (intake.attached_files || ac.attached_files || []).length
+              };
+            } else if (moduleId === 'MODULE_2') {
+              payload = {
+                case_number: caseNumber,
+                matches: state.linkageMatches || [],
+                stats: state.linkageStats || {}
+              };
+            } else if (moduleId === 'MODULE_3') {
+              const inv = state.investigationData || {};
+              const ac = state.activeCase || {};
+              payload = {
+                case_number: caseNumber,
+                crime_category: ac.crime_category || 'Cyber Fraud',
+                investigation_steps: inv.investigation_steps || [],
+                strategy_roadmap: inv.strategy_roadmap || []
+              };
+            } else if (moduleId === 'MODULE_4') {
+              payload = {
+                case_number: caseNumber,
+                dispatched_directives: (state.dispatchedDirectivesByCase[caseNumber] || []).map((d: any) => ({
+                  id: d.id,
+                  title: d.title,
+                  target_provider: d.target_provider,
+                  receiver_email: d.receiver_email,
+                  status: d.status
+                })),
+                processed_replies: (state.processedRepliesByCase[caseNumber] || []).map((r: any) => ({
+                  sender: r.sender_email || r.sender,
+                  subject: r.subject,
+                  classification: r.classification
+                }))
+              };
+            } else if (moduleId === 'MODULE_5') {
+              const analytics = state.responseAnalyticsByCase[caseNumber] || {};
+              payload = {
+                case_number: caseNumber,
+                parsed_type: analytics.parsed_type || 'Forensic Analytics',
+                executive_summary: analytics.executive_summary || '',
+                extracted_metrics: analytics.extracted_metrics || {},
+                recommended_next_action: analytics.recommended_next_action || ''
+              };
+            }
           }
 
           const res = await api.post('/api/summary/module', {
@@ -222,8 +325,8 @@ export const useCaseStore = create<CaseState>()(
           const caseNo = targetCaseNo || state.activeCase?.case_number || 'CR-2026-9914';
           let summaries = state.moduleSummariesByCase[caseNo] || {};
 
-          // Auto-trigger missing module summaries if needed to build complete global picture
-          const modules = ['MODULE_1', 'MODULE_2', 'MODULE_3', 'MODULE_4', 'MODULE_5', 'MODULE_6'];
+          // Auto-trigger missing module summaries if needed to build complete global picture (Modules 1 to 5)
+          const modules = ['MODULE_1', 'MODULE_2', 'MODULE_3', 'MODULE_4', 'MODULE_5'];
           for (const m of modules) {
             if (!summaries[m]) {
               await state.generateModuleSummary(caseNo, m);
@@ -279,6 +382,9 @@ export const useCaseStore = create<CaseState>()(
       updateCaseIntakeData: (caseNumber: string, manualText: string, attachedFiles: AttachedFileMeta[]) => {
         set((state) => {
           const existing = state.intakeDataByCase[caseNumber] || { manual_text: '', attached_files: [], extracted_result: null };
+          if (existing.manual_text === manualText && JSON.stringify(existing.attached_files) === JSON.stringify(attachedFiles)) {
+            return state;
+          }
           const updatedRecord: CaseIntakeRecord = {
             ...existing,
             manual_text: manualText,
@@ -294,6 +400,14 @@ export const useCaseStore = create<CaseState>()(
           const updatedActive = state.activeCase?.case_number === caseNumber
             ? { ...state.activeCase, manual_text: manualText, attached_files: attachedFiles }
             : state.activeCase;
+
+          // Sync updated intake data to PostgreSQL DB
+          api.post('/api/cases', {
+            case_number: caseNumber,
+            manual_text: manualText,
+            attached_files: attachedFiles,
+            intake_data: updatedRecord
+          }).catch(err => console.warn('[-] DB intake sync error:', err.message));
 
           return {
             cases: updatedCases,
@@ -317,6 +431,11 @@ export const useCaseStore = create<CaseState>()(
               ? { ...state.activeCase, completed_step: stepNumber }
               : state.activeCase;
 
+            api.post('/api/cases', {
+              case_number: caseNumber,
+              completed_step: stepNumber
+            }).catch(err => console.warn('[-] DB step sync error:', err.message));
+
             return {
               cases: updatedCases,
               activeCase: active,
@@ -335,32 +454,144 @@ export const useCaseStore = create<CaseState>()(
         try {
           const res = await api.get('/api/cases');
           if (res.data && Array.isArray(res.data) && res.data.length > 0) {
-            set({ cases: res.data });
+            const fetchedCases: PoliceCase[] = res.data;
+            const currentActive = get().activeCase;
+
+            const intakeMap = { ...get().intakeDataByCase };
+            const stepMap = { ...get().completedStepByCase };
+            const invMap = { ...get().investigationsByCase };
+            const dirMap = { ...get().dispatchedDirectivesByCase };
+            const anaMap = { ...get().responseAnalyticsByCase };
+            const sumMap = { ...get().moduleSummariesByCase };
+            const globalSumMap = { ...get().globalSummaryByCase };
+            const linkageMatchesMap = { ...get().linkageMatchesByCase };
+            const linkageStatsMap = { ...get().linkageStatsByCase };
+            const repliesMap = { ...get().processedRepliesByCase };
+
+            fetchedCases.forEach((c: any) => {
+              if (c.case_number) {
+                intakeMap[c.case_number] = {
+                  manual_text: c.manual_text || '',
+                  attached_files: c.attached_files || [],
+                  extracted_result: c.extracted_result || null
+                };
+                if (c.completed_step) stepMap[c.case_number] = c.completed_step;
+                if (c.investigation_data) invMap[c.case_number] = c.investigation_data;
+                if (c.dispatched_directives && c.dispatched_directives.length > 0) dirMap[c.case_number] = c.dispatched_directives;
+                if (c.response_analytics) anaMap[c.case_number] = c.response_analytics;
+                if (c.module_summaries) sumMap[c.case_number] = c.module_summaries;
+                if (c.global_summary) globalSumMap[c.case_number] = c.global_summary;
+                if (c.cross_case_matches && c.cross_case_matches.length > 0) linkageMatchesMap[c.case_number] = c.cross_case_matches;
+                if (c.linkage_stats) linkageStatsMap[c.case_number] = c.linkage_stats;
+                if (c.processed_replies && c.processed_replies.length > 0) repliesMap[c.case_number] = c.processed_replies;
+              }
+            });
+
+            let updatedActive = currentActive;
+            if (currentActive) {
+              const found = fetchedCases.find(c => c.case_number === currentActive.case_number);
+              if (found) updatedActive = { ...found, ...currentActive };
+            } else if (fetchedCases.length > 0) {
+              updatedActive = fetchedCases[0];
+            }
+
+            const activeCaseNo = updatedActive?.case_number;
+            const activeMatches = activeCaseNo ? (linkageMatchesMap[activeCaseNo] || updatedActive?.cross_case_matches || []) : [];
+            const activeStats = activeCaseNo ? (linkageStatsMap[activeCaseNo] || (activeMatches.length > 0 ? {
+              total_entities_searched: activeMatches.length,
+              total_matches: activeMatches.length,
+              high_confidence: activeMatches.filter((m: any) => m.confidence >= 0.85).length,
+              medium_confidence: activeMatches.filter((m: any) => m.confidence >= 0.70 && m.confidence < 0.85).length,
+              low_confidence: activeMatches.filter((m: any) => m.confidence < 0.70).length,
+              unique_linked_cases: [...new Set(activeMatches.map((m: any) => m.matched_case))].length,
+              unique_police_stations: [...new Set(activeMatches.map((m: any) => m.police_station))].length,
+            } : null)) : null;
+
+            set({
+              cases: fetchedCases,
+              activeCase: updatedActive,
+              intakeDataByCase: intakeMap,
+              completedStepByCase: stepMap,
+              investigationsByCase: invMap,
+              dispatchedDirectivesByCase: dirMap,
+              responseAnalyticsByCase: anaMap,
+              moduleSummariesByCase: sumMap,
+              globalSummaryByCase: globalSumMap,
+              linkageMatchesByCase: linkageMatchesMap,
+              linkageStatsByCase: linkageStatsMap,
+              processedRepliesByCase: repliesMap,
+              linkageMatches: activeMatches,
+              linkageStats: activeStats
+            });
           }
         } catch (err) {
-          console.warn('[⚠️ Fetch Cases Fallback Activated]', {
-            reason: 'Backend GET /api/cases endpoint unavailable. Using local initial case state.'
-          });
+          console.warn('[⚠️ Fetch Cases Fallback Activated]', err);
         }
       },
 
       setActiveCase: (policeCase: PoliceCase | null) => {
-        const caseNo = policeCase?.case_number;
+        if (!policeCase) {
+          set({ activeCase: null, investigationData: null, linkageMatches: [], linkageStats: null, loading: false, error: null });
+          return;
+        }
+        const caseNo = policeCase.case_number;
         const invMap = get().investigationsByCase || {};
+        const dirMap = get().dispatchedDirectivesByCase || {};
+        const anaMap = get().responseAnalyticsByCase || {};
+        const linkageMatchesMap = get().linkageMatchesByCase || {};
+        const linkageStatsMap = get().linkageStatsByCase || {};
         const loadMap = get().loadingByCase || {};
         const errMap = get().errorByCase || {};
         const stepMap = get().completedStepByCase || {};
+        const intakeMap = get().intakeDataByCase || {};
 
-        const updatedActiveCase = policeCase ? {
+        const invData = invMap[caseNo] || policeCase.investigation_data || null;
+        const directives = dirMap[caseNo] || policeCase.dispatched_directives || [];
+        const analytics = anaMap[caseNo] || policeCase.response_analytics || null;
+        const caseMatches = linkageMatchesMap[caseNo] || policeCase.cross_case_matches || [];
+        const caseStats = linkageStatsMap[caseNo] || (caseMatches.length > 0 ? {
+          total_entities_searched: caseMatches.length,
+          total_matches: caseMatches.length,
+          high_confidence: caseMatches.filter((m: any) => m.confidence >= 0.85).length,
+          medium_confidence: caseMatches.filter((m: any) => m.confidence >= 0.70 && m.confidence < 0.85).length,
+          low_confidence: caseMatches.filter((m: any) => m.confidence < 0.70).length,
+          unique_linked_cases: [...new Set(caseMatches.map((m: any) => m.matched_case))].length,
+          unique_police_stations: [...new Set(caseMatches.map((m: any) => m.police_station))].length,
+        } : null);
+
+        const intakeRecord = intakeMap[caseNo] || {
+          manual_text: policeCase.manual_text || '',
+          attached_files: policeCase.attached_files || [],
+          extracted_result: policeCase.extracted_result || null
+        };
+
+        const calculatedStep = Math.max(
+          stepMap[caseNo] ?? 0,
+          policeCase.completed_step ?? 1,
+          invData ? 3 : 1,
+          directives.length > 0 ? 4 : 1,
+          analytics ? 5 : 1
+        );
+
+        const updatedActiveCase: PoliceCase = {
           ...policeCase,
-          completed_step: stepMap[policeCase.case_number] ?? policeCase.completed_step ?? 1
-        } : null;
+          manual_text: intakeRecord.manual_text,
+          attached_files: intakeRecord.attached_files,
+          extracted_result: intakeRecord.extracted_result,
+          completed_step: calculatedStep,
+          investigation_data: invData,
+          dispatched_directives: directives,
+          response_analytics: analytics,
+          cross_case_matches: caseMatches
+        };
 
         set({
           activeCase: updatedActiveCase,
-          investigationData: caseNo ? (invMap[caseNo] || null) : null,
-          loading: caseNo ? Boolean(loadMap[caseNo]) : false,
-          error: caseNo ? (errMap[caseNo] || null) : null,
+          investigationData: invData,
+          linkageMatches: caseMatches,
+          linkageStats: caseStats,
+          loading: Boolean(loadMap[caseNo]),
+          error: errMap[caseNo] || null,
         });
       },
 
@@ -414,10 +645,25 @@ export const useCaseStore = create<CaseState>()(
         };
 
         const updatedCases = [newCase, ...get().cases];
+
+        // Persist case record to PostgreSQL database
+        api.post('/api/cases', {
+          ...newCase,
+          intake_data: updatedIntakeMap[newCaseNumber],
+          manual_text: newCaseManualText,
+          attached_files: newCaseAttachedFiles,
+          extracted_result: complaintData,
+          completed_step: 1
+        }).catch(err => {
+          console.warn('[-] DB case insert warning:', err.message);
+        });
+
         set({
           cases: updatedCases,
           activeCase: newCase,
           investigationData: null,
+          linkageMatches: [],
+          linkageStats: null,
           intakeDataByCase: updatedIntakeMap,
           completedStepByCase: updatedCompletedStepMap,
           loading: false,
@@ -540,19 +786,43 @@ export const useCaseStore = create<CaseState>()(
             const nextStep = resultingData ? Math.max(currStep, 3) : currStep;
             const nextCompletedStepMap = { ...state.completedStepByCase, [caseNumber]: nextStep };
 
+            const updatedCases = state.cases.map((c) =>
+              c.case_number === caseNumber
+                ? {
+                    ...c,
+                    completed_step: nextStep,
+                    investigation_data: resultingData || c.investigation_data
+                  }
+                : c
+            );
+
             const isCurrent = state.activeCase?.case_number === caseNumber;
+            const updatedActiveCase = isCurrent && state.activeCase
+              ? {
+                  ...state.activeCase,
+                  completed_step: nextStep,
+                  investigation_data: resultingData || state.activeCase.investigation_data
+                }
+              : state.activeCase;
+
+            if (resultingData) {
+              api.post('/api/cases', {
+                case_number: caseNumber,
+                completed_step: nextStep,
+                investigation_data: resultingData
+              }).catch(err => console.warn('[-] DB investigation sync error:', err.message));
+            }
 
             return {
+              cases: updatedCases,
               investigationsByCase: nextInvMap,
               errorByCase: nextErrMap,
               loadingByCase: nextLoadMap,
               completedStepByCase: nextCompletedStepMap,
-              ...(isCurrent ? {
-                investigationData: resultingData ?? state.investigationData,
-                error: resultingError,
-                loading: false,
-                activeCase: state.activeCase ? { ...state.activeCase, completed_step: nextStep } : null
-              } : {})
+              activeCase: updatedActiveCase,
+              investigationData: isCurrent ? (resultingData ?? state.investigationData) : state.investigationData,
+              loading: isCurrent ? false : state.loading,
+              error: isCurrent ? resultingError : state.error
             };
           });
         }
@@ -605,12 +875,36 @@ export const useCaseStore = create<CaseState>()(
             unique_police_stations: [...new Set(rawMatches.map(m => m.police_station))].length,
           };
 
-          set({
+          const currentStep = get().completedStepByCase[caseNumber] || 0;
+          const nextStep = Math.max(currentStep, 2);
+
+          // Save to PostgreSQL DB
+          api.post('/api/cases', {
+            case_number: caseNumber,
+            completed_step: nextStep,
+            cross_case_matches: rawMatches,
+            linkage_stats: computedStats
+          }).catch(err => console.warn('[-] DB linkage sync error:', err.message));
+
+          set((state) => ({
             linkageMatches: rawMatches,
             linkageStats: computedStats,
-
+            linkageMatchesByCase: {
+              ...state.linkageMatchesByCase,
+              [caseNumber]: rawMatches
+            },
+            linkageStatsByCase: {
+              ...state.linkageStatsByCase,
+              [caseNumber]: computedStats
+            },
+            completedStepByCase: {
+              ...state.completedStepByCase,
+              [caseNumber]: nextStep
+            },
+            cases: state.cases.map(c => c.case_number === caseNumber ? { ...c, completed_step: nextStep, cross_case_matches: rawMatches, linkage_stats: computedStats } : c),
+            activeCase: state.activeCase?.case_number === caseNumber ? { ...state.activeCase, completed_step: nextStep, cross_case_matches: rawMatches, linkage_stats: computedStats } : state.activeCase,
             linkageError: null
-          });
+          }));
         } catch (err: any) {
           const errorMsg = err.response?.data?.detail || err.response?.data?.error || err.message || 'Linkage search failed';
           console.error('[-] Linkage Search Error:', errorMsg);
@@ -634,19 +928,29 @@ export const useCaseStore = create<CaseState>()(
             const vpas = entities?.vpas_upis || [];
             const accounts = entities?.bank_accounts || [];
 
-            set({
+            const fallbackStats = {
+              total_entities_searched: phones.length + vpas.length + accounts.length,
+              total_matches: 0,
+              high_confidence: 0,
+              medium_confidence: 0,
+              low_confidence: 0,
+              unique_linked_cases: 0,
+              unique_police_stations: 0
+            };
+
+            set((state) => ({
               linkageMatches: [],
-              linkageStats: {
-                total_entities_searched: phones.length + vpas.length + accounts.length,
-                total_matches: 0,
-                high_confidence: 0,
-                medium_confidence: 0,
-                low_confidence: 0,
-                unique_linked_cases: 0,
-                unique_police_stations: 0
+              linkageStats: fallbackStats,
+              linkageMatchesByCase: {
+                ...state.linkageMatchesByCase,
+                [caseNumber]: []
+              },
+              linkageStatsByCase: {
+                ...state.linkageStatsByCase,
+                [caseNumber]: fallbackStats
               },
               linkageError: null
-            });
+            }));
           } else {
             set({
               linkageMatches: [],
@@ -684,6 +988,14 @@ export const useCaseStore = create<CaseState>()(
               const existingIds = new Set(existing.map((r: any) => r.id));
               const newItems = replies.filter((r: any) => !existingIds.has(r.id));
               const merged = [...newItems, ...existing];
+
+              if (targetCase && merged.length > 0) {
+                api.post('/api/cases', {
+                  case_number: targetCase,
+                  processed_replies: merged
+                }).catch(err => console.warn('[-] DB replies sync error:', err.message));
+              }
+
               return {
                 processedReplies: merged,
                 processedRepliesByCase: targetCase ? {
@@ -712,6 +1024,13 @@ export const useCaseStore = create<CaseState>()(
             const existing = get().processedRepliesByCase[targetCase] || get().processedReplies || [];
             const updated = [replyObj, ...existing];
 
+            if (targetCase) {
+              api.post('/api/cases', {
+                case_number: targetCase,
+                processed_replies: updated
+              }).catch(err => console.warn('[-] DB reply insert sync error:', err.message));
+            }
+
             set((state) => ({
               processedReplies: updated,
               processedRepliesByCase: {
@@ -739,6 +1058,14 @@ export const useCaseStore = create<CaseState>()(
               ? { ...r, status: 'FOLLOWBACK_SENT', followback_sent_at: new Date().toLocaleTimeString() }
               : r
           );
+
+          if (targetCase) {
+            api.post('/api/cases', {
+              case_number: targetCase,
+              processed_replies: updated
+            }).catch(err => console.warn('[-] DB followback sync error:', err.message));
+          }
+
           set((state) => ({
             processedReplies: updated,
             processedRepliesByCase: {
@@ -779,6 +1106,12 @@ export const useCaseStore = create<CaseState>()(
           const updatedCases = state.cases.map(c => c.case_number === caseNo ? updatedCase : c);
           const nextCompletedStep = Math.max(state.completedStepByCase[caseNo] || 0, 5);
 
+          api.post('/api/cases', {
+            case_number: caseNo,
+            activity_timeline: updatedTimeline,
+            completed_step: nextCompletedStep
+          }).catch(err => console.warn('[-] DB timeline sync error:', err.message));
+
           return {
             cases: updatedCases,
             activeCase: updatedCase,
@@ -804,12 +1137,19 @@ export const useCaseStore = create<CaseState>()(
         set({
           activeCase: null,
           investigationData: null,
+          linkageMatches: [],
+          linkageStats: null,
           selectedInspectorItem: null,
           error: null
         });
       },
 
-      clearAllCasesAndData: () => {
+      clearAllCasesAndData: async () => {
+        try {
+          await api.delete('/api/cases');
+        } catch (err: any) {
+          console.warn('[-] DB purge error:', err.message);
+        }
         if (typeof window !== 'undefined' && window.localStorage) {
           window.localStorage.removeItem('crime-os-case-storage');
         }
@@ -827,6 +1167,12 @@ export const useCaseStore = create<CaseState>()(
           responseAnalyticsByCase: {},
           processedReplies: [],
           processedRepliesByCase: {},
+          moduleSummariesByCase: {},
+          globalSummaryByCase: {},
+          linkageMatchesByCase: {},
+          linkageStatsByCase: {},
+          linkageMatches: [],
+          linkageStats: null,
           selectedInspectorItem: null,
           error: null
         });
@@ -835,11 +1181,21 @@ export const useCaseStore = create<CaseState>()(
     {
       name: 'crime-os-case-storage',
       partialize: (state) => ({
+        cases: state.cases,
+        activeCase: state.activeCase,
+        intakeDataByCase: state.intakeDataByCase,
         completedStepByCase: state.completedStepByCase,
+        investigationsByCase: state.investigationsByCase,
+        dispatchedDirectivesByCase: state.dispatchedDirectivesByCase,
+        responseAnalyticsByCase: state.responseAnalyticsByCase,
+        processedRepliesByCase: state.processedRepliesByCase,
+        moduleSummariesByCase: state.moduleSummariesByCase,
+        globalSummaryByCase: state.globalSummaryByCase,
         legalRequests: state.legalRequests,
+        linkageMatchesByCase: state.linkageMatchesByCase,
+        linkageStatsByCase: state.linkageStatsByCase,
         linkageMatches: state.linkageMatches,
-        linkageStats: state.linkageStats,
-        dispatchedDirectivesByCase: state.dispatchedDirectivesByCase
+        linkageStats: state.linkageStats
       })
     }
   )

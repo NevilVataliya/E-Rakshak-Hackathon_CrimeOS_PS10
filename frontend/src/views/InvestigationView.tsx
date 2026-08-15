@@ -22,52 +22,62 @@ import { GroundedSOPStep } from '../types';
 
 export default function InvestigationView() {
   const navigate = useNavigate();
-  const { activeCase, runInvestigationStudio, investigationData, loading, error, setSelectedInspectorItem } = useCaseStore();
+  const { activeCase, runInvestigationStudio, investigationData, investigationsByCase, loading, error, setSelectedInspectorItem } = useCaseStore();
   const [pdfModalOpen, setPdfModalOpen] = useState(false);
   const [expandedStep, setExpandedStep] = useState<number | null>(0);
   const [summarizerOpen, setSummarizerOpen] = useState(false);
 
+  const currentCaseNo = activeCase?.case_number;
+  const effectiveInvestigationData = (currentCaseNo ? investigationsByCase?.[currentCaseNo] : null) || investigationData || activeCase?.investigation_data || null;
+  const steps = effectiveInvestigationData?.investigation_steps || [];
+
   const handleRunAgentStudio = () => {
-    if (activeCase) {
-      runInvestigationStudio(
-        activeCase.case_number,
-        activeCase.complaint_text,
-        activeCase.crime_category,
-        activeCase.crime_sub_type,
-        activeCase.entities
-      );
-    }
+    const caseNo = activeCase?.case_number;
+    if (!caseNo) return;
+    const storeState = useCaseStore.getState();
+    const intakeRecord = storeState.intakeDataByCase[caseNo];
+
+    const compText = activeCase?.complaint_text || activeCase?.translated_text || activeCase?.manual_text || intakeRecord?.manual_text || 'Complaint Statement Ingested.';
+    const category = activeCase?.crime_category || 'CYBER';
+    const subType = activeCase?.crime_sub_type || 'UPI Financial Fraud';
+    const entities = activeCase?.entities || intakeRecord?.extracted_result?.entities || {};
+
+    runInvestigationStudio(
+      caseNo,
+      compText,
+      category,
+      subType,
+      entities
+    );
   };
 
-  const steps = investigationData?.investigation_steps || [];
-
   return (
-    <div className="flex-1 flex flex-col p-4 overflow-hidden gap-3 select-none">
+    <div className="flex-1 flex flex-col p-4 overflow-hidden gap-3 select-none bg-[#F8FAFC] dark:bg-[#050811]">
 
       {/* Header Bar */}
-      <div className="flex items-center justify-between border-b border-white/10 pb-3 shrink-0">
+      <div className="flex items-center justify-between border-b border-slate-200 dark:border-white/10 pb-3 shrink-0">
         <div>
-          <h1 className="text-base font-extrabold tracking-wide text-white uppercase font-mono flex items-center gap-2">
-            AI Investigation & SOP Analysis
+          <h1 className="text-base font-black tracking-wide text-slate-900 dark:text-white uppercase font-mono flex items-center gap-2">
+            AI Multi-Agent Legal Investigation Studio
           </h1>
-          <p className="text-xs text-slate-400">
-            AI-powered analysis across legal frameworks with verified citations from official manuals.
+          <p className="text-xs text-slate-600 dark:text-slate-400 mt-0.5">
+            AI-powered legal reasoning grounded in Bharatiya Nagarik Suraksha Sanhita (BNSS) & official Police SOP manuals.
           </p>
         </div>
 
         <div className="flex items-center gap-2">
           <button
             onClick={() => setSummarizerOpen(true)}
-            className="flex items-center gap-1.5 rounded border border-blue-500/40 bg-blue-500/10 px-3 py-1.5 text-xs font-bold text-cyan-300 hover:bg-blue-500/20 transition-colors shadow-sm"
+            className="flex items-center gap-1.5 rounded border border-amber-500 bg-amber-500 px-3 py-1.5 text-xs font-bold text-slate-950 hover:bg-amber-600 transition-colors shadow-sm"
           >
-            <Sparkles className="h-3.5 w-3.5 text-cyan-400" />
+            <Sparkles className="h-3.5 w-3.5" />
             <span>AI Module Summary</span>
           </button>
 
           <button
             onClick={handleRunAgentStudio}
             disabled={loading}
-            className="flex items-center gap-1.5 rounded bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-blue-500 transition-colors disabled:opacity-50 shadow-sm"
+            className="flex items-center gap-1.5 rounded border border-blue-300 bg-blue-50 px-3 py-1.5 text-xs font-bold text-blue-950 hover:bg-blue-100 transition-colors disabled:opacity-50 shadow-sm"
           >
             {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
             <span>{steps.length > 0 ? 'Re-Generate Investigation Path' : 'Generate Investigation Path'}</span>
@@ -75,10 +85,10 @@ export default function InvestigationView() {
 
           <button
             onClick={() => navigate('/subpoenas')}
-            className="flex items-center gap-1.5 rounded bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-500 transition-colors"
+            className="flex items-center gap-1.5 rounded bg-[#0A2540] dark:bg-blue-600 px-3.5 py-1.5 text-xs font-bold text-white hover:bg-slate-800 dark:hover:bg-blue-500 transition-colors shadow-sm"
           >
             <span>Proceed to Subpoenas & Notices</span>
-            <ArrowRight className="h-3.5 w-3.5" />
+            <ArrowRight className="h-3.5 w-3.5 text-amber-400" />
           </button>
         </div>
       </div>
@@ -101,13 +111,13 @@ export default function InvestigationView() {
       <div className="flex-1 grid grid-cols-12 gap-3 overflow-hidden">
 
         {/* Left Column: SOP Directives Execution Matrix (7 Cols) */}
-        <div className="col-span-7 rounded border border-white/10 bg-[#0d1322] p-3 flex flex-col overflow-hidden space-y-2.5">
-          <div className="flex items-center justify-between border-b border-white/10 pb-2 shrink-0">
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
-              <ShieldCheck className="h-4 w-4 text-blue-400" />
+        <div className="col-span-7 rounded border border-slate-200 dark:border-white/10 bg-white dark:bg-[#0d1322] p-3 flex flex-col overflow-hidden space-y-2.5 shadow-sm">
+          <div className="flex items-center justify-between border-b border-slate-200 dark:border-white/10 pb-2 shrink-0">
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-900 dark:text-slate-300 flex items-center gap-1.5">
+              <ShieldCheck className="h-4 w-4 text-blue-600 dark:text-blue-400" />
               SOP Investigation Directives
             </span>
-            <span className="text-[10px] font-mono text-emerald-400 font-bold">
+            <span className="text-[10px] font-mono text-emerald-700 dark:text-emerald-400 font-bold">
               {steps.length > 0 ? `${steps.length} Steps Compiled` : 'Ready to Run'}
             </span>
           </div>
@@ -115,16 +125,16 @@ export default function InvestigationView() {
           <div className="flex-1 overflow-y-auto space-y-2">
             {loading ? (
               <div className="flex flex-col items-center justify-center h-full space-y-3 py-12">
-                <Loader2 className="h-8 w-8 text-blue-400 animate-spin" />
-                <p className="text-xs text-slate-300 font-semibold">Running Multi-Agent Legal & SOP Analysis...</p>
+                <Loader2 className="h-8 w-8 text-blue-600 dark:text-blue-400 animate-spin" />
+                <p className="text-xs text-slate-700 dark:text-slate-300 font-semibold">Running Multi-Agent Legal & SOP Analysis...</p>
                 <p className="text-[11px] text-slate-500">Cross-referencing BNS, BSA 2023, and I4C Cyber SOP manuals</p>
               </div>
             ) : steps.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-full space-y-3 py-12 text-center px-4">
-                <Play className="h-10 w-10 text-blue-400" />
-                <h3 className="text-xs font-bold text-white uppercase tracking-wider">Ready to Generate Investigation Path</h3>
-                <p className="text-[11px] text-slate-400 max-w-md leading-relaxed">
-                  Click "Generate Investigation Path" above to trigger multi-agent analysis for case <code className="text-cyan-300">{activeCase?.case_number}</code>.
+                <Play className="h-10 w-10 text-blue-600 dark:text-blue-400" />
+                <h3 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">Ready to Generate Investigation Path</h3>
+                <p className="text-[11px] text-slate-600 dark:text-slate-400 max-w-md leading-relaxed">
+                  Click "Generate Investigation Path" above to trigger multi-agent analysis for case <code className="text-cyan-700 dark:text-cyan-300">{activeCase?.case_number}</code>.
                 </p>
                 <button
                   onClick={handleRunAgentStudio}
@@ -142,26 +152,26 @@ export default function InvestigationView() {
                 return (
                   <div
                     key={idx}
-                    className="rounded border border-white/10 bg-[#050811] overflow-hidden transition-all hover:border-white/20"
+                    className="rounded border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-[#050811] overflow-hidden transition-all hover:border-slate-300 dark:hover:border-white/20"
                   >
                     <button
                       onClick={() => {
                         setExpandedStep(isOpen ? null : idx);
                         setSelectedInspectorItem({ type: 'SOP_CITATION_INSPECTOR', data: step });
                       }}
-                      className="w-full flex items-center justify-between p-2.5 text-left hover:bg-slate-900/60 transition-colors gap-2"
+                      className="w-full flex items-center justify-between p-2.5 text-left hover:bg-slate-100 dark:hover:bg-slate-900/60 transition-colors gap-2"
                     >
                       <div className="flex items-center gap-2 flex-1 min-w-0">
-                        <span className="flex h-5 w-5 items-center justify-center rounded bg-blue-600/20 text-xs font-bold text-blue-400 font-mono shrink-0">
+                        <span className="flex h-5 w-5 items-center justify-center rounded bg-blue-100 dark:bg-blue-600/20 text-xs font-bold text-blue-900 dark:text-blue-400 font-mono shrink-0">
                           {step.step_number}
                         </span>
-                        <h3 className="text-xs font-semibold text-white truncate">{step.title}</h3>
+                        <h3 className="text-xs font-semibold text-slate-900 dark:text-white truncate">{step.title}</h3>
                       </div>
 
                       {/* Always Visible Citation Badge on Left Panel Step Header */}
                       <div className="flex items-center gap-2 shrink-0">
-                        <span className="inline-flex items-center gap-1 rounded border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-mono font-bold text-emerald-300">
-                          <BookOpen className="h-2.5 w-2.5 text-emerald-400" />
+                        <span className="inline-flex items-center gap-1 rounded border border-emerald-300 dark:border-emerald-500/30 bg-emerald-50 dark:bg-emerald-500/10 px-2 py-0.5 text-[10px] font-mono font-bold text-emerald-900 dark:text-emerald-300">
+                          <BookOpen className="h-2.5 w-2.5 text-emerald-600 dark:text-emerald-400" />
                           <span className="max-w-[140px] truncate">{citationText}</span>
                         </span>
                         {isOpen ? <ChevronUp className="h-3.5 w-3.5 text-slate-400" /> : <ChevronDown className="h-3.5 w-3.5 text-slate-400" />}
@@ -169,27 +179,27 @@ export default function InvestigationView() {
                     </button>
 
                     {isOpen && (
-                      <div className="px-3 pb-3 pt-1 border-t border-white/10 space-y-2.5 text-xs">
-                        <p className="text-slate-300 leading-relaxed font-sans">{step.description}</p>
+                      <div className="px-3 pb-3 pt-1 border-t border-slate-200 dark:border-white/10 space-y-2.5 text-xs">
+                        <p className="text-slate-700 dark:text-slate-300 leading-relaxed font-sans">{step.description}</p>
 
-                        <div className="rounded border border-white/10 bg-[#0d1322] p-2.5 space-y-1.5">
-                          <div className="flex items-center justify-between font-mono font-bold text-blue-400 text-[11px]">
+                        <div className="rounded border border-slate-200 dark:border-white/10 bg-white dark:bg-[#0d1322] p-2.5 space-y-1.5">
+                          <div className="flex items-center justify-between font-mono font-bold text-blue-700 dark:text-blue-400 text-[11px]">
                             <span className="flex items-center gap-1.5">
-                              <BookOpen className="h-3.5 w-3.5 text-blue-400" />
+                              <BookOpen className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
                               {step.document_name || 'I4C / BNS Legal Manual'}
                             </span>
-                            {step.page_number && <span className="bg-white/5 px-1.5 py-0.5 rounded text-[10px] text-slate-300">Page {step.page_number}</span>}
+                            {step.page_number && <span className="bg-slate-100 dark:bg-white/5 px-1.5 py-0.5 rounded text-[10px] text-slate-700 dark:text-slate-300">Page {step.page_number}</span>}
                           </div>
 
                           <div className="flex items-start gap-1.5 pt-1">
-                            <MapPin className="h-3 w-3 text-indigo-400 shrink-0 mt-0.5" />
-                            <p className="text-[10px] text-indigo-300 font-mono">
+                            <MapPin className="h-3 w-3 text-indigo-600 dark:text-indigo-400 shrink-0 mt-0.5" />
+                            <p className="text-[10px] text-indigo-900 dark:text-indigo-300 font-mono">
                               Section Path: {step.section_path || step.sop_reference || 'BNS & BNSS Grounded Procedure'}
                             </p>
                           </div>
 
                           {step.raw_citation_text && (
-                            <p className="text-[11px] text-slate-200 italic pt-1 border-t border-white/5 font-serif">
+                            <p className="text-[11px] text-slate-800 dark:text-slate-200 italic pt-1 border-t border-slate-100 dark:border-white/5 font-serif">
                               "{step.raw_citation_text}"
                             </p>
                           )}
@@ -207,46 +217,46 @@ export default function InvestigationView() {
         <div className="col-span-5 flex flex-col gap-3 overflow-hidden">
 
           {/* Statutory Penal Grounding */}
-          <div className="rounded border border-white/10 bg-[#0d1322] p-3 space-y-2 shrink-0">
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-300 border-b border-white/10 pb-1.5 flex items-center gap-1.5">
-              <Gavel className="h-4 w-4 text-amber-400" />
+          <div className="rounded border border-slate-200 dark:border-white/10 bg-white dark:bg-[#0d1322] p-3 space-y-2 shrink-0 shadow-sm">
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-900 dark:text-slate-300 border-b border-slate-200 dark:border-white/10 pb-1.5 flex items-center gap-1.5">
+              <Gavel className="h-4 w-4 text-amber-600 dark:text-amber-400" />
               Statutory Penal Grounding
             </span>
 
-            <div className="rounded border border-white/10 bg-[#050811] p-2.5 space-y-1">
-              <h3 className="text-xs font-bold text-blue-400 font-mono">
+            <div className="rounded border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-[#050811] p-2.5 space-y-1">
+              <h3 className="text-xs font-bold text-blue-700 dark:text-blue-400 font-mono">
                 {activeCase?.sections?.join(' & ') || 'BNS Section 318(4) & IT Act Section 66D'}
               </h3>
-              <p className="text-[11px] text-slate-400 leading-relaxed">
+              <p className="text-[11px] text-slate-600 dark:text-slate-400 leading-relaxed">
                 Punishment for cheating by personation using computer resource. Cognizable & Non-Bailable.
               </p>
             </div>
 
-            <div className="rounded border border-white/10 bg-[#050811] p-2.5 space-y-1">
-              <h3 className="text-xs font-bold text-emerald-400 font-mono">
+            <div className="rounded border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-[#050811] p-2.5 space-y-1">
+              <h3 className="text-xs font-bold text-emerald-700 dark:text-emerald-400 font-mono">
                 Section 63 Bharatiya Sakshya Adhiniyam (BSA), 2023
               </h3>
-              <p className="text-[11px] text-slate-400 leading-relaxed">
+              <p className="text-[11px] text-slate-600 dark:text-slate-400 leading-relaxed">
                 Mandatory electronic evidence certificate required for digital transaction logs and server records.
               </p>
             </div>
           </div>
 
           {/* Turnkey Notice Box */}
-          <div className="rounded border border-white/10 bg-[#0d1322] p-3 flex flex-col justify-between flex-1 space-y-2">
+          <div className="rounded border border-slate-200 dark:border-white/10 bg-white dark:bg-[#0d1322] p-3 flex flex-col justify-between flex-1 space-y-2 shadow-sm">
             <div>
-              <span className="text-xs font-bold uppercase tracking-wider text-slate-300 border-b border-white/10 pb-1.5 flex items-center gap-1.5">
-                <FileText className="h-4 w-4 text-emerald-400" />
+              <span className="text-xs font-bold uppercase tracking-wider text-slate-900 dark:text-slate-300 border-b border-slate-200 dark:border-white/10 pb-1.5 flex items-center gap-1.5">
+                <FileText className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
                 Turnkey Statutory Requisition PDF
               </span>
-              <p className="text-xs text-slate-400 mt-2 leading-relaxed">
+              <p className="text-xs text-slate-600 dark:text-slate-400 mt-2 leading-relaxed">
                 Section 94 BNSS Legal Notice automatically rendered and ready for dispatch.
               </p>
             </div>
 
             <button
               onClick={() => setPdfModalOpen(true)}
-              className="flex w-full items-center justify-center gap-2 rounded bg-emerald-600 p-2.5 text-xs font-bold text-white hover:bg-emerald-500 transition-colors"
+              className="flex w-full items-center justify-center gap-2 rounded bg-emerald-600 p-2.5 text-xs font-bold text-white hover:bg-emerald-500 transition-colors shadow-sm"
             >
               <Download className="h-4 w-4" />
               <span>Preview Section 94 BNSS Notice PDF</span>

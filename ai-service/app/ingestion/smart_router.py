@@ -177,21 +177,21 @@ BANK ACCOUNTS — For EACH bank account:
   Note the money trail order if multiple accounts are mentioned as a transfer chain.
 
 LEGAL SECTIONS — Record the sections EXACTLY as stated in the document, preserving the original statute prefix (IPC, IT Act, BNS, etc.). Do NOT convert or renumber sections between statutes. The legal specialist agent will independently identify the correct current BNS sections via the RAG legal corpus.
-Record ONLY sections that are EXPLICITLY mentioned/numbered in the document, or that are directly and unambiguously evident from the facts. Do NOT force a fixed list of sections. Include the section number AND a short description in brackets.
+Record ONLY sections of Bharatiya Nyaya Sanhita (BNS) 2023, Bharatiya Nagarik Suraksha Sanhita (BNSS) 2023, Bharatiya Sakshya Adhiniyam (BSA) 2023, and Information Technology Act (IT Act) 2000 that correspond directly to the alleged criminal acts. Include the section number AND a short description in brackets.
 
 Respond ONLY in valid JSON matching this exact structure:
 {{
   "original_language": "gu|hi|en",
-  "translated_text": "<FULL ENGLISH TRANSLATION covering all pages>",
+  "translated_text": "<FULL ENGLISH TRANSLATION covering all facts>",
   "crime_category": "CYBER|CONVENTIONAL|HYBRID",
-  "crime_sub_type": "<SPECIFIC SUB TYPE>",
+  "crime_sub_type": "<SPECIFIC SUB TYPE BASED ON FACTS>",
   "severity_score": 7.5,
-  "bns_sections_identified": ["<BNS_SECTION_1>", "<BNS_SECTION_2>"],
+  "bns_sections_identified": [],
   "entities": {{
     "persons": [
       {{
-        "name": "<FULL NAME>",
-        "alias": "<ALIAS OR NULL>",
+        "name": "<FULL NAME OR NULL>",
+        "alias": "<ALIAS OR IMPERSONATED IDENTITY IF STATED, OTHERWISE NULL>",
         "role": "victim|accused|suspect|witness|mule|fake_identity",
         "father_name": "<S/O NAME OR NULL>",
         "age": null,
@@ -263,10 +263,10 @@ Respond ONLY in valid JSON matching this exact structure:
         try:
             import re as _re
             from app.ingestion.heuristic_extractor import _normalize_indic_digits
-            # Match all currency amounts (prefix or suffix) with optional Indic digits
+            # Match strictly isolated currency tokens (prefix or suffix) with word boundaries
             _amount_patterns = [
-                r'(?:rs\.?|inr|₹|રૂપિયા|રૂ|रुपये|रू|rupees)[.\s]*([\d,\u0A80-\u0AFF\u0900-\u097F]+)',
-                r'([\d,\u0A80-\u0AFF\u0900-\u097F]+)[.\s]*(?:rs\.?|inr|₹|રૂપિયા|રૂ|रुपये|रू|rupees)',
+                r'(?:\b(?:rs\.?|inr|rupees|રૂપિયા|રૂ|रुपये|रू)\b|₹)[.\s]*([\d,\u0A80-\u0AFF\u0900-\u097F]+)',
+                r'([\d,\u0A80-\u0AFF\u0900-\u097F]+)[.\s]*(?:\b(?:rs\.?|inr|rupees|રૂપિયા|રૂ|रुपये|रू)\b|₹)',
             ]
             _all_amounts = []
             for _pat in _amount_patterns:
@@ -274,13 +274,30 @@ Respond ONLY in valid JSON matching this exact structure:
                     _num_raw = _m.group(1)
                     _num_ascii = _normalize_indic_digits(_num_raw)
                     _digits_only = _re.sub(r'[^\d]', '', _num_ascii)
-                    if _digits_only.isdigit():
-                        _all_amounts.append(float(int(_digits_only)))
+                    if _digits_only.isdigit() and len(_digits_only) > 0:
+                        _val = float(int(_digits_only))
+                        if _val > 0:
+                            _all_amounts.append(_val)
             if _all_amounts:
                 heuristic_loss = max(_all_amounts)
                 data['entities']['monetary_loss'] = heuristic_loss
+            else:
+                data['entities']['monetary_loss'] = 0
         except Exception:
             pass  # keep LLM value if heuristic fails
+
+        # DETERMINISTIC URL & HANDLE PRESERVATION
+        try:
+            import re as _re
+            url_matches = _re.findall(r'https?://[^\s<>"\'\)]+', extracted_text)
+            current_handles = set(data.get('entities', {}).get('online_handles', []))
+            for u in url_matches:
+                u_clean = u.rstrip('.,;:')
+                if u_clean not in current_handles:
+                    data['entities'].setdefault('online_handles', []).append(u_clean)
+                    current_handles.add(u_clean)
+        except Exception:
+            pass
 
         # DETERMINISTIC LEGAL SECTION PRESERVATION OVERRIDE
         # The LLM may incorrectly convert IPC/IT Act sections to BNS numbers (e.g. "IPC 388" -> "BNS 386",

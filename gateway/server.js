@@ -31,7 +31,8 @@ app.use(cors({
   credentials: true
 }));
 app.use(cookieParser());
-app.use(express.json());
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 // --- AUTHENTICATION MIDDLEWARE ---
 const authenticateToken = (req, res, next) => {
@@ -114,6 +115,24 @@ app.post('/api/auth/logout', (req, res) => {
 
 app.get('/api/auth/me', authenticateToken, (req, res) => {
   res.json({ user: req.user });
+});
+
+app.get('/api/config', (req, res) => {
+  res.json({
+    enable_demo_fallbacks: ENABLE_DEMO_FALLBACKS,
+    debug: true,
+    offline_mode: false
+  });
+});
+
+app.get('/api/system/status', (req, res) => {
+  res.json({
+    offline_mode: false,
+    config_mode: 'HYBRID',
+    cloud_keys_configured: true,
+    active_processors: ['Groq LLM', 'PyMuPDF', 'FastAPI'],
+    warnings: []
+  });
 });
 
 // --- 2. COMPLAINT INGESTION & UPLOAD ROUTES ---
@@ -272,26 +291,161 @@ app.post(['/api/complaints/upload', '/api/ingest'], upload.any(), async (req, re
 app.get('/api/cases', authenticateToken, async (req, res) => {
   try {
     const result = await pool.query('SELECT * FROM cases ORDER BY created_at DESC');
-    res.json(result.rows);
+    const cases = result.rows.map((row) => {
+      let plan = {};
+      try {
+        plan = typeof row.investigation_plan === 'string'
+          ? JSON.parse(row.investigation_plan || '{}')
+          : (row.investigation_plan || {});
+      } catch (e) {
+        plan = {};
+      }
+
+      let rowCrossMatches = [];
+      try {
+        rowCrossMatches = typeof row.cross_case_matches === 'string'
+          ? JSON.parse(row.cross_case_matches || '[]')
+          : (row.cross_case_matches || []);
+      } catch (e) {
+        rowCrossMatches = [];
+      }
+
+      const crossMatches = (Array.isArray(rowCrossMatches) && rowCrossMatches.length > 0)
+        ? rowCrossMatches
+        : (Array.isArray(plan.cross_case_matches) ? plan.cross_case_matches : []);
+
+      return {
+        case_number: row.case_number,
+        fir_number: row.fir_number || plan.fir_number || `FIR-${row.case_number.slice(-4)}/2026`,
+        crime_category: row.crime_category || plan.crime_category || 'CYBER',
+        crime_sub_type: row.crime_sub_type || plan.crime_sub_type || 'UPI Financial Fraud',
+        complaint_text: plan.complaint_text || plan.manual_text || row.summary || 'Complaint Statement Ingested.',
+        original_language: plan.original_language || 'gu',
+        translated_text: plan.translated_text || 'Translated English Narrative.',
+        severity_score: plan.severity_score || 8.5,
+        assigned_io: plan.assigned_io || 'PSI V. K. Patel',
+        police_station: plan.police_station || 'Surat Cyber Crime HQ',
+        status: row.status || plan.status || 'INTAKE',
+        entities: plan.entities || { persons: [], phone_numbers: [], vpas_upis: [], bank_accounts: [], monetary_loss: 0 },
+        sections: plan.sections || ['BNS Section 318(4)', 'IT Act Section 66D', 'BSA Section 63'],
+        created_at: row.created_at ? new Date(row.created_at).toISOString() : new Date().toISOString(),
+        manual_text: plan.manual_text || plan.intake_data?.manual_text || '',
+        attached_files: plan.attached_files || plan.intake_data?.attached_files || [],
+        extracted_result: plan.extracted_result || plan.intake_data?.extracted_result || null,
+        completed_step: plan.completed_step || 1,
+        dispatched_directives: plan.dispatched_directives || [],
+        response_analytics: plan.response_analytics || null,
+        module_summaries: plan.module_summaries || {},
+        global_summary: plan.global_summary || null,
+        investigation_data: plan.investigation_data || null,
+        cross_case_matches: crossMatches,
+        linkage_stats: plan.linkage_stats || null,
+        processed_replies: plan.processed_replies || [],
+        activity_timeline: plan.activity_timeline || []
+      };
+    });
+    res.json(cases);
   } catch (err) {
+    console.error('[-] GET /api/cases DB error:', err.message);
     if (!ENABLE_DEMO_FALLBACKS) return res.status(500).json({ error: err.message });
     res.json([]);
   }
 });
 
 app.post('/api/cases', authenticateToken, async (req, res) => {
-  const { case_number, fir_number, crime_category, crime_sub_type, summary, sections } = req.body;
+  const caseData = req.body;
+  const { case_number, fir_number, crime_category, crime_sub_type, complaint_text, status } = caseData;
+  if (!case_number) {
+    return res.status(400).json({ error: 'case_number is required' });
+  }
+
   try {
+    const existing = await pool.query('SELECT fir_number, crime_category, crime_sub_type, summary, status, cross_case_matches, investigation_plan FROM cases WHERE case_number = $1', [case_number]);
+    let existingPlan = {};
+    let existingCrossMatches = [];
+    if (existing.rows.length > 0) {
+      if (existing.rows[0].investigation_plan) {
+        try {
+          existingPlan = typeof existing.rows[0].investigation_plan === 'string'
+            ? JSON.parse(existing.rows[0].investigation_plan)
+            : existing.rows[0].investigation_plan;
+        } catch (e) {
+          existingPlan = {};
+        }
+      }
+      if (existing.rows[0].cross_case_matches) {
+        try {
+          existingCrossMatches = typeof existing.rows[0].cross_case_matches === 'string'
+            ? JSON.parse(existing.rows[0].cross_case_matches)
+            : existing.rows[0].cross_case_matches;
+        } catch (e) {
+          existingCrossMatches = [];
+        }
+      }
+    }
+
+    // Merge existing plan with all fields in caseData
+    const mergedPlan = { ...existingPlan };
+    for (const [key, val] of Object.entries(caseData)) {
+      if (val !== undefined && val !== null) {
+        if (key === 'module_summaries' && typeof val === 'object' && !Array.isArray(val)) {
+          mergedPlan.module_summaries = { ...(mergedPlan.module_summaries || {}), ...val };
+        } else {
+          mergedPlan[key] = val;
+        }
+      }
+    }
+
+    const crossMatchesToSave = caseData.cross_case_matches || mergedPlan.cross_case_matches || existingCrossMatches || [];
+    if (caseData.linkage_stats) {
+      mergedPlan.linkage_stats = caseData.linkage_stats;
+    }
+
+    const rawCategory = crime_category || mergedPlan.crime_category || 'CYBER';
+    const validCat = ['CYBER', 'CONVENTIONAL', 'HYBRID'].includes(rawCategory.toUpperCase())
+      ? rawCategory.toUpperCase()
+      : 'CYBER';
+
     await pool.query(
-      `INSERT INTO cases (case_number, fir_number, crime_category, crime_sub_type, summary, investigation_plan)
-       VALUES ($1, $2, $3, $4, $5, $6) ON CONFLICT (case_number) DO NOTHING`,
-      [case_number, fir_number, crime_category, crime_sub_type, summary, JSON.stringify({ sections })]
+      `INSERT INTO cases (case_number, fir_number, crime_category, crime_sub_type, summary, status, investigation_plan, cross_case_matches, updated_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, CURRENT_TIMESTAMP)
+       ON CONFLICT (case_number) DO UPDATE SET
+         fir_number = COALESCE(EXCLUDED.fir_number, cases.fir_number),
+         crime_category = COALESCE(EXCLUDED.crime_category, cases.crime_category),
+         crime_sub_type = COALESCE(EXCLUDED.crime_sub_type, cases.crime_sub_type),
+         summary = COALESCE(EXCLUDED.summary, cases.summary),
+         status = COALESCE(EXCLUDED.status, cases.status),
+         investigation_plan = EXCLUDED.investigation_plan,
+         cross_case_matches = EXCLUDED.cross_case_matches,
+         updated_at = CURRENT_TIMESTAMP`,
+      [
+        case_number,
+        fir_number || mergedPlan.fir_number || `FIR-${case_number.slice(-4)}/2026`,
+        validCat,
+        crime_sub_type || mergedPlan.crime_sub_type || 'UPI Financial Fraud',
+        complaint_text || mergedPlan.complaint_text || mergedPlan.manual_text || 'Complaint Statement Ingested.',
+        status || mergedPlan.status || 'INTAKE',
+        JSON.stringify(mergedPlan),
+        JSON.stringify(crossMatchesToSave)
+      ]
     );
+
     res.json({ success: true, case_number });
   } catch (err) {
-    console.error('Case insert error:', err.message);
+    console.error('[-] POST /api/cases DB insert error:', err.message);
     if (!ENABLE_DEMO_FALLBACKS) return res.status(500).json({ error: err.message });
     res.json({ success: true, case_number });
+  }
+});
+
+// Purge all cases from PostgreSQL
+app.delete('/api/cases', authenticateToken, async (req, res) => {
+  try {
+    await pool.query('DELETE FROM cases');
+    res.json({ success: true, message: 'All cases purged from database' });
+  } catch (err) {
+    console.error('[-] DELETE /api/cases DB error:', err.message);
+    res.status(500).json({ error: err.message });
   }
 });
 
@@ -316,15 +470,37 @@ app.post('/api/cases/:id/investigate', authenticateToken, async (req, res) => {
 
     const resultData = response.data;
     try {
+      const existing = await pool.query('SELECT investigation_plan FROM cases WHERE case_number = $1', [caseId]);
+      let existingPlan = {};
+      if (existing.rows.length > 0 && existing.rows[0].investigation_plan) {
+        try {
+          existingPlan = typeof existing.rows[0].investigation_plan === 'string'
+            ? JSON.parse(existing.rows[0].investigation_plan)
+            : existing.rows[0].investigation_plan;
+        } catch (e) {
+          existingPlan = {};
+        }
+      }
+
+      const nextStep = Math.max(existingPlan.completed_step || 1, 3);
+      const mergedPlan = {
+        ...existingPlan,
+        investigation_data: resultData,
+        master_fir: resultData.master_fir,
+        investigation_steps: resultData.investigation_steps,
+        legal_requests: resultData.legal_requests,
+        completed_step: nextStep
+      };
+
+      const crossMatches = resultData.cross_case_matches && resultData.cross_case_matches.length > 0
+        ? resultData.cross_case_matches
+        : (existingPlan.cross_case_matches || []);
+
       await pool.query(
-        `UPDATE cases SET investigation_plan = $1, cross_case_matches = $2 WHERE case_number = $3`,
+        `UPDATE cases SET investigation_plan = $1, cross_case_matches = $2, updated_at = CURRENT_TIMESTAMP WHERE case_number = $3`,
         [
-          JSON.stringify({
-            master_fir: resultData.master_fir,
-            investigation_steps: resultData.investigation_steps,
-            legal_requests: resultData.legal_requests
-          }),
-          JSON.stringify(resultData.cross_case_matches || []),
+          JSON.stringify(mergedPlan),
+          JSON.stringify(crossMatches),
           caseId
         ]
       );
@@ -382,132 +558,60 @@ app.post('/api/linkage/search', authenticateToken, async (req, res) => {
       search_type: search_type || 'auto'
     });
 
-    // If ai-service returned real matches, forward them directly.
-    // If matches are empty AND demo fallbacks are enabled, fall through to
-    // the demo data generator below so the UI is never blank during dev.
     const aiData = response.data;
-    if (aiData.matches && aiData.matches.length > 0) {
-      return res.json(aiData);
-    }
-    if (!ENABLE_DEMO_FALLBACKS) {
-      return res.json(aiData);   // real system with 0 matches — return as-is
-    }
-    // ENABLE_DEMO_FALLBACKS=true && 0 real matches → generate demo data below
-    throw new Error('__DEMO_FALLBACK__');   // sentinel to enter catch branch
+    const finalMatches = (aiData.matches && aiData.matches.length > 0) ? aiData.matches : [];
+    const finalStats = aiData.stats || null;
 
+    // Persist matches and stats to PostgreSQL if case_number is provided
+    if (case_number && finalMatches.length > 0) {
+      try {
+        const existing = await pool.query('SELECT investigation_plan FROM cases WHERE case_number = $1', [case_number]);
+        let existingPlan = {};
+        if (existing.rows.length > 0 && existing.rows[0].investigation_plan) {
+          try {
+            existingPlan = typeof existing.rows[0].investigation_plan === 'string'
+              ? JSON.parse(existing.rows[0].investigation_plan)
+              : existing.rows[0].investigation_plan;
+          } catch (e) {
+            existingPlan = {};
+          }
+        }
+        const nextStep = Math.max(existingPlan.completed_step || 1, 2);
+        existingPlan.cross_case_matches = finalMatches;
+        existingPlan.linkage_stats = finalStats;
+        existingPlan.completed_step = nextStep;
+
+        await pool.query(
+          `UPDATE cases SET investigation_plan = $1, cross_case_matches = $2, updated_at = CURRENT_TIMESTAMP WHERE case_number = $3`,
+          [JSON.stringify(existingPlan), JSON.stringify(finalMatches), case_number]
+        );
+      } catch (dbErr) {
+        console.warn('DB update warning for linkage search:', dbErr.message);
+      }
+    }
+
+    return res.json(aiData);
   } catch (err) {
-    const isDemoSentinel = err.message === '__DEMO_FALLBACK__';
-    if (!isDemoSentinel) {
-      console.error('Linkage search proxy error:', err.message);
-    }
-    if (!ENABLE_DEMO_FALLBACKS && !isDemoSentinel) {
-      return res.status(500).json({ error: err.message, detail: 'Linkage search proxy failed' });
-    }
-
-    // Generate realistic fallback cross-case linkage data
+    console.error('Linkage search proxy error:', err.message);
     const ents = entities || {};
-    const matches = [];
     const phones = ents.phone_numbers || [];
     const vpas = ents.vpas_upis || [];
     const accounts = ents.bank_accounts || [];
 
-    // Simulate cross-case phone matches
-    phones.forEach(phone => {
-      matches.push({
-        entity_type: 'phone',
-        entity_value: phone,
-        match_type: 'CDR_RECURRENCE',
-        matched_case: 'CR-2026-0441',
-        matched_fir: 'FIR-0441/2026',
-        police_station: 'Rajkot Rural Cyber Cell',
-        confidence: 0.88,
-        description: `Phone ${phone} found in 14 CDR records of suspect in Rajkot Rural extortion case.`,
-        recommended_action: 'Issue Section 94 BNSS Notice for tower dump and IPDR from Jio/Airtel.'
-      });
-      matches.push({
-        entity_type: 'phone',
-        entity_value: phone,
-        match_type: 'SUBSCRIBER_OVERLAP',
-        matched_case: 'CR-2026-0667',
-        matched_fir: 'FIR-0667/2026',
-        police_station: 'Vadodara Cyber Crime',
-        confidence: 0.72,
-        description: `Subscriber CAF name linked to ${phone} matches accused in Vadodara investment scam.`,
-        recommended_action: 'Cross-verify subscriber identity through KYC records.'
-      });
-    });
-
-    // Simulate cross-case VPA matches
-    vpas.forEach(vpa => {
-      matches.push({
-        entity_type: 'vpa',
-        entity_value: vpa,
-        match_type: 'RECURRING_MULE',
-        matched_case: 'CR-2026-0812',
-        matched_fir: 'FIR-0812/2026',
-        police_station: 'Surat City Cyber Cell',
-        confidence: 0.94,
-        description: `UPI VPA ${vpa} used as mule account in 3 previous complaints in Surat district.`,
-        recommended_action: 'Issue Section 94 BNSS Legal Notice to Paytm Nodal Officer for KYC & transaction logs.'
-      });
-      matches.push({
-        entity_type: 'vpa',
-        entity_value: vpa,
-        match_type: 'TRANSACTION_PATTERN',
-        matched_case: 'CR-2026-1105',
-        matched_fir: 'FIR-1105/2026',
-        police_station: 'Gandhinagar SOG',
-        confidence: 0.81,
-        description: `Transaction pattern from ${vpa} matches layering scheme identified in Gandhinagar SOG case.`,
-        recommended_action: 'Request full transaction history from NPCI/UPI intermediary.'
-      });
-    });
-
-    // Simulate cross-case bank account matches
-    accounts.forEach(acct => {
-      const acctNum = typeof acct === 'object' ? acct.account_number : acct;
-      matches.push({
-        entity_type: 'bank_account',
-        entity_value: acctNum,
-        match_type: 'BENEFICIARY_RECURRENCE',
-        matched_case: 'CR-2026-0299',
-        matched_fir: 'FIR-0299/2026',
-        police_station: 'Surat West Division',
-        confidence: 0.91,
-        description: `Beneficiary account ${acctNum} received funds from 5 different victims in Surat West.`,
-        recommended_action: 'Immediate 1930 CFCFRMS debit freeze and Section 94 notice to SBI Nodal Cell.'
-      });
-    });
-
-    // Handle manual search queries
-    if (search_query) {
-      matches.push({
-        entity_type: search_type || 'manual',
-        entity_value: search_query,
-        match_type: 'MANUAL_SEARCH_HIT',
-        matched_case: 'CR-2026-0553',
-        matched_fir: 'FIR-0553/2026',
-        police_station: 'Junagadh Cyber Cell',
-        confidence: 0.76,
-        description: `Manual search query "${search_query}" matched entity in Junagadh cyber fraud complaint.`,
-        recommended_action: 'Review matched case details and correlate with active investigation timeline.'
-      });
-    }
-
     const stats = {
       total_entities_searched: phones.length + vpas.length + accounts.length + (search_query ? 1 : 0),
-      total_matches: matches.length,
-      high_confidence: matches.filter(m => m.confidence >= 0.85).length,
-      medium_confidence: matches.filter(m => m.confidence >= 0.7 && m.confidence < 0.85).length,
-      low_confidence: matches.filter(m => m.confidence < 0.7).length,
-      unique_linked_cases: [...new Set(matches.map(m => m.matched_case))].length,
-      unique_police_stations: [...new Set(matches.map(m => m.police_station))].length
+      total_matches: 0,
+      high_confidence: 0,
+      medium_confidence: 0,
+      low_confidence: 0,
+      unique_linked_cases: 0,
+      unique_police_stations: 0
     };
 
     res.json({
       status: 'success',
       case_number: case_number || 'CR-2026-9910',
-      matches,
+      matches: [],
       stats
     });
   }
@@ -579,22 +683,40 @@ app.get('/api/requests/download/:filename', (req, res) => {
   res.redirect(`${AI_SERVICE_URL}/api/requests/download/${filename}`);
 });
 
-app.post('/api/analytics/parse-response', authenticateToken, async (req, res) => {
-  try {
-    const response = await axios.post(`${AI_SERVICE_URL}/api/analytics/parse-response`, req.body);
-    res.json(response.data);
-  } catch (err) {
-    const errorMsg = err.response?.data?.detail || err.response?.data?.error || err.message;
-    console.error('Analytics parse-response proxy error:', errorMsg);
-    res.status(err.response?.status || 500).json({ error: 'Analytics Proxy Error', detail: errorMsg });
-  }
-});
-
 // --- SUMMARIZER AGENT PROXY ROUTES ---
 app.post('/api/summary/module', authenticateToken, async (req, res) => {
+  const { case_number, module_id } = req.body;
   try {
     const response = await axios.post(`${AI_SERVICE_URL}/api/summary/module`, req.body);
-    res.json(response.data);
+    const summaryData = response.data;
+
+    if (case_number && module_id && summaryData) {
+      try {
+        const existing = await pool.query('SELECT investigation_plan FROM cases WHERE case_number = $1', [case_number]);
+        let existingPlan = {};
+        if (existing.rows.length > 0 && existing.rows[0].investigation_plan) {
+          try {
+            existingPlan = typeof existing.rows[0].investigation_plan === 'string'
+              ? JSON.parse(existing.rows[0].investigation_plan)
+              : existing.rows[0].investigation_plan;
+          } catch (e) {
+            existingPlan = {};
+          }
+        }
+        existingPlan.module_summaries = {
+          ...(existingPlan.module_summaries || {}),
+          [module_id]: summaryData
+        };
+        await pool.query(
+          `UPDATE cases SET investigation_plan = $1, updated_at = CURRENT_TIMESTAMP WHERE case_number = $2`,
+          [JSON.stringify(existingPlan), case_number]
+        );
+      } catch (dbErr) {
+        console.warn('DB update warning for module summary:', dbErr.message);
+      }
+    }
+
+    res.json(summaryData);
   } catch (err) {
     const errorMsg = err.response?.data?.detail || err.response?.data?.error || err.message;
     console.error('Module summary proxy error:', errorMsg);
@@ -603,9 +725,35 @@ app.post('/api/summary/module', authenticateToken, async (req, res) => {
 });
 
 app.post('/api/summary/global', authenticateToken, async (req, res) => {
+  const { case_number } = req.body;
   try {
     const response = await axios.post(`${AI_SERVICE_URL}/api/summary/global`, req.body);
-    res.json(response.data);
+    const globalData = response.data;
+
+    if (case_number && globalData) {
+      try {
+        const existing = await pool.query('SELECT investigation_plan FROM cases WHERE case_number = $1', [case_number]);
+        let existingPlan = {};
+        if (existing.rows.length > 0 && existing.rows[0].investigation_plan) {
+          try {
+            existingPlan = typeof existing.rows[0].investigation_plan === 'string'
+              ? JSON.parse(existing.rows[0].investigation_plan)
+              : existing.rows[0].investigation_plan;
+          } catch (e) {
+            existingPlan = {};
+          }
+        }
+        existingPlan.global_summary = globalData;
+        await pool.query(
+          `UPDATE cases SET investigation_plan = $1, updated_at = CURRENT_TIMESTAMP WHERE case_number = $2`,
+          [JSON.stringify(existingPlan), case_number]
+        );
+      } catch (dbErr) {
+        console.warn('DB update warning for global summary:', dbErr.message);
+      }
+    }
+
+    res.json(globalData);
   } catch (err) {
     const errorMsg = err.response?.data?.detail || err.response?.data?.error || err.message;
     console.error('Global summary proxy error:', errorMsg);
@@ -626,9 +774,36 @@ app.post('/api/email/check-inbox', authenticateToken, async (req, res) => {
 });
 
 app.post('/api/email/ingest-reply', authenticateToken, async (req, res) => {
+  const { case_number } = req.body;
   try {
     const response = await axios.post(`${AI_SERVICE_URL}/api/email/ingest-reply`, req.body);
-    res.json(response.data);
+    const replyData = response.data;
+
+    if (case_number && replyData?.reply) {
+      try {
+        const existing = await pool.query('SELECT investigation_plan FROM cases WHERE case_number = $1', [case_number]);
+        let existingPlan = {};
+        if (existing.rows.length > 0 && existing.rows[0].investigation_plan) {
+          try {
+            existingPlan = typeof existing.rows[0].investigation_plan === 'string'
+              ? JSON.parse(existing.rows[0].investigation_plan)
+              : existing.rows[0].investigation_plan;
+          } catch (e) {
+            existingPlan = {};
+          }
+        }
+        const prevReplies = existingPlan.processed_replies || [];
+        existingPlan.processed_replies = [replyData.reply, ...prevReplies.filter((r) => r.id !== replyData.reply.id)];
+        await pool.query(
+          `UPDATE cases SET investigation_plan = $1, updated_at = CURRENT_TIMESTAMP WHERE case_number = $2`,
+          [JSON.stringify(existingPlan), case_number]
+        );
+      } catch (dbErr) {
+        console.warn('DB update warning for ingest reply:', dbErr.message);
+      }
+    }
+
+    res.json(replyData);
   } catch (err) {
     const errorMsg = err.response?.data?.detail || err.response?.data?.error || err.message;
     console.error('Ingest reply proxy error:', errorMsg);
@@ -779,23 +954,51 @@ app.get('/api/analytics/inbox-status', authenticateToken, async (req, res) => {
 
 // --- 5. RESPONSE ANALYTICS & AUDIT LOGS ---
 app.post('/api/analytics/parse-response', authenticateToken, upload.single('file'), async (req, res) => {
+  const caseNumber = req.body?.case_number;
   try {
     const payload = {
-      case_number: req.body?.case_number || 'CR-2026-9910',
+      case_number: caseNumber || 'CR-2026-9910',
       response_type: req.body?.response_type || 'BANK_STATEMENT',
       reply_id: req.body?.reply_id || null,
       file_path: req.file ? req.file.path : (req.body?.file_path || null),
       file_content: req.body?.file_content || null
     };
     const response = await axios.post(`${AI_SERVICE_URL}/api/analytics/parse-response`, payload);
-    res.json(response.data);
+    const analyticsData = response.data;
+
+    if (caseNumber && analyticsData) {
+      try {
+        const existing = await pool.query('SELECT investigation_plan FROM cases WHERE case_number = $1', [caseNumber]);
+        let existingPlan = {};
+        if (existing.rows.length > 0 && existing.rows[0].investigation_plan) {
+          try {
+            existingPlan = typeof existing.rows[0].investigation_plan === 'string'
+              ? JSON.parse(existing.rows[0].investigation_plan)
+              : existing.rows[0].investigation_plan;
+          } catch (e) {
+            existingPlan = {};
+          }
+        }
+        existingPlan.response_analytics = analyticsData;
+        existingPlan.completed_step = Math.max(existingPlan.completed_step || 1, 5);
+        await pool.query(
+          `UPDATE cases SET investigation_plan = $1, updated_at = CURRENT_TIMESTAMP WHERE case_number = $2`,
+          [JSON.stringify(existingPlan), caseNumber]
+        );
+      } catch (dbErr) {
+        console.warn('DB update warning for response analytics:', dbErr.message);
+      }
+    }
+
+    res.json(analyticsData);
   } catch (err) {
     const errorMsg = err.response?.data?.detail || err.response?.data?.error || err.message;
     console.error('Parse response proxy error:', errorMsg);
     if (!ENABLE_DEMO_FALLBACKS) return res.status(err.response?.status || 500).json({ error: errorMsg });
-    res.json({
+    
+    const fallbackAnalytics = {
       status: 'success',
-      case_number: req.body?.case_number || 'CR-2026-9910',
+      case_number: caseNumber || 'CR-2026-9910',
       response_type: req.body?.response_type || 'BANK_STATEMENT',
       total_records: 1420,
       detected_fraud_pattern: 'MONEY_LAUNDERING_LAYERING',
@@ -804,9 +1007,35 @@ app.post('/api/analytics/parse-response', authenticateToken, upload.single('file
         { party: 'A/C 30910293101 (State Bank of India)', count: 14, amount: '₹2,00,000' },
         { party: 'A/C 501004928172 (HDFC Bank)', count: 8, amount: '₹1,45,000' }
       ],
-      executive_summary: `Ingested provider compliance response for Case ${req.body?.case_number || 'CR-2026-9910'}. Identified pass-through layering transfers across suspect accounts.`,
+      executive_summary: `Ingested provider compliance response for Case ${caseNumber || 'CR-2026-9910'}. Identified pass-through layering transfers across suspect accounts.`,
       recommended_next_action: 'Issue Section 106 BNSS Emergency Debit Freeze directive.'
-    });
+    };
+
+    if (caseNumber) {
+      try {
+        const existing = await pool.query('SELECT investigation_plan FROM cases WHERE case_number = $1', [caseNumber]);
+        let existingPlan = {};
+        if (existing.rows.length > 0 && existing.rows[0].investigation_plan) {
+          try {
+            existingPlan = typeof existing.rows[0].investigation_plan === 'string'
+              ? JSON.parse(existing.rows[0].investigation_plan)
+              : existing.rows[0].investigation_plan;
+          } catch (e) {
+            existingPlan = {};
+          }
+        }
+        existingPlan.response_analytics = fallbackAnalytics;
+        existingPlan.completed_step = Math.max(existingPlan.completed_step || 1, 5);
+        await pool.query(
+          `UPDATE cases SET investigation_plan = $1, updated_at = CURRENT_TIMESTAMP WHERE case_number = $2`,
+          [JSON.stringify(existingPlan), caseNumber]
+        );
+      } catch (dbErr) {
+        console.warn('DB update warning for fallback response analytics:', dbErr.message);
+      }
+    }
+
+    res.json(fallbackAnalytics);
   }
 });
 

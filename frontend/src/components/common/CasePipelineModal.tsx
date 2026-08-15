@@ -39,7 +39,22 @@ export default function CasePipelineModal({ open, onClose, policeCase }: CasePip
   if (!open || !policeCase) return null;
 
   const caseNo = policeCase.case_number;
-  const maxCompletedStep = completedStepByCase[caseNo] ?? policeCase.completed_step ?? 1;
+  const storeState = useCaseStore.getState();
+  const invMap = storeState.investigationsByCase || {};
+  const dirMap = storeState.dispatchedDirectivesByCase || {};
+  const anaMap = storeState.responseAnalyticsByCase || {};
+
+  const hasInv = Boolean(invMap[caseNo] || policeCase.investigation_data);
+  const hasDir = (dirMap[caseNo] || policeCase.dispatched_directives || []).length > 0;
+  const hasAna = Boolean(anaMap[caseNo] || policeCase.response_analytics);
+
+  const maxCompletedStep = Math.max(
+    completedStepByCase[caseNo] ?? 0,
+    policeCase.completed_step ?? 1,
+    hasInv ? 3 : 1,
+    hasDir ? 4 : 1,
+    hasAna ? 5 : 1
+  );
 
   const handleNavigateToStep = (path: string) => {
     setActiveCase(policeCase);
@@ -48,17 +63,17 @@ export default function CasePipelineModal({ open, onClose, policeCase }: CasePip
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4 overflow-y-auto select-none">
-      <div className="relative w-full max-w-3xl rounded-xl border border-white/10 bg-[#0d1322] shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 dark:bg-black/80 backdrop-blur-sm p-4 overflow-y-auto select-none">
+      <div className="relative w-full max-w-3xl rounded-xl border border-slate-300 dark:border-white/10 bg-white dark:bg-[#0d1322] text-slate-900 dark:text-slate-100 shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
         
         {/* Modal Header */}
-        <div className="flex items-center justify-between border-b border-white/10 p-4 bg-[#080d1a] shrink-0">
+        <div className="flex items-center justify-between border-b border-slate-200 dark:border-white/10 p-4 bg-[#0A2540] dark:bg-[#080d1a] text-white shrink-0">
           <div className="space-y-1">
             <div className="flex items-center gap-2">
-              <span className="text-xs font-mono font-bold text-blue-400 bg-blue-500/10 border border-blue-500/30 px-2 py-0.5 rounded">
+              <span className="text-xs font-mono font-bold text-amber-300 bg-amber-500/20 border border-amber-400/40 px-2 py-0.5 rounded">
                 {policeCase.case_number}
               </span>
-              <span className="text-xs font-mono text-slate-400">
+              <span className="text-xs font-mono text-slate-300">
                 {policeCase.fir_number}
               </span>
               <span className="rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-2 py-0.5 text-[10px] font-bold font-mono">
@@ -68,7 +83,7 @@ export default function CasePipelineModal({ open, onClose, policeCase }: CasePip
             <h2 className="text-sm font-bold text-white uppercase font-mono">
               Investigation Pipeline Steps
             </h2>
-            <div className="flex items-center gap-4 text-[11px] text-slate-400 font-sans">
+            <div className="flex items-center gap-4 text-[11px] text-slate-300 font-sans">
               <span className="flex items-center gap-1">
                 <User className="h-3 w-3 text-slate-500" /> {policeCase.assigned_io}
               </span>
@@ -184,14 +199,14 @@ export default function CasePipelineModal({ open, onClose, policeCase }: CasePip
         </div>
 
         {/* Modal Footer */}
-        <div className="border-t border-white/10 p-3 bg-[#080d1a] flex items-center justify-between shrink-0 text-xs text-slate-400">
+        <div className="border-t border-slate-200 dark:border-white/10 p-3 bg-slate-100 dark:bg-[#080d1a] flex items-center justify-between shrink-0 text-xs text-slate-600 dark:text-slate-400">
           <span className="flex items-center gap-1.5 text-[11px]">
-            <ShieldCheck className="h-4 w-4 text-emerald-400" />
+            <ShieldCheck className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
             All steps automatically record evidence into judicial Form 50 register.
           </span>
           <button
             onClick={onClose}
-            className="rounded border border-white/10 bg-[#0d1322] px-3 py-1 text-xs font-semibold text-slate-300 hover:bg-white/10 hover:text-white transition-colors"
+            className="rounded border border-slate-300 dark:border-white/10 bg-white dark:bg-[#0d1322] px-3 py-1 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/10 transition-colors shadow-sm"
           >
             Close
           </button>

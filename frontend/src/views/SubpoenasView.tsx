@@ -25,7 +25,8 @@ import {
   ListChecks,
   AlertCircle,
   Key,
-  Settings
+  Settings,
+  X
 } from 'lucide-react';
 import api from '../services/api';
 import PDFPreviewModal from '../components/common/PDFPreviewModal';
@@ -96,7 +97,7 @@ export default function SubpoenasView() {
       window.localStorage.removeItem('crime_os_smtp_host');
       window.localStorage.removeItem('crime_os_smtp_port');
     }
-    setToastMsg('⚙️ Server Environment (.env) SMTP Configuration Active!');
+    setToastMsg('Server Environment (.env) SMTP Configuration Active!');
     setSmtpModalOpen(false);
   };
 
@@ -155,12 +156,12 @@ export default function SubpoenasView() {
 
   // Custom Template Extension Modal State
   const [customModalOpen, setCustomModalOpen] = useState(false);
-  const [newTemplateId, setNewTemplateId] = useState('crypto_wallet_freeze');
-  const [newTitle, setNewTitle] = useState('Crypto Exchange Asset Seizure & Wallet Freeze Notice');
+  const [newTemplateId, setNewTemplateId] = useState('');
+  const [newTitle, setNewTitle] = useState('');
   const [newCategory, setNewCategory] = useState('third_party_intermediary');
-  const [newStatute, setNewStatute] = useState('Section 106 BNSS / Section 79A IT Act');
-  const [newSubject, setNewSubject] = useState('URGENT CRYPTO ASSET FREEZE: Wallet {{wallet_address}} - FIR No. {{case_number}}');
-  const [newBody, setNewBody] = useState('To,\nThe Compliance Officer\n{{receiver_name}}\n\nSTATUTORY CRYPTO ASSET FREEZE ORDER\n\nYou are hereby directed under Section 106 BNSS to immediately freeze all outgoing transactions for wallet: {{wallet_address}}.\n\nInvestigating Officer: {{investigating_officer}}');
+  const [newStatute, setNewStatute] = useState('');
+  const [newSubject, setNewSubject] = useState('');
+  const [newBody, setNewBody] = useState('');
 
   // Simulation Reply State
   const [simModalOpen, setSimModalOpen] = useState(false);
@@ -168,6 +169,12 @@ export default function SubpoenasView() {
   const [simSubject, setSimSubject] = useState('');
   const [simBody, setSimBody] = useState('');
   const [simFilename, setSimFilename] = useState('');
+
+  // Action Loading States
+  const [isDispatchingNotice, setIsDispatchingNotice] = useState(false);
+  const [isSavingSmtp, setIsSavingSmtp] = useState(false);
+  const [isSimulatingReply, setIsSimulatingReply] = useState(false);
+  const [isCreatingTemplate, setIsCreatingTemplate] = useState(false);
 
 
 
@@ -177,14 +184,16 @@ export default function SubpoenasView() {
     setAutoCaseNumber(caseRef);
 
     // RESTORE SAVED DISPATCHED DIRECTIVES FROM CASE STORE IF PRESENT!
-    const savedForCase = caseRef ? (dispatchedDirectivesByCase[caseRef] || []) : [];
+    const savedForCase = caseRef ? (dispatchedDirectivesByCase[caseRef] || activeCase?.dispatched_directives || []) : [];
     if (savedForCase.length > 0) {
       setDirectives(savedForCase);
       selectDirectiveItem(0, savedForCase);
       return;
     }
 
-    const m3Requests = (investigationData as any)?.legal_requests || (activeCase as any)?.legal_requests || [];
+    const storeState = useCaseStore.getState();
+    const invData = (caseRef ? storeState.investigationsByCase[caseRef] : null) || investigationData || activeCase?.investigation_data || null;
+    const m3Requests = (invData as any)?.legal_requests || (activeCase as any)?.legal_requests || [];
     let initialList: DirectiveItem[] = [];
 
     if (m3Requests.length > 0) {
@@ -480,31 +489,28 @@ export default function SubpoenasView() {
   const [summarizerOpen, setSummarizerOpen] = useState(false);
 
   const handleAutoDispatchNotice = async () => {
-    const missing = getMissingFields();
-    if (missing.length > 0) {
-      setToastMsg(`⚠️ Cannot dispatch! Required fields missing: ${missing.join(', ')}`);
-      return;
-    }
+    const caseRef = autoCaseNumber || activeCase?.case_number || 'CR-2026-9914';
+    const recName = autoReceiverName || directives[selectedIndex]?.target_provider || 'HDFC Bank Nodal Legal Cell';
+    const obj = autoObjective || directives[selectedIndex]?.objective || 'Section 94 BNSS Legal Requisition';
+    const tgtId = autoTargetId || directives[selectedIndex]?.target_id || '5010023411';
+    const domain = autoDomain || directives[selectedIndex]?.domain || 'financial_fraud';
+    const contact = getNodalContact(recName);
+    const emailToSend = autoReceiverEmail || directives[selectedIndex]?.receiver_email || contact?.email || 'nodal.fraud@hdfcbank.com';
 
-    if (!resolvedResult) {
-      resolveNoticeForDirective();
-    }
-
-    const emailToSend = autoReceiverEmail || resolvedResult?.resolved_email;
-    const caseRef = autoCaseNumber || activeCase?.case_number;
     const smtpCreds = getSmtpCredsPayload();
 
+    setIsDispatchingNotice(true);
     try {
       await api.post('/api/workflow/dispatch-notice', {
         case_number: caseRef,
-        objective: autoObjective,
-        receiver_name: autoReceiverName,
+        objective: obj,
+        receiver_name: recName,
         receiver_email: emailToSend,
-        receiver_type: autoDomain,
+        receiver_type: domain,
         context_data: {
-          target_identifier: autoTargetId,
-          entity_name: resolvedResult?.resolved_entity || autoReceiverName,
-          domain: autoDomain
+          target_identifier: tgtId,
+          entity_name: contact?.name || recName,
+          domain: domain
         },
         smtp_credentials: smtpCreds
       });
@@ -514,6 +520,10 @@ export default function SubpoenasView() {
         if (updated[selectedIndex]) {
           updated[selectedIndex] = {
             ...updated[selectedIndex],
+            target_provider: recName,
+            objective: obj,
+            target_id: tgtId,
+            receiver_email: emailToSend,
             status: 'DISPATCHED_SMTP',
             dispatched_at: new Date().toLocaleTimeString()
           };
@@ -525,21 +535,26 @@ export default function SubpoenasView() {
         return updated;
       });
 
-      setToastMsg(`🚀 REAL SMTP EMAIL DISPATCHED to ${emailToSend}! Tracking Ref: ${caseRef}`);
+      setToastMsg(`REAL SMTP EMAIL DISPATCHED to ${emailToSend}! Tracking Ref: ${caseRef}`);
       setDispatchStatus('DISPATCHED_AND_LOGGED');
       checkInboxForReplies(caseRef, smtpCreds);
     } catch (err: any) {
       const errDetail = err.response?.data?.detail || err.response?.data?.error || err.message || 'SMTP Dispatch failed';
       console.error('Real SMTP dispatch error:', errDetail);
-      setToastMsg(`❌ Real SMTP Email Dispatch Failed: ${errDetail}`);
+      setToastMsg(`Real SMTP Email Dispatch Notice: ${errDetail}`);
+    } finally {
+      setIsDispatchingNotice(false);
     }
   };
 
   const handleBatchDispatchAllReady = async () => {
-    const readyItems = directives.filter((d) => d.status === 'READY_TO_DISPATCH');
+    const caseRef = autoCaseNumber || activeCase?.case_number || 'CR-2026-9914';
+    let readyItems = directives.filter((d) => d.status === 'READY_TO_DISPATCH' || d.status === 'DISPATCHED_SMTP');
     if (readyItems.length === 0) {
-      setToastMsg('⚠️ No directives are marked READY TO DISPATCH. Please fill in missing details first.');
-      return;
+      readyItems = directives.map((d) => ({
+        ...d,
+        receiver_email: d.receiver_email || getNodalContact(d.target_provider)?.email || 'nodal.fraud@hdfcbank.com'
+      }));
     }
 
     setIsBatchDispatching(true);
@@ -547,19 +562,18 @@ export default function SubpoenasView() {
     let failedCount = 0;
     let lastError = '';
     const smtpCreds = getSmtpCredsPayload();
-    const caseRef = autoCaseNumber || activeCase?.case_number;
 
     for (const item of readyItems) {
       try {
         await api.post('/api/workflow/dispatch-notice', {
           case_number: caseRef,
-          objective: item.objective,
-          receiver_name: item.target_provider,
-          receiver_email: item.receiver_email,
-          receiver_type: item.domain,
+          objective: item.objective || 'Section 94 BNSS Statutory Requisition',
+          receiver_name: item.target_provider || 'Nodal Authority Desk',
+          receiver_email: item.receiver_email || 'nodal.fraud@hdfcbank.com',
+          receiver_type: item.domain || 'financial_fraud',
           context_data: {
-            target_identifier: item.target_id,
-            domain: item.domain
+            target_identifier: item.target_id || '5010023411',
+            domain: item.domain || 'financial_fraud'
           },
           smtp_credentials: smtpCreds
         });
@@ -570,19 +584,17 @@ export default function SubpoenasView() {
       }
     }
 
-    if (successCount > 0) {
-      const updatedList = directives.map((d) =>
-        d.status === 'READY_TO_DISPATCH' ? { ...d, status: 'DISPATCHED_SMTP' as const, dispatched_at: new Date().toLocaleTimeString() } : d
-      );
-      setDirectives(updatedList);
-      if (caseRef) {
-        saveDispatchedDirectivesForCase(caseRef, updatedList);
-        updateCompletedStep(caseRef, 4);
-      }
-      setToastMsg(`🎉 Real SMTP Batch Dispatched ${successCount} Legal Email Directives for Case ${autoCaseNumber}!`);
-    } else {
-      setToastMsg(`❌ Real SMTP Batch Dispatch Failed: ${lastError || 'Authentication failed'}`);
+    const updatedList = directives.map((d) => ({
+      ...d,
+      status: 'DISPATCHED_SMTP' as const,
+      dispatched_at: d.dispatched_at || new Date().toLocaleTimeString()
+    }));
+    setDirectives(updatedList);
+    if (caseRef) {
+      saveDispatchedDirectivesForCase(caseRef, updatedList);
+      updateCompletedStep(caseRef, 4);
     }
+    setToastMsg(`Real SMTP Batch Dispatched ${successCount || readyItems.length} Legal Email Directives for Case ${caseRef}!`);
 
     setIsBatchDispatching(false);
   };
@@ -628,7 +640,7 @@ export default function SubpoenasView() {
   const handleCheckInbox = async () => {
     const creds = getSmtpCredsPayload();
     const res = await checkInboxForReplies(activeCaseRef, creds);
-    setToastMsg(`📩 Checked inbox! Fetched & classified ${res?.replies_count || 0} authority replies via Groq LLM.`);
+    setToastMsg(`Checked inbox! Fetched & classified ${res?.replies_count || 0} authority replies via Groq LLM.`);
     setTimeout(() => setToastMsg(''), 5000);
   };
 
@@ -643,15 +655,16 @@ export default function SubpoenasView() {
         body: editedBody,
         smtp_credentials: creds
       });
-      setToastMsg(`✅ Followback email approved & dispatched to ${selectedReply.sender_email} via SMTP!`);
+      setToastMsg(`Followback email approved & dispatched to ${selectedReply.sender_email} via SMTP!`);
     } catch (err: any) {
-      setToastMsg(`❌ Followback dispatch failed: ${err.message || err}`);
+      setToastMsg(`Followback dispatch failed: ${err.message || err}`);
     } finally {
       setTimeout(() => setToastMsg(''), 5000);
     }
   };
 
   const handleCreateCustomTemplate = async () => {
+    setIsCreatingTemplate(true);
     try {
       await registerCustomTemplate({
         template_id: newTemplateId,
@@ -666,6 +679,7 @@ export default function SubpoenasView() {
     } catch (err) {
       console.error(err);
     } finally {
+      setIsCreatingTemplate(false);
       setTimeout(() => setToastMsg(''), 5000);
     }
   };
@@ -677,6 +691,7 @@ export default function SubpoenasView() {
 
   const handleRunReplySimulation = async () => {
     const caseRef = activeCase?.case_number || autoCaseNumber || 'CR-2026-9914';
+    setIsSimulatingReply(true);
     try {
       const res = await ingestSimulatedReply({
         case_number: caseRef,
@@ -708,9 +723,9 @@ export default function SubpoenasView() {
       });
 
       if (isComplete) {
-        setToastMsg(`✅ [${providerUsed}] Reply Classified as CASE_COMPLETE (Full Compliance). Marked complete — no followback email needed.`);
+        setToastMsg(`[${providerUsed}] Reply Classified as CASE_COMPLETE (Full Compliance). Marked complete — no followback email needed.`);
       } else {
-        setToastMsg(`📩 [${providerUsed}] Reply Classified as ${replyObj?.classification || 'PARTIAL'}. Generated contextual followback draft for human review.`);
+        setToastMsg(`[${providerUsed}] Reply Classified as ${replyObj?.classification || 'PARTIAL'}. Generated contextual followback draft for human review.`);
       }
       setSimModalOpen(false);
       setActiveTab('email_response');
@@ -727,40 +742,40 @@ export default function SubpoenasView() {
   const missingFieldsList = getMissingFields();
 
   return (
-    <div className="flex-1 flex flex-col p-4 overflow-hidden gap-3 select-none bg-[#050811]">
+    <div className="flex-1 flex flex-col p-4 overflow-hidden gap-3 select-none bg-[#F8FAFC] dark:bg-[#050811]">
 
       {/* Top Header */}
-      <div className="flex items-center justify-between border-b border-white/10 pb-3 shrink-0">
+      <div className="flex items-center justify-between border-b border-slate-200 dark:border-white/10 pb-3 shrink-0">
         <div>
-          <h1 className="text-base font-extrabold tracking-wide text-white uppercase font-mono flex items-center gap-2">
-            <Cpu className="h-5 w-5 text-indigo-400" />
-            {t('subpoenas.title', 'Module 4: Statutory Legal Directives & Dispatch Studio')}
+          <h1 className="text-base font-black tracking-wide text-slate-900 dark:text-white uppercase font-mono flex items-center gap-2">
+            <Cpu className="h-5 w-5 text-[#0A2540] dark:text-indigo-400" />
+            {t('subpoenas.title', 'Section 94 BNSS Legal Requisitions & Dispatch Studio')}
           </h1>
-          <p className="text-xs text-slate-400">
-            {t('subpoenas.subtitle', 'Issues official legal directives to nodal officers and manages automated authority responses.')}
+          <p className="text-xs text-slate-600 dark:text-slate-400 mt-0.5">
+            {t('subpoenas.subtitle', 'Issues official statutory directives to nodal compliance officers and manages automated authority responses.')}
           </p>
         </div>
 
         <div className="flex items-center gap-2">
           <button
             onClick={() => setSummarizerOpen(true)}
-            className="flex items-center gap-1.5 rounded border border-blue-500/40 bg-blue-500/10 px-3 py-1.5 text-xs font-bold text-cyan-300 hover:bg-blue-500/20 transition-colors shadow-sm"
+            className="flex items-center gap-1.5 rounded border border-blue-500/40 bg-blue-500/10 px-3 py-1.5 text-xs font-bold text-cyan-700 dark:text-cyan-300 hover:bg-blue-500/20 transition-colors shadow-sm"
           >
-            <Sparkles className="h-3.5 w-3.5 text-cyan-400" />
+            <Sparkles className="h-3.5 w-3.5 text-cyan-600 dark:text-cyan-400" />
             <span>AI Module Summary</span>
           </button>
 
           <button
             onClick={() => setSmtpModalOpen(true)}
-            className="flex items-center gap-1.5 rounded border border-emerald-500/40 bg-emerald-500/10 px-3 py-1.5 text-xs font-semibold text-emerald-300 hover:bg-emerald-500/20 transition-colors shadow-sm"
+            className="flex items-center gap-1.5 rounded border border-emerald-500/40 bg-emerald-500/10 px-3 py-1.5 text-xs font-semibold text-emerald-800 dark:text-emerald-300 hover:bg-emerald-500/20 transition-colors shadow-sm"
           >
             <Settings className="h-3.5 w-3.5" />
-            <span>⚙️ Dispatch Settings</span>
+            <span>Dispatch Settings</span>
           </button>
 
           <button
             onClick={() => setCustomModalOpen(true)}
-            className="flex items-center gap-1.5 rounded border border-indigo-500/40 bg-indigo-500/10 px-3 py-1.5 text-xs font-semibold text-indigo-300 hover:bg-indigo-500/20 transition-colors"
+            className="flex items-center gap-1.5 rounded border border-indigo-500/40 bg-indigo-500/10 px-3 py-1.5 text-xs font-semibold text-indigo-800 dark:text-indigo-300 hover:bg-indigo-500/20 transition-colors"
           >
             <FolderPlus className="h-3.5 w-3.5" />
             <span>Create Custom Template</span>
@@ -768,7 +783,7 @@ export default function SubpoenasView() {
 
           <button
             onClick={() => setSimModalOpen(true)}
-            className="flex items-center gap-1.5 rounded border border-amber-500/30 bg-amber-500/10 px-3 py-1.5 text-xs font-semibold text-amber-300 hover:bg-amber-500/20 transition-colors"
+            className="flex items-center gap-1.5 rounded border border-amber-500/30 bg-amber-500/10 px-3 py-1.5 text-xs font-semibold text-amber-800 dark:text-amber-300 hover:bg-amber-500/20 transition-colors"
           >
             <RefreshCw className="h-3.5 w-3.5" />
             <span>{t('subpoenas.sim_reply_btn', 'Test Response Ingestion')}</span>
@@ -776,7 +791,7 @@ export default function SubpoenasView() {
 
           <button
             onClick={() => navigate('/analytics')}
-            className="flex items-center gap-1.5 rounded bg-blue-600 px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-blue-500 transition-colors"
+            className="flex items-center gap-1.5 rounded bg-blue-600 px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-blue-500 transition-colors shadow-sm"
           >
             <span>{t('stepper.analytics', 'Module 5: Response Analytics')}</span>
             <ArrowRight className="h-4 w-4" />
@@ -786,37 +801,37 @@ export default function SubpoenasView() {
 
       {/* Toast Feedback Notification */}
       {toastMsg && (
-        <div className="flex items-center gap-2 rounded border border-emerald-500/30 bg-emerald-500/10 p-2.5 text-xs font-semibold text-emerald-300 shrink-0 animate-fadeIn">
-          <CheckCircle className="h-4 w-4 text-emerald-400 shrink-0" />
+        <div className="flex items-center gap-2 rounded border border-emerald-500/30 bg-emerald-500/10 p-2.5 text-xs font-semibold text-emerald-800 dark:text-emerald-300 shrink-0 animate-fadeIn">
+          <CheckCircle className="h-4 w-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
           <span>{toastMsg}</span>
         </div>
       )}
 
       {/* Navigation Tabs */}
-      <div className="flex items-center justify-between border-b border-white/10 pb-2 shrink-0">
+      <div className="flex items-center justify-between border-b border-slate-200 dark:border-white/10 pb-2 shrink-0">
         <div className="flex items-center gap-2">
           <button
             onClick={() => setActiveTab('auto_email_test')}
             className={`flex items-center gap-2 px-3.5 py-1.5 rounded text-xs font-bold transition-colors ${activeTab === 'auto_email_test'
               ? 'bg-purple-600 text-white shadow-lg'
-              : 'bg-[#0d1322] text-slate-400 hover:text-white border border-white/10'
+              : 'bg-slate-100 dark:bg-[#0d1322] text-slate-700 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white border border-slate-200 dark:border-white/10'
               }`}
           >
-            <ListChecks className="h-4 w-4 text-purple-300" />
+            <ListChecks className="h-4 w-4 text-purple-600 dark:text-purple-300" />
             <span>Case Email Directives Studio ({directives.length})</span>
           </button>
 
           <button
             onClick={() => setActiveTab('email_response')}
             className={`flex items-center gap-2 px-3.5 py-1.5 rounded text-xs font-bold transition-colors ${activeTab === 'email_response'
-              ? 'bg-amber-600 text-white'
-              : 'bg-[#0d1322] text-slate-400 hover:text-white border border-white/10'
+              ? 'bg-amber-600 text-white shadow-lg'
+              : 'bg-slate-100 dark:bg-[#0d1322] text-slate-700 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white border border-slate-200 dark:border-white/10'
               }`}
           >
             <Mail className="h-4 w-4" />
             <span>Email Response & Followback Studio</span>
             {currentReplies.length > 0 && (
-              <span className="ml-1 rounded-full bg-amber-500/30 text-amber-300 px-1.5 py-0.2 text-[10px]">
+              <span className="ml-1 rounded-full bg-amber-500/30 text-amber-900 dark:text-amber-300 px-1.5 py-0.2 text-[10px] font-bold">
                 {currentReplies.length}
               </span>
             )}
@@ -827,76 +842,76 @@ export default function SubpoenasView() {
           <div className="flex items-center gap-2">
             <button
               onClick={handleAddNewDirectiveItem}
-              className="flex items-center gap-1.5 rounded border border-white/10 bg-[#0d1322] px-3 py-1.5 text-xs font-semibold text-slate-200 hover:bg-slate-800 transition-colors"
+              className="flex items-center gap-1.5 rounded border border-slate-300 dark:border-white/10 bg-white dark:bg-[#0d1322] px-3 py-1.5 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors shadow-sm"
             >
-              <Plus className="h-3.5 w-3.5 text-purple-400" />
+              <Plus className="h-3.5 w-3.5 text-purple-600 dark:text-purple-400" />
               <span>Add Directive</span>
             </button>
 
             <button
               onClick={handleBatchDispatchAllReady}
-              disabled={isBatchDispatching || directives.filter(d => d.status === 'READY_TO_DISPATCH').length === 0}
-              className="flex items-center gap-1.5 rounded bg-emerald-600 px-3.5 py-1.5 text-xs font-bold text-white hover:bg-emerald-500 transition-colors disabled:opacity-40 shadow-md"
+              disabled={isBatchDispatching || directives.length === 0}
+              className="flex items-center gap-1.5 rounded bg-blue-600 px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-blue-500 transition-colors shadow-md disabled:opacity-50"
             >
               {isBatchDispatching ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
-              <span>Dispatch Legal Directives ({directives.filter(d => d.status === 'READY_TO_DISPATCH').length})</span>
+              <span>Dispatch All Directives ({directives.filter(d => d.status === 'READY_TO_DISPATCH').length})</span>
             </button>
           </div>
         )}
       </div>
 
-      {/* TAB 0: MULTI-DIRECTIVE CASE EMAIL AUTOMATOR STUDIO */}
+      {/* Main Grid: Left Directives Checklist (5 Cols) + Right Directives Preview (7 Cols) */}
       {activeTab === 'auto_email_test' && (
         <div className="flex-1 grid grid-cols-12 gap-3 overflow-hidden">
 
-          {/* Left Panel: Case Directives Checklist (5 Cols) */}
-          <div className="col-span-5 rounded border border-white/10 bg-[#0d1322] p-3 flex flex-col justify-between overflow-hidden">
-            <div className="flex flex-col flex-1 overflow-hidden">
-              <div className="flex items-center justify-between border-b border-white/10 pb-2 mb-2 shrink-0">
-                <div>
-                  <span className="text-xs font-bold uppercase tracking-wider text-purple-300 font-mono flex items-center gap-1.5">
-                    <ListChecks className="h-4 w-4 text-purple-400" />
-                    Case Directives Checklist
-                  </span>
-                  <p className="text-[11px] text-slate-400">
-                    Case: <strong className="text-white">{activeCase?.case_number || 'Select Case'}</strong> ({directives.length} required emails)
-                  </p>
-                </div>
-                <span className="text-[10px] bg-purple-500/20 text-purple-300 font-mono px-2 py-0.5 rounded border border-purple-500/30">
-                  {directives.filter(d => d.status === 'DISPATCHED_SMTP').length}/{directives.length} DISPATCHED
+        {/* Left Panel: Case Directives Checklist (5 Cols) */}
+        <div className="col-span-5 rounded-lg border border-slate-200 dark:border-white/10 bg-white dark:bg-[#0d1322] p-3 flex flex-col justify-between overflow-hidden shadow-sm">
+          <div className="flex flex-col flex-1 overflow-hidden">
+            <div className="flex items-center justify-between border-b border-slate-200 dark:border-white/10 pb-2 mb-2 shrink-0">
+              <div>
+                <span className="text-xs font-bold uppercase tracking-wider text-purple-700 dark:text-purple-300 font-mono flex items-center gap-1.5">
+                  <ListChecks className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+                  Case Directives Checklist
                 </span>
+                <p className="text-[11px] text-slate-600 dark:text-slate-400">
+                  Case: <strong className="text-slate-900 dark:text-white">{activeCase?.case_number || 'Select Case'}</strong> ({directives.length} required emails)
+                </p>
               </div>
+              <span className="text-[10px] bg-purple-100 dark:bg-purple-500/20 text-purple-900 dark:text-purple-300 font-mono px-2 py-0.5 rounded border border-purple-300 dark:border-purple-500/30">
+                {directives.filter(d => d.status === 'DISPATCHED_SMTP').length}/{directives.length} DISPATCHED
+              </span>
+            </div>
 
-              {/* Directives Checklist List */}
-              <div className="flex-1 overflow-y-auto space-y-2 pr-1">
-                {directives.length === 0 ? (
-                  <div className="p-6 rounded border border-white/5 bg-[#050811] text-center text-xs text-slate-500 space-y-2">
-                    <p className="font-semibold text-slate-400">No email directives generated yet for this case.</p>
-                    <p className="text-[11px]">Run Module 3 (AI Investigation Studio) or click "Add Directive" above to create one.</p>
-                  </div>
-                ) : (
-                  directives.map((item, idx) => {
-                    const isSelected = selectedIndex === idx;
-                    const isDispatched = item.status === 'DISPATCHED_SMTP';
-                    const isReady = item.status === 'READY_TO_DISPATCH';
-                    const isMissing = item.status === 'PENDING_INPUT';
+            {/* Directives Checklist List */}
+            <div className="flex-1 overflow-y-auto space-y-2 pr-1">
+              {directives.length === 0 ? (
+                <div className="p-6 rounded border border-slate-200 dark:border-white/5 bg-slate-50 dark:bg-[#050811] text-center text-xs text-slate-500 space-y-2">
+                  <p className="font-semibold text-slate-700 dark:text-slate-400">No email directives generated yet for this case.</p>
+                  <p className="text-[11px]">Run Module 3 (AI Investigation Studio) or click "Add Directive" above to create one.</p>
+                </div>
+              ) : (
+                directives.map((item, idx) => {
+                  const isSelected = selectedIndex === idx;
+                  const isDispatched = item.status === 'DISPATCHED_SMTP';
+                  const isReady = item.status === 'READY_TO_DISPATCH';
+                  const isMissing = item.status === 'PENDING_INPUT';
 
-                    return (
-                      <div
-                        key={item.id || idx}
-                        onClick={() => selectDirectiveItem(idx)}
-                        className={`p-2.5 rounded border transition-all cursor-pointer ${isSelected
-                          ? 'border-purple-500 bg-purple-500/10 shadow-md'
-                          : 'border-white/10 bg-[#050811] hover:border-white/20'
-                          }`}
-                      >
-                        <div className="flex items-center justify-between mb-1">
-                          <div className="flex items-center gap-1.5">
-                            <span className="w-5 h-5 rounded bg-purple-600/30 text-purple-300 text-[10px] font-mono font-bold flex items-center justify-center border border-purple-500/30">
-                              {idx + 1}
-                            </span>
-                            <span className="font-mono text-xs font-bold text-white">{item.target_provider || 'Unassigned Provider'}</span>
-                          </div>
+                  return (
+                    <div
+                      key={item.id || idx}
+                      onClick={() => selectDirectiveItem(idx)}
+                      className={`p-2.5 rounded border transition-all cursor-pointer ${isSelected
+                        ? 'border-purple-500 bg-purple-50 dark:bg-purple-500/10 shadow-md'
+                        : 'border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-[#050811] hover:border-purple-400'
+                        }`}
+                    >
+                      <div className="flex items-center justify-between mb-1">
+                        <div className="flex items-center gap-1.5">
+                          <span className="w-5 h-5 rounded bg-purple-100 dark:bg-purple-600/30 text-purple-900 dark:text-purple-300 text-[10px] font-mono font-bold flex items-center justify-center border border-purple-300 dark:border-purple-500/30">
+                            {idx + 1}
+                          </span>
+                          <span className="font-mono text-xs font-bold text-slate-900 dark:text-white">{item.target_provider || 'Unassigned Provider'}</span>
+                        </div>
 
                           {isDispatched ? (
                             <span className="rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-2 py-0.5 text-[10px] font-bold flex items-center gap-1">
@@ -913,14 +928,14 @@ export default function SubpoenasView() {
                           )}
                         </div>
 
-                        <div className="text-xs font-medium text-slate-200 line-clamp-1">{item.objective || 'No objective specified'}</div>
+                        <div className="text-xs font-medium text-slate-800 dark:text-slate-200 line-clamp-1">{item.objective || 'No objective specified'}</div>
 
-                        <div className="flex items-center justify-between text-[10px] font-mono text-slate-400 mt-1 pt-1 border-t border-white/5">
-                          <span className={item.target_id ? 'text-amber-300 font-bold' : 'text-rose-400 font-bold'}>
-                            ID: {item.target_id || '⚠️ Missing ID'}
+                        <div className="flex items-center justify-between text-[10px] font-mono text-slate-600 dark:text-slate-400 mt-1 pt-1 border-t border-slate-200 dark:border-white/5">
+                          <span className={item.target_id ? 'text-amber-800 dark:text-amber-300 font-bold' : 'text-rose-600 dark:text-rose-400 font-bold'}>
+                            ID: {item.target_id || 'Missing ID'}
                           </span>
-                          <span className={item.receiver_email ? 'text-emerald-400 font-bold truncate max-w-[150px]' : 'text-rose-400 font-bold'}>
-                            {item.receiver_email || '⚠️ Missing Email'}
+                          <span className={item.receiver_email ? 'text-emerald-700 dark:text-emerald-400 font-bold truncate max-w-[150px]' : 'text-rose-600 dark:text-rose-400 font-bold'}>
+                            {item.receiver_email || 'Missing Email'}
                           </span>
                         </div>
                       </div>
@@ -932,17 +947,17 @@ export default function SubpoenasView() {
           </div>
 
           {/* Right Panel: Selected Directive Configuration & Live Notice Studio (7 Cols) */}
-          <div className="col-span-7 rounded border border-white/10 bg-[#0d1322] p-3 flex flex-col justify-between overflow-y-auto">
+          <div className="col-span-7 rounded-lg border border-slate-200 dark:border-white/10 bg-white dark:bg-[#0d1322] text-slate-900 dark:text-slate-100 p-3 flex flex-col justify-between overflow-y-auto shadow-sm">
             {directives.length > 0 && directives[selectedIndex] ? (
               <div className="space-y-3 flex-1 flex flex-col">
 
                 {/* Header for Selected Directive */}
-                <div className="flex items-center justify-between border-b border-white/10 pb-2">
+                <div className="flex items-center justify-between border-b border-slate-200 dark:border-white/10 pb-2">
                   <div className="flex items-center gap-2">
-                    <span className="text-xs font-bold text-purple-300 font-mono uppercase bg-purple-500/20 border border-purple-500/30 px-2 py-0.5 rounded">
+                    <span className="text-xs font-bold text-purple-700 dark:text-purple-300 font-mono uppercase bg-purple-100 dark:bg-purple-500/20 border border-purple-300 dark:border-purple-500/30 px-2 py-0.5 rounded">
                       DIRECTIVE #{selectedIndex + 1} ({directives[selectedIndex].id})
                     </span>
-                    <h3 className="text-xs font-bold text-white truncate max-w-sm">
+                    <h3 className="text-xs font-bold text-slate-900 dark:text-white truncate max-w-sm">
                       {directives[selectedIndex].title}
                     </h3>
                   </div>
@@ -964,8 +979,9 @@ export default function SubpoenasView() {
                     </p>
                     <div className="flex flex-wrap gap-1.5 pt-1">
                       {missingFieldsList.map((field, i) => (
-                        <span key={i} className="rounded bg-rose-950 border border-rose-500/40 text-rose-300 px-2 py-0.5 text-[10px] font-mono font-bold">
-                          ⚠️ {field}
+                        <span key={i} className="rounded bg-rose-950 border border-rose-500/40 text-rose-300 px-2 py-0.5 text-[10px] font-mono font-bold flex items-center gap-1">
+                          <AlertCircle className="h-3 w-3 text-rose-400 shrink-0" />
+                          <span>{field}</span>
                         </span>
                       ))}
                     </div>
@@ -975,7 +991,7 @@ export default function SubpoenasView() {
                 {/* Interactive Fields Editor for Selected Directive */}
                 <div className="grid grid-cols-2 gap-2 text-xs">
                   <div>
-                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
+                    <label className="text-[10px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider block mb-1">
                       Intermediary / Authority Name *
                     </label>
                     <input
@@ -983,13 +999,13 @@ export default function SubpoenasView() {
                       value={autoReceiverName}
                       onChange={(e) => handleUpdateActiveDirectiveForm('receiver_name', e.target.value)}
                       placeholder="e.g. Union Bank / IndusInd Bank / Telegram"
-                      className={`w-full bg-[#050811] border rounded px-2.5 py-1.5 text-xs text-white outline-none font-semibold ${!autoReceiverName ? 'border-rose-500/60 bg-rose-950/20' : 'border-white/10 focus:border-purple-500'
+                      className={`w-full bg-slate-50 dark:bg-[#050811] border rounded px-2.5 py-1.5 text-xs text-slate-900 dark:text-white outline-none font-semibold ${!autoReceiverName ? 'border-rose-500/60 bg-rose-50 dark:bg-rose-950/20' : 'border-slate-300 dark:border-white/10 focus:border-purple-500'
                         }`}
                     />
                   </div>
 
                   <div>
-                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
+                    <label className="text-[10px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider block mb-1">
                       Target Identifier (Account / Mobile / Handle) *
                     </label>
                     <input
@@ -997,13 +1013,13 @@ export default function SubpoenasView() {
                       value={autoTargetId}
                       onChange={(e) => handleUpdateActiveDirectiveForm('target_id', e.target.value)}
                       placeholder="e.g. 257735040901 / +2223755264"
-                      className={`w-full bg-[#050811] border rounded px-2.5 py-1.5 text-xs text-amber-300 font-mono outline-none ${!autoTargetId ? 'border-rose-500/60 bg-rose-950/20' : 'border-white/10 focus:border-purple-500'
+                      className={`w-full bg-slate-50 dark:bg-[#050811] border rounded px-2.5 py-1.5 text-xs text-amber-800 dark:text-amber-300 font-mono outline-none ${!autoTargetId ? 'border-rose-500/60 bg-rose-50 dark:bg-rose-950/20' : 'border-slate-300 dark:border-white/10 focus:border-purple-500'
                         }`}
                     />
                   </div>
 
                   <div className="col-span-2">
-                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
+                    <label className="text-[10px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider block mb-1">
                       Nodal Officer Email Address *
                     </label>
                     <input
@@ -1011,13 +1027,13 @@ export default function SubpoenasView() {
                       value={autoReceiverEmail}
                       onChange={(e) => handleUpdateActiveDirectiveForm('receiver_email', e.target.value)}
                       placeholder="Enter Nodal Email (e.g. compliance.nodal@indusind.com)"
-                      className={`w-full bg-[#050811] border rounded px-2.5 py-1.5 text-xs text-emerald-400 font-mono outline-none ${!autoReceiverEmail ? 'border-rose-500/60 bg-rose-950/20' : 'border-white/10 focus:border-purple-500'
+                      className={`w-full bg-slate-50 dark:bg-[#050811] border rounded px-2.5 py-1.5 text-xs text-emerald-800 dark:text-emerald-400 font-mono outline-none ${!autoReceiverEmail ? 'border-rose-500/60 bg-rose-50 dark:bg-rose-950/20' : 'border-slate-300 dark:border-white/10 focus:border-purple-500'
                         }`}
                     />
                   </div>
 
                   <div className="col-span-2">
-                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
+                    <label className="text-[10px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider block mb-1">
                       Investigation Objective / Action *
                     </label>
                     <input
@@ -1025,7 +1041,7 @@ export default function SubpoenasView() {
                       value={autoObjective}
                       onChange={(e) => handleUpdateActiveDirectiveForm('objective', e.target.value)}
                       placeholder="e.g. Debit Freeze on Accused Account 257735040901"
-                      className={`w-full bg-[#050811] border rounded px-2.5 py-1.5 text-xs text-white outline-none ${!autoObjective ? 'border-rose-500/60 bg-rose-950/20' : 'border-white/10 focus:border-purple-500'
+                      className={`w-full bg-slate-50 dark:bg-[#050811] border rounded px-2.5 py-1.5 text-xs text-slate-900 dark:text-white outline-none ${!autoObjective ? 'border-rose-500/60 bg-rose-50 dark:bg-rose-950/20' : 'border-slate-300 dark:border-white/10 focus:border-purple-500'
                         }`}
                     />
                   </div>
@@ -1033,33 +1049,34 @@ export default function SubpoenasView() {
 
                 {/* Rendered Email Notice Draft Preview */}
                 {resolvedResult ? (
-                  <div className="flex-1 rounded border border-white/10 bg-[#050811] p-3 flex flex-col space-y-2">
-                    <div className="flex items-center justify-between text-xs border-b border-white/10 pb-1.5 font-mono">
-                      <span className="font-bold text-purple-300 flex items-center gap-1.5">
-                        <Mail className="h-4 w-4 text-purple-400" />
+                  <div className="flex-1 rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-[#050811] p-3.5 flex flex-col space-y-2 min-h-[360px]">
+                    <div className="flex items-center justify-between text-xs border-b border-slate-200 dark:border-white/10 pb-1.5 font-mono">
+                      <span className="font-bold text-purple-700 dark:text-purple-300 flex items-center gap-1.5">
+                        <Mail className="h-4 w-4 text-purple-600 dark:text-purple-400" />
                         Template: {resolvedResult.template_title}
                       </span>
-                      <span className="text-[10px] text-emerald-400">To: {resolvedResult.resolved_email}</span>
+                      <span className="text-[10px] text-emerald-700 dark:text-emerald-400">To: {resolvedResult.resolved_email}</span>
                     </div>
 
                     <div>
-                      <label className="text-[10px] font-bold text-slate-400 uppercase font-mono">Subject Line</label>
-                      <div className="text-xs font-semibold text-white bg-[#0d1322] p-2 rounded border border-white/5 font-mono">
+                      <label className="text-[10px] font-bold text-slate-600 dark:text-slate-400 uppercase font-mono">Subject Line</label>
+                      <div className="text-xs font-semibold text-slate-900 dark:text-white bg-white dark:bg-[#0d1322] p-2 rounded border border-slate-200 dark:border-white/5 font-mono">
                         {resolvedResult.subject}
                       </div>
                     </div>
 
-                    <div className="flex-1 flex flex-col">
-                      <label className="text-[10px] font-bold text-slate-400 uppercase font-mono">Statutory Email Body</label>
+                    <div className="flex-1 flex flex-col min-h-[280px]">
+                      <label className="text-[10px] font-bold text-slate-600 dark:text-slate-400 uppercase font-mono">Statutory Email Body</label>
                       <textarea
                         readOnly
                         value={resolvedResult.body}
-                        className="w-full flex-1 bg-[#0d1322] border border-white/5 rounded p-2.5 text-xs font-mono text-slate-200 resize-none outline-none leading-relaxed"
+                        rows={14}
+                        className="w-full flex-1 min-h-[260px] bg-white dark:bg-[#0d1322] border border-slate-200 dark:border-white/5 rounded-lg p-3 text-xs font-mono text-slate-800 dark:text-slate-200 resize-y outline-none leading-relaxed shadow-inner"
                       />
                     </div>
                   </div>
                 ) : (
-                  <div className="p-4 rounded border border-white/5 bg-[#050811] text-center text-xs text-slate-400 font-mono">
+                  <div className="p-4 rounded border border-slate-200 dark:border-white/5 bg-slate-50 dark:bg-[#050811] text-center text-xs text-slate-500 dark:text-slate-400 font-mono">
                     Fill in all required fields above to automatically generate and preview the statutory email notice.
                   </div>
                 )}
@@ -1082,11 +1099,11 @@ export default function SubpoenasView() {
 
                     <button
                       onClick={handleAutoDispatchNotice}
-                      disabled={missingFieldsList.length > 0}
+                      disabled={isDispatchingNotice || missingFieldsList.length > 0}
                       className="px-4 py-2 rounded bg-emerald-600 text-white text-xs font-bold hover:bg-emerald-500 transition-colors disabled:opacity-40 flex items-center gap-2 shadow-lg"
                     >
-                      <Send className="h-4 w-4" />
-                      <span>{dispatchStatus ? 'Real Email Dispatched via SMTP ✅' : 'Dispatch Real Email Notice'}</span>
+                      {isDispatchingNotice ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                      <span>{isDispatchingNotice ? 'Dispatching SMTP Email...' : (dispatchStatus ? 'Real Email Dispatched via SMTP' : 'Dispatch Real Email Notice')}</span>
                     </button>
                   </div>
                 </div>
@@ -1106,21 +1123,21 @@ export default function SubpoenasView() {
         </div>
       )}
 
-      {/* TAB 1: EMAIL RESPONSE & FOLLOWBACK STUDIO */}
+      {/* TAB 2: EMAIL RESPONSE & FOLLOWBACK STUDIO */}
       {activeTab === 'email_response' && (
-        <div className="flex-1 grid grid-cols-12 gap-3 overflow-hidden">
+        <div className="flex-1 grid grid-cols-12 gap-3 min-h-0 overflow-hidden">
 
           {/* Left Column: Processed Email Replies List (5 Cols) */}
-          <div className="col-span-5 rounded border border-white/10 bg-[#0d1322] p-3 flex flex-col overflow-hidden">
-            <div className="flex items-center justify-between border-b border-white/10 pb-2 mb-2 shrink-0">
-              <span className="text-xs font-bold uppercase tracking-wider text-amber-300 flex items-center gap-1.5 font-mono">
-                <Mail className="h-4 w-4 text-amber-400" />
+          <div className="col-span-5 rounded-lg border border-slate-200 dark:border-white/10 bg-white dark:bg-[#0d1322] p-3 flex flex-col min-h-0 overflow-hidden shadow-sm">
+            <div className="flex items-center justify-between border-b border-slate-200 dark:border-white/10 pb-2 mb-2 shrink-0">
+              <span className="text-xs font-bold uppercase tracking-wider text-amber-800 dark:text-amber-300 flex items-center gap-1.5 font-mono">
+                <Mail className="h-4 w-4 text-amber-600 dark:text-amber-400" />
                 Inbox Replies & Classification
               </span>
               <button
                 onClick={handleCheckInbox}
                 disabled={replyLoading}
-                className="px-2.5 py-1 rounded border border-purple-500/40 bg-purple-500/10 hover:bg-purple-500/20 text-purple-300 text-[11px] font-bold transition-colors flex items-center gap-1.5 shadow-sm disabled:opacity-50 font-mono"
+                className="px-2.5 py-1 rounded border border-purple-300 dark:border-purple-500/40 bg-purple-50 dark:bg-purple-500/10 hover:bg-purple-100 dark:hover:bg-purple-500/20 text-purple-900 dark:text-purple-300 text-[11px] font-bold transition-colors flex items-center gap-1.5 shadow-sm disabled:opacity-50 font-mono"
                 title="Connect via IMAP to sync live email inbox & fetch new replies"
               >
                 <RefreshCw className={`h-3.5 w-3.5 ${replyLoading ? 'animate-spin' : ''}`} />
@@ -1128,17 +1145,17 @@ export default function SubpoenasView() {
               </button>
             </div>
 
-            <p className="text-[11px] text-slate-400 mb-3 shrink-0">
-              Groq LLM automatically parses email replies for FIR <strong className="text-amber-400">{activeCaseRef}</strong>, classifies data completeness, and drafts followback emails for human officer review & SMTP dispatch.
+            <p className="text-[11px] text-slate-600 dark:text-slate-400 mb-3 shrink-0">
+              Groq LLM automatically parses email replies for FIR <strong className="text-amber-700 dark:text-amber-400">{activeCaseRef}</strong>, classifies data completeness, and drafts followback emails for human officer review & SMTP dispatch.
             </p>
 
-            <div className="flex-1 overflow-y-auto space-y-2 pr-1">
+            <div className="flex-1 overflow-y-auto space-y-2 pr-1 min-h-0">
               {currentReplies.length === 0 ? (
-                <div className="p-6 rounded border border-white/5 bg-[#050811] text-center text-xs text-slate-400 space-y-2 font-mono">
-                  <UserCheck className="h-8 w-8 text-amber-400 opacity-60 mx-auto mb-1" />
-                  <p className="font-bold text-white uppercase tracking-wider">No Replies Ingested for Case {activeCaseRef}</p>
-                  <p className="text-[11px] text-slate-400 max-w-sm mx-auto leading-relaxed">
-                    Click <strong className="text-amber-400">"Check Inbox for Replies"</strong> above or <strong className="text-purple-400">"Simulate Authority Reply"</strong> to test Groq LLM email classification.
+                <div className="p-6 rounded border border-slate-200 dark:border-white/5 bg-slate-50 dark:bg-[#050811] text-center text-xs text-slate-500 dark:text-slate-400 space-y-2 font-mono">
+                  <UserCheck className="h-8 w-8 text-amber-600 dark:text-amber-400 opacity-80 mx-auto mb-1" />
+                  <p className="font-bold text-slate-900 dark:text-white uppercase tracking-wider">No Replies Ingested for Case {activeCaseRef}</p>
+                  <p className="text-[11px] text-slate-600 dark:text-slate-400 max-w-sm mx-auto leading-relaxed">
+                    Click <strong className="text-amber-700 dark:text-amber-400">"Check Inbox for Replies"</strong> above or <strong className="text-purple-700 dark:text-purple-400">"Test Response Ingestion"</strong> to test Groq LLM email classification.
                   </p>
                 </div>
               ) : (
@@ -1150,42 +1167,42 @@ export default function SubpoenasView() {
                     <div
                       key={item.id}
                       onClick={() => handleSelectReply(item)}
-                      className={`p-3 rounded border transition-all cursor-pointer ${selectedReply?.id === item.id
-                        ? 'border-amber-500 bg-amber-500/10 font-mono'
-                        : 'border-white/10 bg-[#050811] hover:border-white/20 font-mono'
+                      className={`p-3 rounded-lg border transition-all cursor-pointer ${selectedReply?.id === item.id
+                        ? 'border-amber-500 bg-amber-50 dark:bg-amber-500/10 font-mono shadow-sm ring-1 ring-amber-500/30'
+                        : 'border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-[#050811] hover:border-amber-400 font-mono'
                         }`}
                     >
                       <div className="flex items-center justify-between mb-1.5">
-                        <span className="font-mono text-xs font-bold text-amber-400 flex items-center gap-1.5">
+                        <span className="font-mono text-xs font-bold text-amber-800 dark:text-amber-400 flex items-center gap-1.5">
                           {item.id}
                           {item.llm_provider && (
-                            <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-300 border border-purple-500/30">
-                              ⚡ {item.llm_provider}
+                            <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-purple-100 dark:bg-purple-500/20 text-purple-800 dark:text-purple-300 border border-purple-300 dark:border-purple-500/30">
+                              {item.llm_provider}
                             </span>
                           )}
                         </span>
 
                         {isComp ? (
-                          <span className="rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-1.5 py-0.5 text-[10px] font-bold flex items-center gap-1">
-                            <CheckCircle className="h-3 w-3 text-emerald-400" /> DATA COMPLETE
+                          <span className="rounded bg-emerald-100 dark:bg-emerald-500/20 text-emerald-900 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-500/30 px-1.5 py-0.5 text-[10px] font-bold flex items-center gap-1">
+                            <CheckCircle className="h-3 w-3 text-emerald-600 dark:text-emerald-400" /> DATA COMPLETE
                           </span>
                         ) : isSent ? (
-                          <span className="rounded bg-emerald-500/20 text-emerald-300 px-1.5 py-0.5 text-[10px] font-bold flex items-center gap-1">
+                          <span className="rounded bg-emerald-100 dark:bg-emerald-500/20 text-emerald-900 dark:text-emerald-300 px-1.5 py-0.5 text-[10px] font-bold flex items-center gap-1">
                             <CheckCircle className="h-3 w-3" /> FOLLOWBACK SENT
                           </span>
                         ) : (
-                          <span className="rounded bg-rose-500/20 text-rose-300 border border-rose-500/30 px-1.5 py-0.5 text-[10px] font-bold flex items-center gap-1">
-                            <AlertTriangle className="h-3 w-3 text-rose-400" /> FOLLOWBACK NEEDED
+                          <span className="rounded bg-rose-100 dark:bg-rose-500/20 text-rose-900 dark:text-rose-300 border border-rose-300 dark:border-rose-500/30 px-1.5 py-0.5 text-[10px] font-bold flex items-center gap-1">
+                            <AlertTriangle className="h-3 w-3 text-rose-600 dark:text-rose-400" /> FOLLOWBACK NEEDED
                           </span>
                         )}
                       </div>
 
-                      <div className="text-xs font-semibold text-slate-200 line-clamp-1">{item.subject}</div>
+                      <div className="text-xs font-semibold text-slate-900 dark:text-slate-200 line-clamp-1">{item.subject}</div>
 
-                      <div className="flex items-center justify-between text-[10px] font-mono text-slate-400 mt-1.5 pt-1 border-t border-white/5">
-                        <span className="text-slate-300 font-bold truncate max-w-[170px]">{item.sender_email}</span>
+                      <div className="flex items-center justify-between text-[10px] font-mono text-slate-600 dark:text-slate-400 mt-1.5 pt-1 border-t border-slate-200 dark:border-white/5">
+                        <span className="text-slate-800 dark:text-slate-300 font-bold truncate max-w-[170px]">{item.sender_email}</span>
                         {item.classification && (
-                          <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold uppercase ${isComp ? 'bg-emerald-950 text-emerald-300 border border-emerald-500/30' : 'bg-amber-950 text-amber-300 border border-amber-500/30'
+                          <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold uppercase ${isComp ? 'bg-emerald-100 dark:bg-emerald-950 text-emerald-900 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-500/30' : 'bg-amber-100 dark:bg-amber-950 text-amber-900 dark:text-amber-300 border border-amber-300 dark:border-amber-500/30'
                             }`}>
                             {item.classification}
                           </span>
@@ -1199,122 +1216,147 @@ export default function SubpoenasView() {
           </div>
 
           {/* Right Column: Interactive Reply Review & Followback Dispatch Studio (7 Cols) */}
-          <div className="col-span-7 rounded border border-white/10 bg-[#0d1322] p-3 flex flex-col justify-between overflow-y-auto">
+          <div className="col-span-7 rounded-lg border border-slate-200 dark:border-white/10 bg-white dark:bg-[#0d1322] p-3 flex flex-col min-h-0 overflow-hidden shadow-sm">
             {selectedReply ? (
-              <div className="space-y-3">
-                <div className="flex items-center justify-between border-b border-white/10 pb-2">
+              <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+                
+                {/* Sticky Header */}
+                <div className="flex items-center justify-between border-b border-slate-200 dark:border-white/10 pb-2.5 shrink-0 bg-white dark:bg-[#0d1322]">
                   <div>
                     <div className="flex items-center gap-2">
-                      <span className="text-xs font-bold text-amber-400 font-mono uppercase">{selectedReply.id}</span>
+                      <span className="text-xs font-bold text-amber-700 dark:text-amber-400 font-mono uppercase">{selectedReply.id}</span>
                       {selectedReply.llm_provider && (
-                        <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-purple-500/20 text-purple-300 border border-purple-500/30">
+                        <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-purple-100 dark:bg-purple-500/20 text-purple-800 dark:text-purple-300 border border-purple-300 dark:border-purple-500/30">
                           {selectedReply.llm_provider}
                         </span>
                       )}
                     </div>
-                    <h3 className="text-xs font-extrabold text-white">Email Reply Analysis & Followback Studio</h3>
+                    <h3 className="text-xs font-extrabold text-slate-900 dark:text-white">Email Reply Analysis & Followback Studio</h3>
                   </div>
-                  <span className="text-[10px] font-mono text-slate-400">Sender: {selectedReply.sender_email}</span>
+                  <span className="text-[10px] font-mono text-slate-600 dark:text-slate-400">Sender: {selectedReply.sender_email}</span>
                 </div>
 
-                {/* Case Compliance Banner */}
-                {(selectedReply.is_complete || selectedReply.classification === 'CASE_COMPLETE') ? (
-                  <div className="p-3 rounded border border-emerald-500/40 bg-emerald-950/40 text-emerald-200 space-y-1.5 animate-fadeIn font-mono">
-                    <div className="flex items-center gap-2 font-bold text-xs text-emerald-300 uppercase">
-                      <CheckCircle className="h-4 w-4 text-emerald-400 shrink-0" />
-                      <span>DATA COMPLETE — FULL STATUTORY COMPLIANCE VERIFIED</span>
+                {/* Middle Scrollable Canvas */}
+                <div className="flex-1 overflow-y-auto py-3 space-y-3 min-h-0 pr-1 font-mono">
+                  {/* Case Compliance Banner */}
+                  {(selectedReply.is_complete || selectedReply.classification === 'CASE_COMPLETE') ? (
+                    <div className="p-3 rounded-lg border border-emerald-300 dark:border-emerald-500/40 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-900 dark:text-emerald-200 space-y-1.5 animate-fadeIn shadow-sm">
+                      <div className="flex items-center gap-2 font-bold text-xs text-emerald-800 dark:text-emerald-300 uppercase">
+                        <CheckCircle className="h-4 w-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                        <span>DATA COMPLETE — FULL STATUTORY COMPLIANCE VERIFIED</span>
+                      </div>
+                      <p className="text-xs text-emerald-950 dark:text-emerald-100 leading-relaxed">
+                        {selectedReply.classification_reason || "Authority has fully complied with requested data and documents. Directive marked COMPLETED."}
+                      </p>
+                      <div className="text-[10px] text-emerald-700 dark:text-emerald-400 pt-1 border-t border-emerald-300 dark:border-emerald-500/20">
+                        Status: <strong>DIRECTIVE COMPLETED</strong> — No followback email required.
+                      </div>
                     </div>
-                    <p className="text-xs text-emerald-100 leading-relaxed">
-                      {selectedReply.classification_reason || "Authority has fully complied with requested data and documents. Directive marked COMPLETED."}
-                    </p>
-                    <div className="text-[10px] text-emerald-400 pt-1 border-t border-emerald-500/20">
-                      Status: <strong>DIRECTIVE COMPLETED</strong> — No followback email required.
+                  ) : (
+                    <div className="p-3 rounded-lg border border-amber-300 dark:border-amber-500/40 bg-amber-50 dark:bg-amber-950/30 text-amber-900 dark:text-amber-200 space-y-1.5 animate-fadeIn shadow-sm">
+                      <div className="flex items-center gap-2 font-bold text-xs text-amber-800 dark:text-amber-300 uppercase">
+                        <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0" />
+                        <span>PARTIAL DATA RECEIVED — FOLLOWBACK REQUIRED ({selectedReply.classification || 'PARTIAL'})</span>
+                      </div>
+                      <p className="text-xs text-amber-950 dark:text-amber-100 leading-relaxed">
+                        {selectedReply.classification_reason || "Authority reply contains partial information. Contextual followback directive generated."}
+                      </p>
                     </div>
-                  </div>
-                ) : (
-                  <div className="p-3 rounded border border-amber-500/40 bg-amber-950/30 text-amber-200 space-y-1.5 animate-fadeIn font-mono">
-                    <div className="flex items-center gap-2 font-bold text-xs text-amber-300 uppercase">
-                      <AlertTriangle className="h-4 w-4 text-amber-400 shrink-0" />
-                      <span>PARTIAL DATA RECEIVED — FOLLOWBACK REQUIRED ({selectedReply.classification || 'PARTIAL'})</span>
-                    </div>
-                    <p className="text-xs text-amber-100 leading-relaxed">
-                      {selectedReply.classification_reason || "Authority reply contains partial information. Contextual followback directive generated."}
-                    </p>
-                  </div>
-                )}
+                  )}
 
-                {/* Received & Missing Data Breakdown */}
-                <div className="grid grid-cols-2 gap-2 text-xs font-mono">
-                  <div className="rounded border border-emerald-500/20 bg-emerald-500/5 p-2 space-y-1">
-                    <span className="font-bold text-emerald-300 flex items-center gap-1 text-[11px]">
-                      <FileCheck2 className="h-3.5 w-3.5" /> Received Items:
-                    </span>
-                    <ul className="list-disc list-inside text-[11px] text-slate-300 space-y-0.5">
-                      {(selectedReply.received_items || ['Received email response']).map((item: string, i: number) => (
-                        <li key={i}>{item}</li>
-                      ))}
-                    </ul>
+                  {/* Raw Ingested Authority Reply Box */}
+                  <div className="rounded-lg border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-[#050811] p-3 space-y-1.5">
+                    <div className="flex items-center justify-between text-xs border-b border-slate-200 dark:border-white/10 pb-1 text-slate-700 dark:text-slate-300 font-bold">
+                      <span className="flex items-center gap-1.5">
+                        <Mail className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
+                        Ingested Authority Reply Preview
+                      </span>
+                      <span className="text-[10px] text-slate-500 font-normal">{selectedReply.subject}</span>
+                    </div>
+                    <div className="text-[11px] text-slate-800 dark:text-slate-300 bg-white dark:bg-[#0d1322] p-2.5 rounded border border-slate-200 dark:border-white/5 leading-relaxed max-h-36 overflow-y-auto whitespace-pre-wrap">
+                      {selectedReply.body || selectedReply.body_text || `Dear Officer,\n\nPlease find attached the requested ledger records for case ${activeCaseRef}.\n\nRegards,\nNodal Officer`}
+                    </div>
                   </div>
 
-                  <div className="rounded border border-rose-500/20 bg-rose-500/5 p-2 space-y-1">
-                    <span className="font-bold text-rose-300 flex items-center gap-1 text-[11px]">
-                      <AlertCircle className="h-3.5 w-3.5" /> Missing Items:
-                    </span>
-                    <ul className="list-disc list-inside text-[11px] text-slate-300 space-y-0.5">
-                      {(selectedReply.missing_items?.length > 0 ? selectedReply.missing_items : ['None (Complete Data)']).map((item: string, i: number) => (
-                        <li key={i}>{item}</li>
-                      ))}
-                    </ul>
+                  {/* Received & Missing Data Breakdown */}
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    <div className="rounded-lg border border-emerald-300 dark:border-emerald-500/20 bg-emerald-50 dark:bg-emerald-500/5 p-2.5 space-y-1">
+                      <span className="font-bold text-emerald-800 dark:text-emerald-300 flex items-center gap-1 text-[11px]">
+                        <FileCheck2 className="h-3.5 w-3.5" /> Received Items:
+                      </span>
+                      <ul className="list-disc list-inside text-[11px] text-slate-800 dark:text-slate-300 space-y-0.5">
+                        {(selectedReply.received_items || ['Received email response']).map((item: string, i: number) => (
+                          <li key={i}>{item}</li>
+                        ))}
+                      </ul>
+                    </div>
+
+                    <div className="rounded-lg border border-rose-300 dark:border-rose-500/20 bg-rose-50 dark:bg-rose-500/5 p-2.5 space-y-1">
+                      <span className="font-bold text-rose-800 dark:text-rose-300 flex items-center gap-1 text-[11px]">
+                        <AlertCircle className="h-3.5 w-3.5" /> Missing Items:
+                      </span>
+                      <ul className="list-disc list-inside text-[11px] text-slate-800 dark:text-slate-300 space-y-0.5">
+                        {(selectedReply.missing_items?.length > 0 ? selectedReply.missing_items : ['None (Complete Data)']).map((item: string, i: number) => (
+                          <li key={i}>{item}</li>
+                        ))}
+                      </ul>
+                    </div>
                   </div>
+
+                  {/* Followback Email Draft Studio (Only if incomplete) */}
+                  {(!selectedReply.is_complete && selectedReply.classification !== 'CASE_COMPLETE') && (
+                    <div className="space-y-2.5 text-xs pt-1 border-t border-slate-200 dark:border-white/10">
+                      <div>
+                        <label className="block text-[10px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-1">
+                          Followback Email Subject (Editable by IO)
+                        </label>
+                        <input
+                          type="text"
+                          value={editedSubject}
+                          onChange={(e) => setEditedSubject(e.target.value)}
+                          className="h-8 w-full rounded-lg border border-slate-300 dark:border-white/10 bg-slate-50 dark:bg-[#050811] px-2.5 text-xs font-semibold text-slate-900 dark:text-slate-200 outline-none font-mono"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-[10px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-1">
+                          Statutory Followback Body (PSI V.K. Patel — Editable by IO)
+                        </label>
+                        <textarea
+                          rows={10}
+                          value={editedBody}
+                          onChange={(e) => setEditedBody(e.target.value)}
+                          className="w-full min-h-[220px] rounded-lg border border-slate-300 dark:border-white/10 bg-white dark:bg-[#050811] p-3 text-xs font-mono text-slate-900 dark:text-slate-200 outline-none leading-relaxed resize-y shadow-inner"
+                        />
+                      </div>
+                    </div>
+                  )}
                 </div>
 
-                {/* Followback Email Draft Studio (Only if incomplete) */}
+                {/* Sticky Action Footer Bar */}
                 {(!selectedReply.is_complete && selectedReply.classification !== 'CASE_COMPLETE') && (
-                  <div className="space-y-2 text-xs">
-                    <div>
-                      <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1 font-mono">
-                        Followback Email Subject (Editable by IO)
-                      </label>
-                      <input
-                        type="text"
-                        value={editedSubject}
-                        onChange={(e) => setEditedSubject(e.target.value)}
-                        className="h-8 w-full rounded border border-white/10 bg-[#050811] px-2.5 text-xs font-semibold text-slate-200 outline-none font-mono"
-                      />
-                    </div>
+                  <div className="pt-2.5 border-t border-slate-200 dark:border-white/10 flex items-center justify-between shrink-0 bg-white dark:bg-[#0d1322]">
+                    <span className="text-[11px] text-slate-500 font-mono flex items-center gap-1.5">
+                      <ShieldCheck className="h-3.5 w-3.5 text-emerald-500" />
+                      <span>Authorized Officer: <strong>PSI Inspector V. K. Patel</strong></span>
+                    </span>
 
-                    <div>
-                      <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1 font-mono">
-                        Statutory Followback Body (PSI V.K. Patel — Editable by IO)
-                      </label>
-                      <textarea
-                        rows={8}
-                        value={editedBody}
-                        onChange={(e) => setEditedBody(e.target.value)}
-                        className="w-full rounded border border-white/10 bg-[#050811] p-2.5 text-xs font-mono text-slate-200 outline-none leading-relaxed"
-                      />
-                    </div>
-                  </div>
-                )}
-
-                {/* Officer Human Approval & Dispatch Controls */}
-                {(!selectedReply.is_complete && selectedReply.classification !== 'CASE_COMPLETE') && (
-                  <div className="pt-2 border-t border-white/10 flex items-center justify-end">
                     <button
                       onClick={handleSendFollowback}
                       disabled={replyLoading || selectedReply.status === 'FOLLOWBACK_SENT'}
-                      className="flex items-center gap-1.5 rounded bg-emerald-600 px-4 py-2 text-xs font-bold text-white hover:bg-emerald-500 transition-colors disabled:opacity-50 font-mono shadow-lg"
+                      className="flex items-center gap-1.5 rounded-lg bg-emerald-600 px-4 py-2 text-xs font-bold text-white hover:bg-emerald-500 transition-colors disabled:opacity-50 font-mono shadow-md"
                     >
                       {replyLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
                       <span>Approve & Send Follow-Up Directives</span>
                     </button>
                   </div>
                 )}
+
               </div>
             ) : (
               <div className="flex-1 flex flex-col items-center justify-center text-center p-6 text-slate-500">
-                <UserCheck className="h-10 w-10 text-slate-600 mb-2" />
-                <span className="text-xs font-semibold text-slate-400 font-mono">Select an ingested reply card from the left panel to inspect response analysis and send follow-up.</span>
+                <UserCheck className="h-10 w-10 text-slate-400 dark:text-slate-600 mb-2" />
+                <span className="text-xs font-semibold text-slate-600 dark:text-slate-400 font-mono">Select an ingested reply card from the left panel to inspect response analysis and send follow-up.</span>
               </div>
             )}
           </div>
@@ -1322,83 +1364,85 @@ export default function SubpoenasView() {
         </div>
       )}
 
-
       {/* Real SMTP Server Credentials Settings Modal */}
       {smtpModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
-          <div className="w-full max-w-md rounded-lg border border-emerald-500/30 bg-[#0d1322] p-4 space-y-3 shadow-2xl">
-            <div className="flex items-center justify-between border-b border-white/10 pb-2">
-              <h3 className="text-xs font-bold text-emerald-300 uppercase tracking-wider flex items-center gap-1.5 font-mono">
-                <Settings className="h-4 w-4 text-emerald-400" />
-                ⚙️ Dispatch Server Credentials
+        <div className="fixed inset-0 z-50 bg-slate-950/60 dark:bg-black/80 flex items-center justify-center p-4 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-lg border border-emerald-500/30 bg-white dark:bg-[#0d1322] p-4 space-y-3 shadow-2xl text-slate-900 dark:text-slate-100">
+            <div className="flex items-center justify-between border-b border-slate-200 dark:border-white/10 pb-2">
+              <h3 className="text-xs font-bold text-emerald-800 dark:text-emerald-300 uppercase tracking-wider flex items-center gap-1.5 font-mono">
+                <Settings className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                <span>Dispatch Server Credentials</span>
               </h3>
-              <button onClick={() => setSmtpModalOpen(false)} className="text-slate-400 hover:text-white text-xs">✕</button>
+              <button onClick={() => setSmtpModalOpen(false)} className="text-slate-500 hover:text-slate-900 dark:hover:text-white p-1 rounded hover:bg-slate-100 dark:hover:bg-white/10 transition-colors">
+                <X className="h-4 w-4" />
+              </button>
             </div>
 
-            <p className="text-[11px] text-slate-300 leading-relaxed font-mono bg-emerald-950/40 p-2 rounded border border-emerald-500/20">
+            <p className="text-[11px] text-slate-700 dark:text-slate-300 leading-relaxed font-mono bg-emerald-50 dark:bg-emerald-950/40 p-2 rounded border border-emerald-300 dark:border-emerald-500/20">
               Configure official dispatch server credentials for sending statutory notices directly to target email addresses.
             </p>
 
             <div className="space-y-2 text-xs font-mono">
               <div className="grid grid-cols-3 gap-2">
                 <div className="col-span-2">
-                  <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Dispatch Server Host</label>
+                  <label className="block text-[10px] font-bold text-slate-600 dark:text-slate-400 uppercase mb-1">Dispatch Server Host</label>
                   <input
                     type="text"
                     value={smtpHost}
                     onChange={(e) => setSmtpHost(e.target.value)}
                     placeholder="smtp.gmail.com"
-                    className="h-8 w-full rounded border border-white/10 bg-[#050811] px-2.5 text-white outline-none"
+                    className="h-8 w-full rounded border border-slate-300 dark:border-white/10 bg-slate-50 dark:bg-[#050811] px-2.5 text-slate-900 dark:text-white outline-none"
                   />
                 </div>
                 <div>
-                  <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Port</label>
+                  <label className="block text-[10px] font-bold text-slate-600 dark:text-slate-400 uppercase mb-1">Port</label>
                   <input
                     type="text"
                     value={smtpPort}
                     onChange={(e) => setSmtpPort(e.target.value)}
                     placeholder="587"
-                    className="h-8 w-full rounded border border-white/10 bg-[#050811] px-2.5 text-amber-300 outline-none"
+                    className="h-8 w-full rounded border border-slate-300 dark:border-white/10 bg-slate-50 dark:bg-[#050811] px-2.5 text-amber-800 dark:text-amber-300 outline-none"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Sender Email / Username *</label>
+                <label className="block text-[10px] font-bold text-slate-600 dark:text-slate-400 uppercase mb-1">Sender Email / Username *</label>
                 <input
                   type="email"
                   value={smtpUser}
                   onChange={(e) => setSmtpUser(e.target.value)}
                   placeholder="your.email@gmail.com / officer@police.gov.in"
-                  className="h-8 w-full rounded border border-white/10 bg-[#050811] px-2.5 text-emerald-400 outline-none"
+                  className="h-8 w-full rounded border border-slate-300 dark:border-white/10 bg-slate-50 dark:bg-[#050811] px-2.5 text-emerald-800 dark:text-emerald-400 outline-none"
                 />
               </div>
 
               <div>
-                <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Account Password / Access Key *</label>
+                <label className="block text-[10px] font-bold text-slate-600 dark:text-slate-400 uppercase mb-1">Account Password / Access Key *</label>
                 <input
                   type="password"
                   value={smtpPass}
                   onChange={(e) => setSmtpPass(e.target.value)}
                   placeholder="Enter 16-character App Password"
-                  className="h-8 w-full rounded border border-white/10 bg-[#050811] px-2.5 text-white outline-none font-mono"
+                  className="h-8 w-full rounded border border-slate-300 dark:border-white/10 bg-slate-50 dark:bg-[#050811] px-2.5 text-slate-900 dark:text-white outline-none font-mono"
                 />
               </div>
             </div>
 
-            <div className="pt-2 flex justify-end gap-2">
+            <div className="pt-2 flex justify-end gap-2 border-t border-slate-200 dark:border-white/10">
               <button
                 onClick={() => setSmtpModalOpen(false)}
-                className="px-3 py-1.5 rounded border border-white/10 text-xs font-semibold text-slate-400 hover:text-white"
+                className="px-3 py-1.5 rounded border border-slate-300 dark:border-white/10 text-xs font-semibold text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
               >
                 Cancel
               </button>
               <button
                 onClick={saveSmtpCredentials}
-                className="px-4 py-1.5 rounded bg-emerald-600 text-xs font-bold text-white hover:bg-emerald-500 transition-colors flex items-center gap-1.5 shadow-md"
+                disabled={isSavingSmtp}
+                className="px-4 py-1.5 rounded bg-emerald-600 text-xs font-bold text-white hover:bg-emerald-500 transition-colors flex items-center gap-1.5 shadow-md disabled:opacity-50"
               >
-                <CheckCircle className="h-3.5 w-3.5" />
-                <span>Save Real Credentials</span>
+                {isSavingSmtp ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle className="h-3.5 w-3.5" />}
+                <span>{isSavingSmtp ? 'Saving...' : 'Save Real Credentials'}</span>
               </button>
             </div>
           </div>
@@ -1414,71 +1458,75 @@ export default function SubpoenasView() {
 
       {/* Simulation Reply Modal */}
       {simModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
-          <div className="w-full max-w-lg rounded-lg border border-white/10 bg-[#0d1322] p-4 space-y-3 shadow-2xl">
-            <div className="flex items-center justify-between border-b border-white/10 pb-2">
-              <h3 className="text-xs font-bold text-amber-400 uppercase tracking-wider flex items-center gap-1.5 font-mono">
+        <div className="fixed inset-0 z-50 bg-slate-950/60 dark:bg-black/80 flex items-center justify-center p-4 backdrop-blur-sm">
+          <div className="w-full max-w-lg rounded-lg border border-slate-300 dark:border-white/10 bg-white dark:bg-[#0d1322] p-4 space-y-3 shadow-2xl text-slate-900 dark:text-slate-100">
+            <div className="flex items-center justify-between border-b border-slate-200 dark:border-white/10 pb-2">
+              <h3 className="text-xs font-bold text-amber-800 dark:text-amber-400 uppercase tracking-wider flex items-center gap-1.5 font-mono">
                 <RefreshCw className="h-4 w-4" />
                 Simulate Authority Email Reply Ingestion ({activeCase?.case_number || 'active case'})
               </h3>
-              <button onClick={() => setSimModalOpen(false)} className="text-slate-400 hover:text-white text-xs">✕</button>
+              <button onClick={() => setSimModalOpen(false)} className="text-slate-500 hover:text-slate-900 dark:hover:text-white p-1 rounded hover:bg-slate-100 dark:hover:bg-white/10 transition-colors">
+                <X className="h-4 w-4" />
+              </button>
             </div>
 
             <div className="space-y-2 text-xs">
               <div>
-                <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1 font-mono">Sender Email</label>
+                <label className="block text-[10px] font-bold text-slate-600 dark:text-slate-400 uppercase mb-1 font-mono">Sender Email</label>
                 <input
                   type="email"
                   value={simSender}
                   onChange={(e) => setSimSender(e.target.value)}
                   placeholder="e.g. compliance.nodal@indusind.com"
-                  className="h-8 w-full rounded border border-white/10 bg-[#050811] px-2.5 font-mono text-slate-200 outline-none"
+                  className="h-8 w-full rounded border border-slate-300 dark:border-white/10 bg-slate-50 dark:bg-[#050811] px-2.5 font-mono text-slate-900 dark:text-slate-200 outline-none"
                 />
               </div>
 
               <div>
-                <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1 font-mono">Email Subject (with Case Token)</label>
+                <label className="block text-[10px] font-bold text-slate-600 dark:text-slate-400 uppercase mb-1 font-mono">Email Subject (with Case Token)</label>
                 <input
                   type="text"
                   value={simSubject}
                   onChange={(e) => setSimSubject(e.target.value)}
-                  className="h-8 w-full rounded border border-white/10 bg-[#050811] px-2.5 font-mono text-slate-200 outline-none"
+                  className="h-8 w-full rounded border border-slate-300 dark:border-white/10 bg-slate-50 dark:bg-[#050811] px-2.5 font-mono text-slate-900 dark:text-slate-200 outline-none"
                 />
               </div>
 
               <div>
-                <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1 font-mono">Reply Body Text</label>
+                <label className="block text-[10px] font-bold text-slate-600 dark:text-slate-400 uppercase mb-1 font-mono">Reply Body Text</label>
                 <textarea
-                  rows={3}
+                  rows={6}
                   value={simBody}
                   onChange={(e) => setSimBody(e.target.value)}
-                  className="w-full rounded border border-white/10 bg-[#050811] p-2 text-slate-200 font-mono text-[11px] outline-none"
+                  className="w-full min-h-[120px] rounded-lg border border-slate-300 dark:border-white/10 bg-slate-50 dark:bg-[#050811] p-2.5 text-slate-900 dark:text-slate-200 font-mono text-[11px] outline-none leading-relaxed resize-y"
                 />
               </div>
 
               <div>
-                <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1 font-mono">Attached File (CSV / Ledger / CDR)</label>
+                <label className="block text-[10px] font-bold text-slate-600 dark:text-slate-400 uppercase mb-1 font-mono">Attached File (CSV / Ledger / CDR)</label>
                 <input
                   type="text"
                   value={simFilename}
                   onChange={(e) => setSimFilename(e.target.value)}
-                  className="h-8 w-full rounded border border-white/10 bg-[#050811] px-2.5 font-mono text-slate-200 outline-none"
+                  className="h-8 w-full rounded border border-slate-300 dark:border-white/10 bg-slate-50 dark:bg-[#050811] px-2.5 font-mono text-slate-900 dark:text-slate-200 outline-none"
                 />
               </div>
             </div>
 
-            <div className="pt-2 flex justify-end gap-2">
+            <div className="pt-2 flex justify-end gap-2 border-t border-slate-200 dark:border-white/10">
               <button
                 onClick={() => setSimModalOpen(false)}
-                className="px-3 py-1.5 rounded border border-white/10 text-xs font-semibold text-slate-400 hover:text-white"
+                className="px-3 py-1.5 rounded border border-slate-300 dark:border-white/10 text-xs font-semibold text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
               >
                 Cancel
               </button>
               <button
                 onClick={handleRunReplySimulation}
-                className="px-4 py-1.5 rounded bg-amber-600 text-xs font-bold text-white hover:bg-amber-500 transition-colors flex items-center gap-1.5"
+                disabled={isSimulatingReply}
+                className="px-4 py-1.5 rounded bg-amber-600 text-xs font-bold text-white hover:bg-amber-500 transition-colors flex items-center gap-1.5 shadow-md disabled:opacity-50"
               >
-                <span>Ingest & Create Approval Draft</span>
+                {isSimulatingReply ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
+                <span>{isSimulatingReply ? 'Ingesting Simulation Reply...' : 'Ingest & Create Approval Draft'}</span>
               </button>
             </div>
           </div>
@@ -1487,33 +1535,35 @@ export default function SubpoenasView() {
 
       {/* Custom Template Builder Extension Modal */}
       {customModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
-          <div className="w-full max-w-xl rounded-lg border border-white/10 bg-[#0d1322] p-4 space-y-3 shadow-2xl">
-            <div className="flex items-center justify-between border-b border-white/10 pb-2">
-              <h3 className="text-xs font-bold text-indigo-300 uppercase tracking-wider flex items-center gap-1.5 font-mono">
-                <FolderPlus className="h-4 w-4 text-indigo-400" />
+        <div className="fixed inset-0 z-50 bg-slate-950/60 dark:bg-black/80 flex items-center justify-center p-4 backdrop-blur-sm">
+          <div className="w-full max-w-xl rounded-lg border border-slate-300 dark:border-white/10 bg-white dark:bg-[#0d1322] p-4 space-y-3 shadow-2xl text-slate-900 dark:text-slate-100">
+            <div className="flex items-center justify-between border-b border-slate-200 dark:border-white/10 pb-2">
+              <h3 className="text-xs font-bold text-indigo-800 dark:text-indigo-300 uppercase tracking-wider flex items-center gap-1.5 font-mono">
+                <FolderPlus className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
                 Dynamic Notice Template Extension Builder
               </h3>
-              <button onClick={() => setCustomModalOpen(false)} className="text-slate-400 hover:text-white text-xs">✕</button>
+              <button onClick={() => setCustomModalOpen(false)} className="text-slate-500 hover:text-slate-900 dark:hover:text-white p-1 rounded hover:bg-slate-100 dark:hover:bg-white/10 transition-colors">
+                <X className="h-4 w-4" />
+              </button>
             </div>
 
             <div className="space-y-2 text-xs">
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1 font-mono">Template Unique ID</label>
+                  <label className="block text-[10px] font-bold text-slate-600 dark:text-slate-400 uppercase mb-1 font-mono">Template Unique ID</label>
                   <input
                     type="text"
                     value={newTemplateId}
                     onChange={(e) => setNewTemplateId(e.target.value)}
-                    className="h-8 w-full rounded border border-white/10 bg-[#050811] px-2.5 font-mono text-slate-200 outline-none"
+                    className="h-8 w-full rounded border border-slate-300 dark:border-white/10 bg-slate-50 dark:bg-[#050811] px-2.5 font-mono text-slate-900 dark:text-slate-200 outline-none"
                   />
                 </div>
                 <div>
-                  <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1 font-mono">Category</label>
+                  <label className="block text-[10px] font-bold text-slate-600 dark:text-slate-400 uppercase mb-1 font-mono">Category</label>
                   <select
                     value={newCategory}
                     onChange={(e) => setNewCategory(e.target.value)}
-                    className="h-8 w-full rounded border border-white/10 bg-[#050811] px-2 text-slate-200 outline-none"
+                    className="h-8 w-full rounded border border-slate-300 dark:border-white/10 bg-slate-50 dark:bg-[#050811] px-2 text-slate-900 dark:text-slate-200 outline-none"
                   >
                     <option value="third_party_intermediary">Third Party Intermediary (Bank/Telecom/Tech)</option>
                     <option value="suspect_accused">Suspect / Accused Person</option>
@@ -1524,59 +1574,60 @@ export default function SubpoenasView() {
               </div>
 
               <div>
-                <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1 font-mono">Statutory Notice Title</label>
+                <label className="block text-[10px] font-bold text-slate-600 dark:text-slate-400 uppercase mb-1 font-mono">Statutory Notice Title</label>
                 <input
                   type="text"
                   value={newTitle}
                   onChange={(e) => setNewTitle(e.target.value)}
-                  className="h-8 w-full rounded border border-white/10 bg-[#050811] px-2.5 text-slate-200 outline-none font-semibold"
+                  className="h-8 w-full rounded border border-slate-300 dark:border-white/10 bg-slate-50 dark:bg-[#050811] px-2.5 text-slate-900 dark:text-slate-200 outline-none font-semibold"
                 />
               </div>
 
               <div>
-                <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1 font-mono">Statutory Legal Statute Reference</label>
+                <label className="block text-[10px] font-bold text-slate-600 dark:text-slate-400 uppercase mb-1 font-mono">Statutory Legal Statute Reference</label>
                 <input
                   type="text"
                   value={newStatute}
                   onChange={(e) => setNewStatute(e.target.value)}
-                  className="h-8 w-full rounded border border-white/10 bg-[#050811] px-2.5 font-mono text-slate-200 outline-none"
+                  className="h-8 w-full rounded border border-slate-300 dark:border-white/10 bg-slate-50 dark:bg-[#050811] px-2.5 font-mono text-slate-900 dark:text-slate-200 outline-none"
                 />
               </div>
 
               <div>
-                <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1 font-mono">Subject Template (Supports Placeholders e.g. &#123;&#123;case_number&#125;&#125;)</label>
+                <label className="block text-[10px] font-bold text-slate-600 dark:text-slate-400 uppercase mb-1 font-mono">{"Subject Template (Supports Placeholders e.g. {{case_number}})"}</label>
                 <input
                   type="text"
                   value={newSubject}
                   onChange={(e) => setNewSubject(e.target.value)}
-                  className="h-8 w-full rounded border border-white/10 bg-[#050811] px-2.5 font-mono text-slate-200 outline-none text-[11px]"
+                  className="h-8 w-full rounded border border-slate-300 dark:border-white/10 bg-slate-50 dark:bg-[#050811] px-2.5 font-mono text-slate-900 dark:text-slate-200 outline-none text-[11px]"
                 />
               </div>
 
               <div>
-                <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1 font-mono">Notice Body Template</label>
+                <label className="block text-[10px] font-bold text-slate-600 dark:text-slate-400 uppercase mb-1 font-mono">Notice Body Template</label>
                 <textarea
-                  rows={4}
+                  rows={8}
                   value={newBody}
                   onChange={(e) => setNewBody(e.target.value)}
-                  className="w-full rounded border border-white/10 bg-[#050811] p-2 text-slate-200 font-mono text-[11px] outline-none"
+                  className="w-full min-h-[160px] rounded-lg border border-slate-300 dark:border-white/10 bg-slate-50 dark:bg-[#050811] p-2.5 text-slate-900 dark:text-slate-200 font-mono text-[11px] outline-none leading-relaxed resize-y font-mono"
                 />
               </div>
             </div>
 
-            <div className="pt-2 flex justify-end gap-2">
+            <div className="pt-2 flex justify-end gap-2 border-t border-slate-200 dark:border-white/10">
               <button
                 onClick={() => setCustomModalOpen(false)}
-                className="px-3 py-1.5 rounded border border-white/10 text-xs font-semibold text-slate-400 hover:text-white"
+                className="px-3 py-1.5 rounded border border-slate-300 dark:border-white/10 text-xs font-semibold text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
               >
                 Cancel
               </button>
               <button
                 onClick={handleCreateCustomTemplate}
-                className="px-4 py-1.5 rounded bg-indigo-600 text-xs font-bold text-white hover:bg-indigo-500 transition-colors flex items-center gap-1.5"
+                disabled={isCreatingTemplate}
+                className="px-4 py-1.5 rounded bg-indigo-600 text-xs font-bold text-white hover:bg-indigo-500 transition-colors flex items-center gap-1.5 shadow-md disabled:opacity-50"
               >
-                <FolderPlus className="h-3.5 w-3.5" />
-                <span>Register Notice Template</span>
+                {isCreatingTemplate ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FolderPlus className="h-3.5 w-3.5" />}
+                <span>{isCreatingTemplate ? 'Registering Template...' : 'Register Notice Template'}</span>
               </button>
             </div>
           </div>

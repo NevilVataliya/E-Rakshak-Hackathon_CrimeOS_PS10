@@ -210,6 +210,31 @@ async def search_entity_linkages(req: LinkageSearchRequest):
         if v:
             search_queries.append({"type": "email", "value": v})
 
+    # If no structured search queries, attempt to extract entities from case record
+    if not search_queries and req.case_number:
+        try:
+            conn_temp = psycopg2.connect(DATABASE_URL)
+            cur_temp = conn_temp.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+            cur_temp.execute("SELECT summary, investigation_plan FROM cases WHERE case_number = %s", (req.case_number,))
+            c_row = cur_temp.fetchone()
+            cur_temp.close()
+            conn_temp.close()
+            if c_row:
+                plan = c_row.get("investigation_plan") or {}
+                if isinstance(plan, str):
+                    import json as _j
+                    plan = _j.loads(plan)
+                text = f"{c_row.get('summary') or ''} {plan.get('manual_text') or ''} {plan.get('complaint_text') or ''}"
+                import re
+                for p in re.findall(r'\+?\d{10,12}', text):
+                    search_queries.append({"type": "phone", "value": p})
+                for v in re.findall(r'[a-zA-Z0-9.\-_]{2,256}@[a-zA-Z]{2,64}', text):
+                    search_queries.append({"type": "vpa", "value": v})
+                for a in re.findall(r'\b\d{9,18}\b', text):
+                    search_queries.append({"type": "bank_account", "value": a})
+        except Exception as ex:
+            print(f"[!] Case text entity extraction error: {ex}")
+
     matches: list[dict] = []
     seen_match_keys: set[str] = set()   # deduplicate (entity_value, case_number)
 
@@ -239,26 +264,36 @@ async def search_entity_linkages(req: LinkageSearchRequest):
         "manual":       "Cross-verify entity in CCTNS and ICJS portals.",
     }
 
-    # ── PRIMARY: PostgreSQL exact-match ────────────────────────────────────
+    # ── PRIMARY: PostgreSQL exact-match across complaints AND cases ───────────
     pg_error = None
     try:
         conn = psycopg2.connect(DATABASE_URL)
         cur  = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
-        # Fetch all OTHER complaints (already ingested) with their entities
+        # Fetch complaints
         cur.execute(
             """
-            SELECT complaint_number, extracted_entities, crime_category
+            SELECT complaint_number as case_ref, complaint_number as fir_ref, extracted_entities, crime_category
             FROM   complaints
             WHERE  complaint_number IS NOT NULL
             """)
-        rows = cur.fetchall()
+        comp_rows = cur.fetchall()
+
+        # Fetch other cases
+        cur.execute(
+            """
+            SELECT case_number as case_ref, fir_number as fir_ref, investigation_plan as extracted_entities, crime_category
+            FROM   cases
+            WHERE  case_number IS NOT NULL
+            """)
+        case_rows = cur.fetchall()
+
+        rows = comp_rows + case_rows
         cur.close()
         conn.close()
 
         for row in rows:
-            cmp_num = row["complaint_number"]
-            # Skip the case we're analysing itself
+            cmp_num = row["case_ref"]
             if cmp_num == req.case_number:
                 continue
 
@@ -267,7 +302,14 @@ async def search_entity_linkages(req: LinkageSearchRequest):
                 if isinstance(ent, str):
                     import json as _json
                     ent = _json.loads(ent)
+                if isinstance(ent, dict) and "entities" in ent:
+                    ent = ent["entities"]
+                elif isinstance(ent, dict) and "extracted_result" in ent and isinstance(ent["extracted_result"], dict):
+                    ent = ent["extracted_result"].get("entities", {})
             except Exception:
+                ent = {}
+
+            if not isinstance(ent, dict):
                 ent = {}
 
             # Flatten stored entity values for fast lookup
@@ -304,17 +346,18 @@ async def search_entity_linkages(req: LinkageSearchRequest):
                     seen_match_keys.add(dedup_key)
 
                     confidence = CONFIDENCE.get(entity_type, 0.80)
+                    fir_label = row.get("fir_ref") or cmp_num.replace("CMP-", "FIR-").replace("CR-", "FIR-")
                     matches.append({
                         "entity_type":         entity_type,
                         "entity_value":        entity_value,
                         "match_type":          MATCH_TYPE.get(entity_type, "CROSS_CASE_RECURRENCE"),
                         "matched_case":        cmp_num,
-                        "matched_fir":         cmp_num.replace("CMP-", "FIR-"),
-                        "police_station":      "Cyber Crime PS (same station)",
+                        "matched_fir":         fir_label,
+                        "police_station":      "Surat Cyber Crime PS",
                         "confidence":          confidence,
                         "description":         (
-                            f"Entity '{entity_value}' ({entity_type}) found in complaint "
-                            f"{cmp_num} (crime: {row.get('crime_category','CYBER')})."
+                            f"Entity '{entity_value}' ({entity_type}) matched with registered case "
+                            f"{cmp_num} (crime category: {row.get('crime_category','CYBER')})."
                         ),
                         "recommended_action":  ACTION.get(entity_type, ACTION["manual"]),
                     })

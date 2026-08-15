@@ -102,6 +102,9 @@ services:
       - SMTP_PASSWORD=${SMTP_PASSWORD:-${SMTP_PASS}}
       - SENDER_EMAIL=${SENDER_EMAIL}
       - SENDER_NAME=${SENDER_NAME:-Cyber Crime Investigation Cell}
+    volumes:
+      - ./gateway:/app
+      - /app/node_modules
     depends_on:
       - ai-service
       - postgres

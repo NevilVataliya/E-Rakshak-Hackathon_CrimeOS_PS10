@@ -7,9 +7,11 @@ export interface PersonEntity {
 
 export interface BankAccountEntity {
   account_number: string;
-  ifsc: string;
+  ifsc?: string;
   bank: string;
   account_name?: string;
+  account_role?: string;
+  is_victim_account?: boolean;
 }
 
 export interface ExtractedEntities {
@@ -51,6 +53,11 @@ export interface PoliceCase {
   extracted_result?: any;
   completed_step?: number;
   activity_timeline?: any[];
+  investigation_data?: any;
+  dispatched_directives?: any[];
+  response_analytics?: any;
+  module_summaries?: Record<string, any>;
+  cross_case_matches?: any[];
 }
 
 export interface GroundedSOPStep {

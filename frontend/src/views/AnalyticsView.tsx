@@ -59,13 +59,17 @@ export default function AnalyticsView() {
   // Load persistent response analytics if available for current case
   React.useEffect(() => {
     if (activeCase?.case_number) {
-      const savedAnalytics = responseAnalyticsByCase[activeCase.case_number];
+      const savedAnalytics = responseAnalyticsByCase[activeCase.case_number] || activeCase.response_analytics;
       if (savedAnalytics) {
         setParsedData(savedAnalytics);
         setSelectedInspectorItem({ type: 'PROVIDER_RESPONSE_ANALYTICS', data: savedAnalytics });
+      } else {
+        setParsedData(null);
       }
+    } else {
+      setParsedData(null);
     }
-  }, [activeCase?.case_number]);
+  }, [activeCase?.case_number, responseAnalyticsByCase]);
 
   const buildAnalyticsFromCaseData = (type: string, replyItem?: any) => {
     const caseNo = currentCaseNo;
@@ -258,22 +262,29 @@ export default function AnalyticsView() {
     return 'BANK_STATEMENT';
   };
 
+  const [isIssuingDirective, setIsIssuingDirective] = useState(false);
+
   // 1-Click Dispatch New Statutory Directive to Module 4
   const handleIssueDiscoveredDirective = () => {
     if (!parsedData || !parsedData.discovered_mule_account) return;
-    const mule = parsedData.discovered_mule_account;
-    const newDir = {
-      id: `DIR-M5-${Date.now().toString().slice(-4)}`,
-      case_number: currentCaseNo,
-      target_provider: mule.bank || 'Secondary Bank',
-      receiver_email: `nodal@${(mule.bank || 'bank').toLowerCase().replace(/\s+/g, '')}.com`,
-      objective: `Section 106 BNSS Debit Freeze Order for Discovered Layer-2 Account ${mule.account_number}`,
-      target_id: mule.account_number,
-      status: 'READY_TO_DISPATCH',
-      legal_statute_ref: 'Section 106 BNSS'
-    };
-    addDirectiveForCase(currentCaseNo, newDir);
-    setToastMsg(`Issued Section 106 BNSS Debit Freeze Directive for Layer-2 A/C ${mule.account_number} to Module 4!`);
+    setIsIssuingDirective(true);
+    try {
+      const mule = parsedData.discovered_mule_account;
+      const newDir = {
+        id: `DIR-M5-${Date.now().toString().slice(-4)}`,
+        case_number: currentCaseNo,
+        target_provider: mule.bank || 'Secondary Bank',
+        receiver_email: `nodal@${(mule.bank || 'bank').toLowerCase().replace(/\s+/g, '')}.com`,
+        objective: `Section 106 BNSS Debit Freeze Order for Discovered Layer-2 Account ${mule.account_number}`,
+        target_id: mule.account_number,
+        status: 'READY_TO_DISPATCH',
+        legal_statute_ref: 'Section 106 BNSS'
+      };
+      addDirectiveForCase(currentCaseNo, newDir);
+      setToastMsg(`Issued Section 106 BNSS Debit Freeze Directive for Layer-2 A/C ${mule.account_number} to Module 4!`);
+    } finally {
+      setTimeout(() => setIsIssuingDirective(false), 600);
+    }
   };
 
   // Compute active visual config based on AI recommended or user override
@@ -294,17 +305,17 @@ export default function AnalyticsView() {
   const activeVisualConfig = getActiveVisualConfig();
 
   return (
-    <div className="flex-1 flex flex-col p-4 overflow-hidden gap-3 select-none bg-[#050811]">
+    <div className="flex-1 flex flex-col p-4 overflow-y-auto gap-3.5 select-none bg-[#F8FAFC] dark:bg-[#050811] min-h-0">
 
       {/* Header Bar */}
-      <div className="flex items-center justify-between border-b border-white/10 pb-3 shrink-0">
+      <div className="flex items-center justify-between border-b border-slate-200 dark:border-white/10 pb-3 shrink-0">
         <div>
-          <h1 className="text-base font-extrabold tracking-wide text-white uppercase font-mono flex items-center gap-2">
-            <Cpu className="h-5 w-5 text-indigo-400" />
-            {t('analytics.title', 'Module 5: Forensic Response Analytics & Evidence Intelligence Studio')}
+          <h1 className="text-base font-black tracking-wide text-slate-900 dark:text-white uppercase font-mono flex items-center gap-2">
+            <Cpu className="h-5 w-5 text-[#0A2540] dark:text-indigo-400" />
+            {t('analytics.title', 'Forensic Response Analytics & Evidence Intelligence Studio')}
           </h1>
-          <p className="text-xs text-slate-400">
-            {t('analytics.subtitle', 'Parses ingested authority data (Bank Statements, CDR Logs, IP Artifacts) and generates court-admissible evidence visualization & cross-entity intelligence.')}
+          <p className="text-xs text-slate-600 dark:text-slate-400 mt-0.5">
+            {t('analytics.subtitle', 'Parses ingested authority data (Bank Statements, CDR Logs, IP Artifacts) and generates court-admissible evidence visualization.')}
           </p>
         </div>
 
@@ -341,10 +352,10 @@ export default function AnalyticsView() {
 
       {/* Inbound Module 4 Email Replies Bar */}
       {caseReplies.length > 0 && (
-        <div className="rounded border border-amber-500/30 bg-amber-950/20 p-2 flex items-center justify-between shrink-0 font-mono text-xs">
+        <div className="rounded border border-amber-300 dark:border-amber-500/30 bg-amber-50 dark:bg-amber-950/20 p-2 flex items-center justify-between shrink-0 font-mono text-xs shadow-sm">
           <div className="flex items-center gap-2">
-            <Sparkles className="h-4 w-4 text-amber-400 shrink-0" />
-            <span className="text-slate-200">Module 4 Ingested Inbound Email Responses ({caseReplies.length}):</span>
+            <Sparkles className="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0" />
+            <span className="text-slate-800 dark:text-slate-200">Module 4 Ingested Inbound Email Responses ({caseReplies.length}):</span>
           </div>
 
           <div className="flex items-center gap-1.5 overflow-x-auto">
@@ -357,10 +368,10 @@ export default function AnalyticsView() {
                     setResponseType(inferredType);
                     handleProcessFile(inferredType, r);
                   }}
-                  className="px-2.5 py-1 rounded bg-[#0d1322] border border-white/10 hover:border-amber-500 text-[11px] text-amber-300 font-bold flex items-center gap-1 transition-colors"
+                  className="px-2.5 py-1 rounded bg-white dark:bg-[#0d1322] border border-amber-300 dark:border-white/10 hover:border-amber-500 text-[11px] text-amber-900 dark:text-amber-300 font-bold flex items-center gap-1 transition-colors shadow-sm"
                 >
                   <span>#{idx + 1} {r.sender_email?.split('@')[0]}</span>
-                  <span className="text-[9px] text-slate-400">({r.classification || inferredType})</span>
+                  <span className="text-[9px] text-slate-500 dark:text-slate-400">({r.classification || inferredType})</span>
                 </button>
               );
             })}
@@ -369,44 +380,44 @@ export default function AnalyticsView() {
       )}
 
       {/* Active Case Banner & Provider File Category Selector */}
-      <div className="rounded border border-white/10 bg-[#0d1322] p-2.5 flex items-center justify-between shrink-0 gap-3">
+      <div className="rounded border border-slate-200 dark:border-white/10 bg-white dark:bg-[#0d1322] p-2.5 flex items-center justify-between shrink-0 gap-3 shadow-sm">
         <div className="flex items-center gap-2">
-          <span className="text-xs font-bold text-slate-300 uppercase font-mono flex items-center gap-1.5">
-            <Layers className="h-4 w-4 text-purple-400" />
-            Case: <span className="text-amber-300 font-extrabold">{currentCaseNo}</span> | Category:
+          <span className="text-xs font-bold text-slate-800 dark:text-slate-300 uppercase font-mono flex items-center gap-1.5">
+            <Layers className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+            Case: <span className="text-amber-700 dark:text-amber-300 font-extrabold">{currentCaseNo}</span> | Category:
           </span>
 
           <button
             onClick={() => { setResponseType('BANK_STATEMENT'); handleProcessFile('BANK_STATEMENT'); }}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-bold transition-all ${responseType === 'BANK_STATEMENT' && parsedData?.response_type === 'BANK_STATEMENT'
                 ? 'bg-emerald-600 text-white shadow-md'
-                : 'bg-[#050811] text-slate-400 hover:text-white border border-white/10'
+                : 'bg-slate-100 dark:bg-[#050811] text-slate-700 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white border border-slate-200 dark:border-white/10'
               }`}
           >
             <CreditCard className="h-3.5 w-3.5" />
-            <span>🏦 Bank Statement</span>
+            <span>Bank Statement</span>
           </button>
 
           <button
             onClick={() => { setResponseType('CDR'); handleProcessFile('CDR'); }}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-bold transition-all ${responseType === 'CDR' && parsedData?.response_type === 'CDR'
                 ? 'bg-blue-600 text-white shadow-md'
-                : 'bg-[#050811] text-slate-400 hover:text-white border border-white/10'
+                : 'bg-slate-100 dark:bg-[#050811] text-slate-700 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white border border-slate-200 dark:border-white/10'
               }`}
           >
             <PhoneCall className="h-3.5 w-3.5" />
-            <span>📱 Telecom CDR Dump</span>
+            <span>Telecom CDR Dump</span>
           </button>
 
           <button
             onClick={() => { setResponseType('IP_LOGS'); handleProcessFile('IP_LOGS'); }}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-bold transition-all ${responseType === 'IP_LOGS' && parsedData?.response_type === 'IP_LOGS'
                 ? 'bg-indigo-600 text-white shadow-md'
-                : 'bg-[#050811] text-slate-400 hover:text-white border border-white/10'
+                : 'bg-slate-100 dark:bg-[#050811] text-slate-700 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white border border-slate-200 dark:border-white/10'
               }`}
           >
             <Globe className="h-3.5 w-3.5" />
-            <span>💻 Cyber IP Connection Logs</span>
+            <span>Cyber IP Connection Logs</span>
           </button>
         </div>
 
@@ -422,169 +433,178 @@ export default function AnalyticsView() {
 
       {/* Visual Plot Selection Banner & Interactive Switcher */}
       {parsedData && (
-        <div className="rounded border border-purple-500/30 bg-purple-500/10 p-2.5 flex items-center justify-between shrink-0">
+        <div className="rounded border border-purple-300 dark:border-purple-500/30 bg-purple-50 dark:bg-purple-500/10 p-2.5 flex items-center justify-between shrink-0 shadow-sm">
           <div className="flex items-center gap-2">
-            <Sparkles className="h-4 w-4 text-purple-300 animate-pulse" />
+            <Sparkles className="h-4 w-4 text-purple-600 dark:text-purple-300 animate-pulse" />
             <div>
-              <span className="text-xs font-bold text-purple-200 uppercase font-mono tracking-wider">
-                Automated Evidence Plot: <strong className="text-emerald-300 font-extrabold">{parsedData.visualization_config?.recommended_chart_type}</strong>
+              <span className="text-xs font-bold text-purple-900 dark:text-purple-200 uppercase font-mono tracking-wider">
+                Automated Evidence Plot: <strong className="text-emerald-800 dark:text-emerald-300 font-extrabold">{parsedData.visualization_config?.recommended_chart_type}</strong>
               </span>
-              <p className="text-[11px] text-slate-300">
+              <p className="text-[11px] text-slate-700 dark:text-slate-300">
                 {parsedData.visualization_config?.chart_insights || 'Optimal visual representation selected based on pattern structure.'}
               </p>
             </div>
           </div>
 
           {/* Manual Plot Switcher */}
-          <div className="flex items-center gap-1 bg-[#050811] p-1 rounded border border-white/10">
+          <div className="flex items-center gap-1 bg-white dark:bg-[#050811] p-1 rounded border border-slate-200 dark:border-white/10 shadow-sm">
             <button
               onClick={() => setSelectedChartType('AUTO')}
-              className={`px-2.5 py-1 rounded text-[10px] font-bold font-mono transition-all ${selectedChartType === 'AUTO'
+              className={`px-2.5 py-1 rounded text-[10px] font-bold font-mono transition-all flex items-center gap-1 ${selectedChartType === 'AUTO'
                   ? 'bg-purple-600 text-white'
-                  : 'text-slate-400 hover:text-white'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                 }`}
             >
-              ✨ Optimal
+              <Sparkles className="h-3 w-3" />
+              <span>Optimal</span>
             </button>
             <button
               onClick={() => setSelectedChartType('MONEY_TRAIL_FLOW')}
-              className={`px-2.5 py-1 rounded text-[10px] font-bold font-mono transition-all ${selectedChartType === 'MONEY_TRAIL_FLOW'
+              className={`px-2.5 py-1 rounded text-[10px] font-bold font-mono transition-all flex items-center gap-1 ${selectedChartType === 'MONEY_TRAIL_FLOW'
                   ? 'bg-emerald-600 text-white'
-                  : 'text-slate-400 hover:text-white'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                 }`}
             >
-              💸 Money Flow
+              <TrendingUp className="h-3 w-3" />
+              <span>Money Flow</span>
             </button>
             <button
               onClick={() => setSelectedChartType('HOURLY_ACTIVITY_BAR')}
-              className={`px-2.5 py-1 rounded text-[10px] font-bold font-mono transition-all ${selectedChartType === 'HOURLY_ACTIVITY_BAR'
+              className={`px-2.5 py-1 rounded text-[10px] font-bold font-mono transition-all flex items-center gap-1 ${selectedChartType === 'HOURLY_ACTIVITY_BAR'
                   ? 'bg-blue-600 text-white'
-                  : 'text-slate-400 hover:text-white'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                 }`}
             >
-              📊 Hourly Histogram
+              <BarChart3 className="h-3 w-3" />
+              <span>Hourly Histogram</span>
             </button>
             <button
               onClick={() => setSelectedChartType('LINE_TREND')}
-              className={`px-2.5 py-1 rounded text-[10px] font-bold font-mono transition-all ${selectedChartType === 'LINE_TREND'
+              className={`px-2.5 py-1 rounded text-[10px] font-bold font-mono transition-all flex items-center gap-1 ${selectedChartType === 'LINE_TREND'
                   ? 'bg-indigo-600 text-white'
-                  : 'text-slate-400 hover:text-white'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                 }`}
             >
-              📈 Time Trend
+              <Activity className="h-3 w-3" />
+              <span>Time Trend</span>
             </button>
           </div>
         </div>
       )}
 
       {/* Dynamic Visualizer Canvas */}
-      {parsedData && <DynamicVisualizer config={activeVisualConfig} />}
+      {parsedData && (
+        <div className="shrink-0 font-mono">
+          <DynamicVisualizer config={activeVisualConfig} />
+        </div>
+      )}
 
       {/* Main Analytics Workspace Grid */}
       {parsedData ? (
-        <div className="flex-1 grid grid-cols-2 gap-3 overflow-hidden">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 shrink-0 min-h-0 pb-4">
 
           {/* Grid 1: Fraud Signature Audit & Discovered Mule Directive Action */}
-          <div className="rounded border border-white/10 bg-[#0d1322] p-3 flex flex-col justify-between overflow-y-auto space-y-2">
-            <span className="text-xs font-bold text-white uppercase tracking-wider border-b border-white/10 pb-1.5 flex items-center justify-between shrink-0 font-mono">
+          <div className="rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-[#0d1322] p-3.5 flex flex-col space-y-2.5 shadow-sm min-h-[240px]">
+            <span className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider border-b border-slate-200 dark:border-white/10 pb-1.5 flex items-center justify-between shrink-0 font-mono">
               <span className="flex items-center gap-1.5">
-                <ShieldAlert className="h-4 w-4 text-rose-400" />
+                <ShieldAlert className="h-4 w-4 text-rose-600 dark:text-rose-400" />
                 Detected Signature Audit ({currentCaseNo})
               </span>
-              <span className="text-[10px] bg-rose-500/20 text-rose-300 px-2 py-0.5 rounded font-mono font-bold border border-rose-500/30">
+              <span className="text-[10px] bg-rose-100 dark:bg-rose-500/20 text-rose-900 dark:text-rose-300 px-2 py-0.5 rounded font-mono font-bold border border-rose-300 dark:border-rose-500/30">
                 CONFIDENCE: {parsedData.fraud_confidence_score || 96}%
               </span>
             </span>
 
-            <div className="p-2.5 rounded bg-[#050811] border border-white/5 space-y-1.5 text-xs font-mono">
+            <div className="p-2.5 rounded-lg bg-slate-50 dark:bg-[#050811] border border-slate-200 dark:border-white/5 space-y-1.5 text-xs font-mono">
               <div className="flex items-center justify-between">
-                <span className="text-slate-400">Pattern Signature:</span>
-                <span className="font-bold text-amber-300">{parsedData.detected_fraud_pattern || 'PATTERN_DETECTED'}</span>
+                <span className="text-slate-600 dark:text-slate-400">Pattern Signature:</span>
+                <span className="font-bold text-amber-800 dark:text-amber-300">{parsedData.detected_fraud_pattern || 'PATTERN_DETECTED'}</span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-slate-400">Total Records Evaluated:</span>
-                <span className="font-bold text-white">{parsedData.total_records} rows</span>
+                <span className="text-slate-600 dark:text-slate-400">Total Records Evaluated:</span>
+                <span className="font-bold text-slate-900 dark:text-white">{parsedData.total_records} rows</span>
               </div>
               {parsedData.total_volume_inr && (
                 <div className="flex items-center justify-between">
-                  <span className="text-slate-400">Total Money Volume:</span>
-                  <span className="font-bold text-emerald-400">{parsedData.total_volume_inr}</span>
+                  <span className="text-slate-600 dark:text-slate-400">Total Money Volume:</span>
+                  <span className="font-bold text-emerald-800 dark:text-emerald-400">{parsedData.total_volume_inr}</span>
                 </div>
               )}
               {parsedData.night_calls_count !== undefined && (
                 <div className="flex items-center justify-between">
-                  <span className="text-slate-400">Midnight Anomaly Cluster:</span>
-                  <span className="font-bold text-rose-400">{parsedData.night_calls_count} calls</span>
+                  <span className="text-slate-600 dark:text-slate-400">Midnight Anomaly Cluster:</span>
+                  <span className="font-bold text-rose-700 dark:text-rose-400">{parsedData.night_calls_count} calls</span>
                 </div>
               )}
             </div>
 
             {/* Discovered Layer-2 Mule Account Direct Action */}
             {parsedData.discovered_mule_account && (
-              <div className="p-2.5 rounded bg-emerald-950/40 border border-emerald-500/30 text-xs font-mono space-y-2">
-                <div className="flex items-center justify-between text-emerald-300 font-bold">
+              <div className="p-2.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-500/30 text-xs font-mono space-y-2">
+                <div className="flex items-center justify-between text-emerald-900 dark:text-emerald-300 font-bold">
                   <span className="flex items-center gap-1">
-                    <Link className="h-3.5 w-3.5 text-emerald-400" />
+                    <Link className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
                     Newly Discovered Layer-2 Mule Account:
                   </span>
                   <span>{parsedData.discovered_mule_account.account_number}</span>
                 </div>
                 <button
                   onClick={handleIssueDiscoveredDirective}
-                  className="w-full py-1.5 px-3 rounded bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[11px] flex items-center justify-center gap-1.5 transition-colors shadow-md"
+                  disabled={isIssuingDirective}
+                  className="w-full py-1.5 px-3 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[11px] flex items-center justify-center gap-1.5 transition-colors shadow-md disabled:opacity-50"
                 >
-                  <Plus className="h-3.5 w-3.5" />
-                  <span>Issue Section 106 BNSS Freeze Directive in Module 4</span>
+                  {isIssuingDirective ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
+                  <span>{isIssuingDirective ? 'Issuing Freeze Order to Module 4...' : 'Issue Section 106 BNSS Freeze Directive in Module 4'}</span>
                 </button>
               </div>
             )}
 
-            <div className="p-2 rounded bg-indigo-500/10 border border-indigo-500/20 text-[11px] text-indigo-200 font-mono">
+            <div className="p-2 rounded-lg bg-indigo-50 dark:bg-indigo-500/10 border border-indigo-200 dark:border-indigo-500/20 text-[11px] text-indigo-900 dark:text-indigo-200 font-mono">
               <strong>Statutory Directive Recommendation:</strong> {parsedData.recommended_next_action}
             </div>
           </div>
 
           {/* Grid 2: Primary Entity Breakdown */}
-          <div className="rounded border border-white/10 bg-[#0d1322] p-3 flex flex-col overflow-hidden">
-            <span className="text-xs font-bold text-white uppercase tracking-wider border-b border-white/10 pb-1.5 flex items-center gap-1.5 shrink-0 font-mono">
-              <BarChart3 className="h-3.5 w-3.5 text-indigo-400" />
+          <div className="rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-[#0d1322] p-3.5 flex flex-col space-y-2 shadow-sm min-h-[240px]">
+            <span className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider border-b border-slate-200 dark:border-white/10 pb-1.5 flex items-center gap-1.5 shrink-0 font-mono">
+              <BarChart3 className="h-3.5 w-3.5 text-indigo-600 dark:text-indigo-400" />
               Primary Entity Breakdown ({parsedData.response_type})
             </span>
 
-            <div className="flex-1 overflow-y-auto mt-2">
-              <table className="w-full text-left text-xs text-slate-300">
-                <thead className="border-b border-white/10 bg-[#050811] text-[10px] font-bold text-slate-400 uppercase tracking-wider sticky top-0">
+            <div className="overflow-y-auto mt-1 max-h-64 rounded-lg border border-slate-200 dark:border-white/5 font-mono">
+              <table className="w-full text-left text-xs text-slate-800 dark:text-slate-300">
+                <thead className="border-b border-slate-200 dark:border-white/10 bg-slate-100 dark:bg-[#050811] text-[10px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider sticky top-0">
                   <tr>
                     <th className="py-1.5 px-2">Entity / Counterparty</th>
                     <th className="py-1.5 px-2">Hits / Count</th>
                     <th className="py-1.5 px-2">Volume / Details</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-white/5 font-mono">
+                <tbody className="divide-y divide-slate-200 dark:divide-white/5 font-mono">
                   {/* Bank Counterparties */}
                   {parsedData.top_counterparties?.map((cp: any, i: number) => (
-                    <tr key={i} className="hover:bg-slate-900/60 transition-colors">
-                      <td className="py-2 px-2 font-bold text-emerald-300">{cp.party}</td>
-                      <td className="py-2 px-2 text-white">{cp.count} txns</td>
-                      <td className="py-2 px-2 text-amber-300 font-bold">{cp.amount}</td>
+                    <tr key={i} className="hover:bg-slate-50 dark:hover:bg-slate-900/60 transition-colors">
+                      <td className="py-2 px-2 font-bold text-emerald-800 dark:text-emerald-300">{cp.party}</td>
+                      <td className="py-2 px-2 text-slate-900 dark:text-white">{cp.count} txns</td>
+                      <td className="py-2 px-2 text-amber-800 dark:text-amber-300 font-bold">{cp.amount}</td>
                     </tr>
                   ))}
 
                   {/* IP Addresses */}
                   {parsedData.top_ip_addresses?.map((ip: any, i: number) => (
-                    <tr key={i} className="hover:bg-slate-900/60 transition-colors">
-                      <td className="py-2 px-2 font-bold text-indigo-300">{ip.ip}</td>
-                      <td className="py-2 px-2 text-white">{ip.connections} conns</td>
-                      <td className="py-2 px-2 text-slate-400">{ip.isp}</td>
+                    <tr key={i} className="hover:bg-slate-50 dark:hover:bg-slate-900/60 transition-colors">
+                      <td className="py-2 px-2 font-bold text-indigo-800 dark:text-indigo-300">{ip.ip}</td>
+                      <td className="py-2 px-2 text-slate-900 dark:text-white">{ip.connections} conns</td>
+                      <td className="py-2 px-2 text-slate-600 dark:text-slate-400">{ip.isp}</td>
                     </tr>
                   ))}
 
                   {/* CDR Phone Numbers */}
                   {parsedData.top_b_parties?.map((b: any, i: number) => (
-                    <tr key={i} className="hover:bg-slate-900/60 transition-colors">
-                      <td className="py-2 px-2 font-bold text-blue-300">{b.phone}</td>
-                      <td className="py-2 px-2 text-white">{b.call_count} calls</td>
-                      <td className="py-2 px-2 text-slate-400">{b.total_duration_min} mins</td>
+                    <tr key={i} className="hover:bg-slate-50 dark:hover:bg-slate-900/60 transition-colors">
+                      <td className="py-2 px-2 font-bold text-blue-800 dark:text-blue-300">{b.phone}</td>
+                      <td className="py-2 px-2 text-slate-900 dark:text-white">{b.call_count} calls</td>
+                      <td className="py-2 px-2 text-slate-600 dark:text-slate-400">{b.total_duration_min} mins</td>
                     </tr>
                   ))}
                 </tbody>
@@ -593,59 +613,59 @@ export default function AnalyticsView() {
           </div>
 
           {/* Grid 3: Cell Towers / Handset IMEIs */}
-          <div className="rounded border border-white/10 bg-[#0d1322] p-3 flex flex-col overflow-hidden space-y-2">
-            <span className="text-xs font-bold text-white uppercase tracking-wider border-b border-white/10 pb-1.5 flex items-center gap-1.5 shrink-0 font-mono">
-              <MapPin className="h-3.5 w-3.5 text-rose-400" />
+          <div className="rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-[#0d1322] p-3.5 flex flex-col space-y-2 shadow-sm min-h-[240px]">
+            <span className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider border-b border-slate-200 dark:border-white/10 pb-1.5 flex items-center gap-1.5 shrink-0 font-mono">
+              <MapPin className="h-3.5 w-3.5 text-rose-600 dark:text-rose-400" />
               Location & Hardware Device Metadata
             </span>
 
-            <div className="flex-1 overflow-y-auto space-y-1.5">
+            <div className="overflow-y-auto space-y-1.5 max-h-64 pr-1">
               {parsedData.top_tower_locations?.map((tw: any, idx: number) => (
-                <div key={idx} className="flex items-center justify-between text-xs rounded border border-white/10 bg-[#050811] p-2 font-mono">
+                <div key={idx} className="flex items-center justify-between text-xs rounded-lg border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-[#050811] p-2 font-mono">
                   <div>
-                    <span className="font-bold text-white block">{tw.location_name}</span>
+                    <span className="font-bold text-slate-900 dark:text-white block">{tw.location_name}</span>
                     <span className="text-[10px] text-slate-500">{tw.tower_id}</span>
                   </div>
-                  <span className="rounded bg-rose-500/20 text-rose-300 px-2 py-0.5 text-[10px] font-bold">
+                  <span className="rounded bg-rose-100 dark:bg-rose-500/20 text-rose-900 dark:text-rose-300 px-2 py-0.5 text-[10px] font-bold">
                     {tw.frequency} cell hits
                   </span>
                 </div>
               ))}
 
               {parsedData.imei_history?.map((imei: string, idx: number) => (
-                <div key={idx} className="flex items-center justify-between text-xs rounded border border-white/10 bg-[#050811] p-2 font-mono">
-                  <span className="font-bold text-emerald-300">{imei}</span>
-                  <span className="rounded bg-emerald-500/20 text-emerald-300 px-2 py-0.5 text-[10px] font-bold">
+                <div key={idx} className="flex items-center justify-between text-xs rounded-lg border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-[#050811] p-2 font-mono">
+                  <span className="font-bold text-emerald-800 dark:text-emerald-300">{imei}</span>
+                  <span className="rounded bg-emerald-100 dark:bg-emerald-500/20 text-emerald-900 dark:text-emerald-300 px-2 py-0.5 text-[10px] font-bold">
                     Handset #{idx + 1}
                   </span>
                 </div>
               ))}
 
-              {!parsedData.top_tower_locations && !parsedData.imei_history && (
-                <div className="p-3 text-center text-xs text-slate-400 font-mono">
-                  Verified Origin Nodes: European Proxy Infrastructure
+              {(!parsedData.top_tower_locations?.length && !parsedData.imei_history?.length) && (
+                <div className="p-4 text-center text-xs text-slate-500 dark:text-slate-400 font-mono">
+                  No Location or Hardware Device Metadata Extracted from Payload
                 </div>
               )}
             </div>
           </div>
 
           {/* Grid 4: Forensic Narrative Summary */}
-          <div className="rounded border border-white/10 bg-[#0d1322] p-3 flex flex-col overflow-hidden space-y-2">
-            <span className="text-xs font-bold text-white uppercase tracking-wider border-b border-white/10 pb-1.5 flex items-center gap-1.5 shrink-0 font-mono">
-              <FileText className="h-3.5 w-3.5 text-emerald-400" />
+          <div className="rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-[#0d1322] p-3.5 flex flex-col space-y-2 shadow-sm min-h-[240px]">
+            <span className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider border-b border-slate-200 dark:border-white/10 pb-1.5 flex items-center gap-1.5 shrink-0 font-mono">
+              <FileText className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
               Forensic Intelligence Narrative
             </span>
 
-            <div className="flex-1 overflow-y-auto p-2.5 rounded border border-white/5 bg-[#050811] text-xs font-mono text-slate-200 leading-relaxed">
+            <div className="overflow-y-auto p-3 rounded-lg border border-slate-200 dark:border-white/5 bg-slate-50 dark:bg-[#050811] text-xs font-mono text-slate-800 dark:text-slate-200 leading-relaxed max-h-64 shadow-inner">
               {parsedData.executive_summary}
             </div>
           </div>
 
         </div>
       ) : (
-        <div className="flex-1 rounded border border-white/10 bg-[#0d1322] flex flex-col items-center justify-center text-slate-500 space-y-3 p-6 text-center">
-          <Cpu className="h-12 w-12 text-purple-400 opacity-60 animate-bounce" />
-          <h3 className="text-sm font-bold text-white uppercase tracking-wider font-mono">
+        <div className="flex-1 rounded-lg border border-slate-200 dark:border-white/10 bg-white dark:bg-[#0d1322] flex flex-col items-center justify-center text-slate-500 space-y-3 p-6 text-center shadow-sm">
+          <Cpu className="h-12 w-12 text-purple-600 dark:text-purple-400 opacity-80 animate-bounce" />
+          <h3 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider font-mono">
             Forensic Response Analytics Studio ({currentCaseNo})
           </h3>
           <p className="text-xs text-slate-400 max-w-md">

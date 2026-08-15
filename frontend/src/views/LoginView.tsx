@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Shield, Lock, Sparkles, Loader2 } from 'lucide-react';
+import { Shield, Lock, Building2, Award, Loader2, CheckCircle2 } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 
 export default function LoginView() {
@@ -19,81 +19,99 @@ export default function LoginView() {
   };
 
   return (
-    <div className="h-screen w-screen flex items-center justify-center bg-[#050811] p-4 select-none">
+    <div className="h-screen w-screen flex flex-col items-center justify-center bg-slate-100 dark:bg-[#050811] p-4 select-none">
       
-      <div className="w-full max-w-md rounded-xl border border-white/10 bg-[#0d1322] p-6 shadow-2xl space-y-4">
+      {/* Central Login Card */}
+      <div className="w-full max-w-md rounded-lg border border-slate-300 dark:border-white/10 bg-white dark:bg-[#0d1322] shadow-2xl overflow-hidden text-slate-900 dark:text-slate-100">
         
-        {/* Header Logo */}
-        <div className="text-center space-y-2">
-          <div className="inline-flex h-10 w-10 items-center justify-center rounded bg-blue-600 text-white font-bold text-lg shadow-sm">
-            <Shield className="h-6 w-6" />
+        {/* Tricolor Header Stripe */}
+        <div className="h-1.5 w-full flex">
+          <div className="h-full w-1/3 bg-[#FF9933]" />
+          <div className="h-full w-1/3 bg-white" />
+          <div className="h-full w-1/3 bg-[#138808]" />
+        </div>
+
+        {/* Navy Header Banner */}
+        <div className="bg-[#0A2540] p-5 text-center text-white space-y-2">
+          <div className="inline-flex h-12 w-12 items-center justify-center rounded bg-amber-500 text-slate-950 font-bold shadow-md">
+            <Shield className="h-7 w-7" />
           </div>
 
           <div>
-            <h1 className="text-lg font-extrabold tracking-wider text-white font-mono">
-              CRIME<span className="text-blue-500">OS</span> / TACTICAL
+            <div className="text-[10px] font-bold tracking-widest text-amber-400 uppercase font-mono">
+              GOVERNMENT OF GUJARAT • POLICE DEPARTMENT
+            </div>
+            <h1 className="text-xl font-black tracking-wider text-white uppercase mt-0.5">
+              CRIME<span className="text-amber-400">OS</span> PORTAL
             </h1>
-            <p className="text-xs font-medium text-slate-400 mt-0.5">
-              State Law Enforcement Tactical Portal
+            <p className="text-xs text-slate-300 font-medium">
+              Cyber Crime Investigation & Law Enforcement Requisition Suite
             </p>
           </div>
         </div>
 
-        {/* Info Banner */}
-        <div className="rounded border border-blue-500/30 bg-blue-500/10 p-2.5 text-xs text-slate-300 leading-relaxed">
-          <span className="font-bold text-white flex items-center gap-1.5 mb-0.5">
-            <Sparkles className="h-3.5 w-3.5 text-blue-400" />
-            Officer Role Authentication
-          </span>
-          Select an officer role account below to authenticate into the investigation portal.
-        </div>
+        {/* Card Body */}
+        <div className="p-6 space-y-4">
 
-        <form onSubmit={handleSubmit} className="space-y-3">
-          
-          <div>
-            <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
-              Officer Account Role
-            </label>
-            <select
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              className="h-9 w-full rounded border border-white/10 bg-[#050811] px-2.5 text-xs font-semibold text-slate-200 outline-none"
+          {/* Info Banner */}
+          <div className="rounded border border-amber-200 dark:border-amber-500/30 bg-amber-50 dark:bg-amber-500/10 p-3 text-xs text-slate-800 dark:text-amber-200 leading-relaxed flex items-start gap-2">
+            <Award className="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+            <div>
+              <span className="font-bold text-slate-900 dark:text-white block">Authorized Access Only</span>
+              Select your official police officer designation below to authenticate credentials into CrimeOS.
+            </div>
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-3.5">
+            
+            <div>
+              <label className="block text-[10px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-1 flex items-center gap-1">
+                <Building2 className="h-3 w-3 text-slate-500 dark:text-slate-400" />
+                <span>Officer Account Role</span>
+              </label>
+              <select
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                className="h-10 w-full rounded border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-[#050811] px-3 text-xs font-semibold text-slate-900 dark:text-slate-100 focus:bg-white dark:focus:bg-[#080d1a] focus:border-amber-500 outline-none"
+              >
+                <option value="io_patel" className="bg-white dark:bg-[#0d1322]">PSI Inspector V. K. Patel (Investigating Officer)</option>
+                <option value="sho_sharma" className="bg-white dark:bg-[#0d1322]">PI Senior Inspector R. S. Sharma (Station House Officer)</option>
+                <option value="legal_desai" className="bg-white dark:bg-[#0d1322]">Adv. A. M. Desai (State CID Legal Advisor)</option>
+                <option value="admin_crimeos" className="bg-white dark:bg-[#0d1322]">System Administrator (State Cyber Command)</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-[10px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-1 flex items-center gap-1">
+                <Lock className="h-3 w-3 text-slate-500 dark:text-slate-400" />
+                <span>Officer Badge Passcode</span>
+              </label>
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="h-10 w-full rounded border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-[#050811] px-3 text-xs font-mono text-slate-900 dark:text-slate-100 focus:bg-white dark:focus:bg-[#080d1a] focus:border-amber-500 outline-none"
+                placeholder="Enter passcode..."
+              />
+            </div>
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="flex w-full items-center justify-center gap-2 rounded bg-[#0A2540] dark:bg-amber-500 dark:text-slate-950 p-3 text-xs font-bold text-white hover:bg-slate-800 dark:hover:bg-amber-600 transition-colors disabled:opacity-50 shadow-md"
             >
-              <option value="io_patel">PSI Inspector V. K. Patel (Investigating Officer)</option>
-              <option value="sho_sharma">PI Senior Inspector R. S. Sharma (Station House Officer)</option>
-              <option value="legal_desai">Adv. A. M. Desai (State Legal Advisor)</option>
-              <option value="admin_crimeos">System Administrator</option>
-            </select>
+              {loading ? <Loader2 className="h-4 w-4 animate-spin text-amber-400 dark:text-slate-950" /> : <CheckCircle2 className="h-4 w-4 text-amber-400 dark:text-slate-950" />}
+              <span>Authenticate Officer Credentials</span>
+            </button>
+
+          </form>
+
+          <div className="text-center pt-2 border-t border-slate-100 dark:border-white/10">
+            <p className="text-[10px] text-slate-500 dark:text-slate-400 font-mono">
+              Official Police Portal • Secure Encrypted Audit Trail
+            </p>
           </div>
 
-          <div>
-            <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
-              Officer Badge Passcode
-            </label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="h-9 w-full rounded border border-white/10 bg-[#050811] px-2.5 text-xs font-mono text-slate-200 outline-none"
-              placeholder="Enter passcode..."
-            />
-          </div>
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="flex w-full items-center justify-center gap-2 rounded bg-blue-600 p-2.5 text-xs font-bold text-white hover:bg-blue-500 transition-colors disabled:opacity-50"
-          >
-            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lock className="h-4 w-4" />}
-            <span>Authenticate Officer Credentials</span>
-          </button>
-
-        </form>
-
-        <div className="text-center pt-1">
-          <p className="text-[10px] text-slate-500 font-mono">
-            Crime OS AI Engine • Universal Vector Search • 7,337 Grounded SOPs
-          </p>
         </div>
 
       </div>

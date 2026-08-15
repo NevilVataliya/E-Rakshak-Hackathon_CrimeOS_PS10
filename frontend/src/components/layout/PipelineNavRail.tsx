@@ -10,6 +10,7 @@ import {
   FileCheck2, 
   ShieldCheck
 } from 'lucide-react';
+import { useCaseStore } from '../../store/caseStore';
 
 const pipelineModules = [
   { id: 'dash', title: 'Dashboard', icon: LayoutDashboard, path: '/' },
@@ -24,34 +25,50 @@ const pipelineModules = [
 export default function PipelineNavRail() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { activeCase, completedStepByCase } = useCaseStore();
+
+  const caseNo = activeCase?.case_number;
+  const completedStep = caseNo ? (completedStepByCase[caseNo] ?? activeCase?.completed_step ?? 0) : 0;
+
+  const stepMapping: Record<string, number> = {
+    mod1: 1,
+    mod2: 2,
+    mod3: 3,
+    mod4: 4,
+    mod5: 5
+  };
 
   return (
-    <aside className="w-14 h-full border-r border-white/10 bg-[#080d1a] flex flex-col items-center py-2 shrink-0 select-none">
-      
-      <div className="flex flex-col items-center gap-1.5 w-full">
+    <aside className="w-14 h-full border-r border-slate-700/60 bg-[#0A2540] flex flex-col items-center py-2 shrink-0 select-none shadow-md">
+      <div className="flex flex-col items-center gap-2 w-full">
         {pipelineModules.map((item) => {
           const isActive = location.pathname === item.path;
           const Icon = item.icon;
+          const stepNum = stepMapping[item.id];
+          const isLocked = Boolean(stepNum && stepNum > (completedStep + 1));
+
           return (
             <button
               key={item.id}
-              onClick={() => navigate(item.path)}
-              title={item.title}
-              className={`relative flex h-10 w-10 items-center justify-center rounded-lg transition-colors ${
-                isActive
-                  ? 'bg-blue-600/20 text-blue-400 border border-blue-500/40 shadow-sm'
-                  : 'text-slate-400 hover:bg-[#0d1322] hover:text-slate-200'
+              disabled={isLocked}
+              onClick={() => !isLocked && navigate(item.path)}
+              title={isLocked ? `${item.title} (Complete previous step first)` : item.title}
+              className={`relative flex h-10 w-10 items-center justify-center rounded transition-colors ${
+                isLocked
+                  ? 'text-slate-600 opacity-40 cursor-not-allowed'
+                  : isActive
+                  ? 'bg-amber-500 text-slate-950 font-bold shadow-md'
+                  : 'text-slate-300 hover:bg-slate-800 hover:text-white'
               }`}
             >
               <Icon className="h-4 w-4" />
               {isActive && (
-                <span className="absolute -left-1 top-2 bottom-2 w-1 rounded-r-full bg-blue-500" />
+                <span className="absolute -left-1 top-2 bottom-2 w-1 rounded-r-full bg-amber-400" />
               )}
             </button>
           );
         })}
       </div>
-
     </aside>
   );
 }
