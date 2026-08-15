@@ -41,6 +41,8 @@ services:
     container_name: crimeos_ai_service
     ports:
       - "8000:8000"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     env_file:
       - .env
     environment:
@@ -52,6 +54,11 @@ services:
       - REDIS_PORT=6379
       - COLLECTION_NAME=${COLLECTION_NAME:-police_sops_v2}
       - ENABLE_DEMO_FALLBACKS=${ENABLE_DEMO_FALLBACKS:-false}
+      - USE_OLLAMA=${USE_OLLAMA:-true}
+      - OFFLINE_MODE=${OFFLINE_MODE:-auto}
+      - OLLAMA_BASE_URL=${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
+      - OLLAMA_MODEL=${OLLAMA_MODEL:-llama3:latest}
+      - LLM_PROVIDER=${LLM_PROVIDER:-auto}
       - GEMINI_API_KEY=${GEMINI_API_KEY}
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}

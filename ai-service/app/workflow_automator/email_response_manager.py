@@ -282,10 +282,54 @@ Return ONLY valid JSON matching this exact structure:
                     }
                     _CLASSIFICATION_CACHE[email_hash] = result
                     return result
-            except Exception as e:
-                logger.warning(f"[EmailResponseManager] Gemini model {m} call error: {e}")
+    # Priority 3: Local Ollama (Sovereign Offline AI)
+    use_ollama = os.environ.get("USE_OLLAMA", "true").lower() in ("true", "1", "yes")
+    ollama_url = os.environ.get("OLLAMA_BASE_URL", "http://host.docker.internal:11434").rstrip('/')
+    ollama_model = os.environ.get("OLLAMA_MODEL", "llama3:latest")
 
-    # Priority 3: Rule-based Fallback
+    if use_ollama:
+        try:
+            url = f"{ollama_url}/api/chat"
+            payload = {
+                "model": ollama_model,
+                "messages": [{"role": "user", "content": prompt}],
+                "format": "json",
+                "stream": False,
+                "options": {"temperature": 0.2}
+            }
+            res = requests.post(url, json=payload, timeout=40)
+            if res.status_code == 200:
+                raw_json = res.json().get("message", {}).get("content", "{}")
+                parsed = json.loads(raw_json)
+                is_comp = bool(parsed.get("is_complete") or parsed.get("classification") == "CASE_COMPLETE")
+                fb_draft = None
+                if not is_comp and parsed.get("followback_body"):
+                    fb_draft = {
+                        "subject": parsed.get("followback_subject") or reply_subject,
+                        "body": parsed.get("followback_body")
+                    }
+                result = {
+                    "id": f"REPLY-{email_hash}",
+                    "case_number": case_number,
+                    "sender_email": sender_email,
+                    "subject": subject,
+                    "body_text": body_text,
+                    "attachments": attachments or [],
+                    "classification": parsed.get("classification", "PARTIAL_DATA_RECEIVED"),
+                    "classification_reason": parsed.get("classification_reason", "Local Ollama AI audit parsed authority reply."),
+                    "is_complete": is_comp,
+                    "received_items": parsed.get("received_items", ["Authority reply ingested"]),
+                    "missing_items": parsed.get("missing_items", []),
+                    "followback_draft": fb_draft,
+                    "llm_provider": f"Local Ollama AI ({ollama_model})",
+                    "status": "COMPLETED" if is_comp else "FOLLOWBACK_REQUIRED"
+                }
+                _CLASSIFICATION_CACHE[email_hash] = result
+                return result
+        except Exception as oe:
+            logger.warning(f"[EmailResponseManager] Ollama execution notice: {oe}")
+
+    # Priority 4: Rule-based Fallback
     fallback_res = _rule_based_fallback(case_number, sender_email, subject, body_text, attachments, reason="LLM services unavailable", email_hash=email_hash)
     _CLASSIFICATION_CACHE[email_hash] = fallback_res
     return fallback_res

@@ -126,4 +126,25 @@ Return ONLY valid JSON:
             except Exception as e:
                 logger.warning(f"Gemini LLM analytics synthesis failed: {e}")
 
+        # Try Local Ollama (Sovereign Offline AI)
+        use_ollama = os.environ.get("USE_OLLAMA", "true").lower() in ("true", "1", "yes")
+        if use_ollama:
+            try:
+                ollama_url = os.environ.get("OLLAMA_BASE_URL", "http://host.docker.internal:11434").rstrip('/')
+                ollama_model = os.environ.get("OLLAMA_MODEL", "llama3:latest")
+                url = f"{ollama_url}/api/chat"
+                payload = {
+                    "model": ollama_model,
+                    "messages": [{"role": "user", "content": prompt}],
+                    "format": "json",
+                    "stream": False,
+                    "options": {"temperature": 0.1}
+                }
+                res = requests.post(url, json=payload, timeout=20)
+                if res.status_code == 200:
+                    raw_content = res.json().get("message", {}).get("content", "{}")
+                    return json.loads(raw_content)
+            except Exception as oe:
+                logger.warning(f"Ollama LLM analytics synthesis notice: {oe}")
+
         return None

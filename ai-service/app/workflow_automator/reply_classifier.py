@@ -195,6 +195,36 @@ def _call_gemini_api(prompt: str, gemini_key: str) -> Optional[Dict[str, Any]]:
     return None
 
 
+def _call_ollama_api(prompt: str) -> Optional[Dict[str, Any]]:
+    """Calls Local Ollama instance for sovereign offline reply classification."""
+    use_ollama = os.environ.get("USE_OLLAMA", "true").lower() in ("true", "1", "yes")
+    if not use_ollama:
+        return None
+
+    ollama_url = os.environ.get("OLLAMA_BASE_URL", "http://host.docker.internal:11434").rstrip('/')
+    ollama_model = os.environ.get("OLLAMA_MODEL", "llama3:latest")
+    try:
+        url = f"{ollama_url}/api/chat"
+        payload = {
+            "model": ollama_model,
+            "messages": [{"role": "user", "content": prompt}],
+            "format": "json",
+            "stream": False,
+            "options": {"temperature": 0.2}
+        }
+        res = requests.post(url, json=payload, timeout=40)
+        if res.status_code == 200:
+            data = res.json()
+            raw_content = data.get("message", {}).get("content", "{}")
+            parsed = json.loads(raw_content)
+            if "classification" in parsed and "case_status" in parsed:
+                parsed["llm_provider"] = f"Local Ollama AI ({ollama_model})"
+                return parsed
+    except Exception as oe:
+        logger.warning(f"[ReplyClassifier] Ollama execution notice: {oe}")
+    return None
+
+
 def classify_and_respond(
     case_number: str,
     sender_email: str,
@@ -208,7 +238,7 @@ def classify_and_respond(
     groq_api_key=None,
 ) -> Dict[str, Any]:
     """
-    Smart Reply Classifier & Response Generator (Groq 1st Priority -> Gemini 2nd Priority -> Rule-based 3rd).
+    Smart Reply Classifier & Response Generator (Groq 1st Priority -> Gemini 2nd Priority -> Local Ollama 3rd -> Rule-based 4th).
     Reads authority reply and multi-turn notice history, classifies compliance level, and generates contextual response.
     """
     groq_key = groq_api_key or os.environ.get("GROQ_API_KEY")
@@ -314,7 +344,16 @@ Return ONLY valid JSON:
             logger.info(f"[ReplyClassifier] Gemini matched {case_number} | {sender_email} | {gemini_res['classification']}")
             return gemini_res
 
-    # Priority 3: Rule-Based Fallback
+    # Priority 3: Local Ollama (Sovereign Offline AI)
+    ollama_res = _call_ollama_api(prompt)
+    if ollama_res:
+        if ollama_res["classification"] in NO_REPLY_CLASSIFICATIONS:
+            ollama_res["should_generate_reply"] = False
+            ollama_res["draft_body"] = ""
+        logger.info(f"[ReplyClassifier] Ollama matched {case_number} | {sender_email} | {ollama_res['classification']}")
+        return ollama_res
+
+    # Priority 4: Rule-Based Fallback
     logger.info("[ReplyClassifier] LLM services unavailable — using rule-based fallback classifier.")
     return _rule_based_fallback(case_number, sender_email, subject, body_text, attachments, reason="LLM services unconfigured or unreachable")
 

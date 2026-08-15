@@ -146,7 +146,33 @@ Return JSON strictly matching this schema:
                     _rate_limiter.set_cache(cache_key, summary)
                     return summary
             except Exception as e:
-                logger.warning(f"Groq llama-3.1-8b-instant Module Summarizer failed: {e}. Utilizing intelligent rule generator.")
+                logger.warning(f"Groq llama-3.1-8b-instant Module Summarizer failed: {e}. Checking local Ollama...")
+
+        # 2. Local Ollama AI Summarizer (Sovereign Offline AI)
+        try:
+            system_prompt = f"You are CrimeOS Lead Intelligence Analyst. Synthesize a crisp executive summary for {module_title} in Case {case_number}."
+            user_prompt = f"""OPERATIONAL DATASET ({module_title} - Case {case_number}):
+{context_prompt}
+
+Return JSON strictly matching this schema:
+{{
+  "module_id": "{mod_upper}",
+  "module_title": "{module_title}",
+  "case_number": "{case_number}",
+  "key_facts": ["Extracted Fact 1", "Extracted Fact 2"],
+  "actions_taken": ["Operational Action 1", "Operational Action 2"],
+  "unresolved_gaps": ["Pending Requirement or Investigation Gap"],
+  "concise_brief": "A professional 2-sentence executive summary for the Investigating Officer."
+}}"""
+            ollama_summary = self._call_ollama_summary(system_prompt, user_prompt, cache_key=cache_key)
+            if ollama_summary and isinstance(ollama_summary, dict):
+                ollama_summary["module_id"] = mod_upper
+                ollama_summary["module_title"] = module_title
+                ollama_summary["case_number"] = case_number
+                _rate_limiter.set_cache(cache_key, ollama_summary)
+                return ollama_summary
+        except Exception as oe:
+            logger.warning(f"Ollama Module Summarizer notice: {oe}")
 
         fallback = self._rule_based_module_summary(case_number, mod_upper, module_payload)
         _rate_limiter.set_cache(cache_key, fallback)
@@ -158,7 +184,7 @@ Return JSON strictly matching this schema:
         module_summaries: Dict[str, Dict[str, Any]]
     ) -> Dict[str, Any]:
         """
-        Synthesizes a master executive briefing across completed modules 1 to 5 using Groq llama-3.1-8b-instant.
+        Synthesizes a master executive briefing across completed modules 1 to 5 using Groq or local Ollama.
         """
         cache_key = self._get_cache_key(case_number, "GLOBAL", module_summaries)
         cached = _rate_limiter.get_cached(cache_key)
@@ -203,11 +229,67 @@ Return JSON strictly matching this schema:
                     _rate_limiter.set_cache(cache_key, summary)
                     return summary
             except Exception as e:
-                logger.warning(f"Groq llama-3.1-8b-instant Global Summarizer failed: {e}. Utilizing rule engine.")
+                logger.warning(f"Groq Global Summarizer failed: {e}. Checking local Ollama...")
+
+        # 2. Local Ollama Global Master Briefing (Sovereign Offline AI)
+        try:
+            system_prompt = "You are CrimeOS Chief Cyber Crime Investigation Officer. Synthesize an official Master Executive Case Briefing for senior police leadership."
+            user_prompt = f"""Synthesize Master Executive Briefing for Case FIR No: {case_number} using the completed 5-module summaries below.
+
+COMPLETED MODULE SUMMARIES:
+{compressed_str}
+
+Return JSON strictly matching this schema:
+{{
+  "case_number": "{case_number}",
+  "master_title": "Master Cyber Crime Investigation Briefing - Case {case_number}",
+  "executive_brief": "A comprehensive 3-sentence executive summary for Senior Officers summarizing overall case status, suspect trails, and key findings.",
+  "total_completed_modules": {len(module_summaries)},
+  "timeline_milestones": ["Pipeline Milestone 1", "Pipeline Milestone 2"],
+  "critical_evidence_highlights": ["Critical Evidence 1", "Critical Evidence 2"],
+  "recommended_next_step": "Single high-priority actionable next directive for investigating officer.",
+  "status": "COMPLETED"
+}}"""
+            ollama_global = self._call_ollama_summary(system_prompt, user_prompt, cache_key=cache_key)
+            if ollama_global and isinstance(ollama_global, dict):
+                ollama_global["case_number"] = case_number
+                _rate_limiter.set_cache(cache_key, ollama_global)
+                return ollama_global
+        except Exception as oe:
+            logger.warning(f"Ollama Global Summarizer notice: {oe}")
 
         fallback = self._rule_based_global_summary(case_number, module_summaries)
         _rate_limiter.set_cache(cache_key, fallback)
         return fallback
+
+    def _call_ollama_summary(self, system_prompt: str, user_prompt: str, cache_key: str) -> Optional[Dict[str, Any]]:
+        use_ollama = os.environ.get("USE_OLLAMA", "true").lower() in ("true", "1", "yes")
+        if not use_ollama:
+            return None
+
+        ollama_url = os.environ.get("OLLAMA_BASE_URL", "http://host.docker.internal:11434").rstrip('/')
+        ollama_model = os.environ.get("OLLAMA_MODEL", "llama3:latest")
+        try:
+            url = f"{ollama_url}/api/chat"
+            payload = {
+                "model": ollama_model,
+                "messages": [
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_prompt}
+                ],
+                "format": "json",
+                "stream": False,
+                "options": {"temperature": 0.1}
+            }
+            res = requests.post(url, json=payload, timeout=30)
+            if res.status_code == 200:
+                content = res.json().get("message", {}).get("content", "{}")
+                parsed = json.loads(content)
+                logger.info(f"Generated summary via local Ollama model: {ollama_model}")
+                return parsed
+        except Exception as e:
+            logger.warning(f"Local Ollama summary execution notice: {e}")
+        return None
 
     def _call_groq_summary(self, system_prompt: str, user_prompt: str, cache_key: str) -> Optional[Dict[str, Any]]:
         headers = {

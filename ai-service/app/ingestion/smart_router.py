@@ -107,19 +107,21 @@ def process_multimodal_complaint(
     # PostgreSQL TEXT columns reject \x00 with "invalid byte sequence for encoding UTF8".
     extracted_text = extracted_text.replace("\x00", "")
 
-    # 3. Offline Mode Execution Branch
-    if system_offline:
+    # 3. Check for available LLM engine (Cloud or Local Ollama)
+    llm = get_agent_llm("auto", temperature=0.1)
+
+    if llm is None:
         res = extract_entities_heuristic(
             text=extracted_text,
-            fallback_reason="System operating in Standalone Offline Mode. Local extractors active."
+            fallback_reason="System operating in Standalone Offline Mode without local/cloud LLM. Heuristic extractors active."
         )
         res["processing_mode"] = "OFFLINE_STANDALONE"
         res["engines_used"] = file_results["engines_used"] + ["local_regex_heuristic_extractor"]
-        res["warnings"] = file_results["warnings"] + ["Cloud LLM extraction skipped in Offline Mode."]
+        res["warnings"] = file_results["warnings"] + ["LLM extraction skipped in Standalone Heuristic Mode."]
         res["is_offline"] = True
         return res
 
-    # 4. Online Mode Execution Branch (Cloud LLM Extraction)
+    # 4. LLM Extraction Branch (Cloud LLM or Local Ollama)
     prompt_text = f"""
 You are an expert Law Enforcement Fact Analyst for Indian Police.
 Analyze the following complaint input (Text, OCR, Audio Transcription in English, Hindi, or Gujarati).
