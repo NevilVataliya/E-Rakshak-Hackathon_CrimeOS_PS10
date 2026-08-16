@@ -144,8 +144,16 @@ def classify_reply_with_groq(
     if not clean_body:
         clean_body = "[No plain text body -- attachment or HTML content only]"
 
-    att_names = [a.get("filename", "attachment") for a in (attachments or [])]
-    att_summary = ", ".join(att_names) if att_names else "None"
+    att_details = []
+    for a in (attachments or []):
+        fname = a.get("filename", "attachment")
+        raw_content = str(a.get("content", "")).strip()
+        if raw_content:
+            preview = raw_content[:600].replace("\r", " ").replace("\n", " ")
+            att_details.append(f"File: '{fname}' (Preview: {preview})")
+        else:
+            att_details.append(f"File: '{fname}'")
+    att_summary = "\n  - ".join(att_details) if att_details else "None"
 
     clean_subject = re.sub(r"\s*\[CrimeOS-REF:[^\]]*\]", "", subject or "").strip()
     if not clean_subject.startswith("Re:"):
@@ -169,8 +177,9 @@ You issued statutory directives under Section 94 BNSS / Section 91 CrPC for FIR 
 AUTHORITY REPLY EMAIL:
 - From: {sender_email}
 - Subject: {subject}
-- Body: "{clean_body[:3500]}"
-- Attachments Received: {att_summary}
+- Body: "{clean_body[:3000]}"
+- Attachments Received & Data Content:
+  - {att_summary}
 
 TASK:
 1. Classify the reply into ONE of:
@@ -282,6 +291,8 @@ Return ONLY valid JSON matching this exact structure:
                     }
                     _CLASSIFICATION_CACHE[email_hash] = result
                     return result
+            except Exception as e:
+                logger.warning(f"[EmailResponseManager] Gemini model {m} call error: {e}")
     # Priority 3: Local Ollama (Sovereign Offline AI)
     use_ollama = os.environ.get("USE_OLLAMA", "true").lower() in ("true", "1", "yes")
     ollama_url = os.environ.get("OLLAMA_BASE_URL", "http://host.docker.internal:11434").rstrip('/')

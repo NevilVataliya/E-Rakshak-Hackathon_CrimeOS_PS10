@@ -1104,9 +1104,12 @@ export const useCaseStore = create<CaseState>()(
             const replies = res.data.replies;
             set((state) => {
               const existing = (targetCase && state.processedRepliesByCase[targetCase]) || [];
-              const existingIds = new Set(existing.map((r: any) => r.id));
-              const newItems = replies.filter((r: any) => !existingIds.has(r.id));
-              const merged = [...newItems, ...existing];
+              const replyMap = new Map();
+              // Put existing in map first
+              existing.forEach((r: any) => replyMap.set(r.id, r));
+              // Overwrite with fresh updated replies from server (containing attachments & cloud storage URLs)
+              replies.forEach((r: any) => replyMap.set(r.id, r));
+              const merged = Array.from(replyMap.values());
 
               if (targetCase && merged.length > 0) {
                 api.post('/api/cases', {

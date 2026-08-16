@@ -157,27 +157,44 @@ class InboxMonitorAgent:
         if attachments:
             for att in attachments:
                 raw_name = att.get("filename", "evidence_reply.bin")
-                content = att.get("content", "")
-                raw_bytes = content if isinstance(content, bytes) else str(content).encode("utf-8")
+                raw_bytes = b""
+                if att.get("content_base64"):
+                    import base64
+                    try:
+                        raw_bytes = base64.b64decode(att["content_base64"])
+                    except Exception:
+                        raw_bytes = str(att.get("content", "")).encode("utf-8")
+                else:
+                    content = att.get("content", "")
+                    raw_bytes = content if isinstance(content, bytes) else str(content).encode("utf-8")
+                    if raw_bytes and not att.get("content_base64"):
+                        import base64
+                        att["content_base64"] = base64.b64encode(raw_bytes).decode("utf-8")
+
                 att_hash = hashlib.sha256(raw_bytes).hexdigest()[:10]
                 safe_fname = f"{att_hash}_{re.sub(r'[^a-zA-Z0-9_.-]', '_', raw_name)}"
+
+                # Save locally so /api/requests/download/{safe_fname} works directly
+                try:
+                    pdf_dir = os.path.join(os.getcwd(), "generated_pdfs")
+                    os.makedirs(pdf_dir, exist_ok=True)
+                    local_fpath = os.path.join(pdf_dir, safe_fname)
+                    with open(local_fpath, "wb") as f_out:
+                        f_out.write(raw_bytes)
+                except Exception as local_e:
+                    logger.warning(f"Local cache write warning for {safe_fname}: {local_e}")
 
                 # Upload to Supabase Storage with x-upsert (pure cloud storage, zero local disk clutter)
                 try:
                     cloud_res = upload_to_supabase_storage(raw_bytes, f"evidence/{case_number}/{safe_fname}")
-                    att["storage_url"] = cloud_res.get("storage_url")
-                    att["sha256"] = cloud_res.get("sha256")
+                    att["storage_url"] = cloud_res.get("storage_url") or f"/api/requests/download/{safe_fname}"
+                    att["sha256"] = cloud_res.get("sha256") or att_hash
                 except Exception as e:
                     logger.warning(f"Failed cloud upload for {safe_fname}: {e}")
+                    att["storage_url"] = f"/api/requests/download/{safe_fname}"
+                    att["sha256"] = att_hash
 
                 att["filename"] = safe_fname
-        elif body_text:
-            attachments.append({
-                "filename": f"reply_{email_hash}.txt",
-                "content": body_text,
-                "format": "text",
-                "sha256": email_hash
-            })
 
         if self.on_reply_received_callback:
             self.on_reply_received_callback(case_number, sender_email, subject, body_text, attachments)
@@ -310,24 +327,56 @@ class InboxMonitorAgent:
                 if msg.is_multipart():
                     for part in msg.walk():
                         content_type = part.get_content_type()
-                        disp = str(part.get("Content-Disposition"))
-                        filename = part.get_filename()
+                        disp = str(part.get("Content-Disposition") or "")
+                        filename = part.get_filename() or part.get_param("name")
                         if filename:
                             filename = self._decode_header_full(filename)
 
-                        if content_type == "text/plain" and "attachment" not in disp:
+                        # Plain text body
+                        if content_type == "text/plain" and not filename and "attachment" not in disp.lower():
                             payload = part.get_payload(decode=True)
                             if payload:
                                 body += payload.decode('utf-8', errors='ignore')
-                        elif filename or "attachment" in disp:
-                            fname = filename or "attachment.bin"
+                        # HTML body fallback if text/plain not found
+                        elif content_type == "text/html" and not body and not filename and "attachment" not in disp.lower():
                             payload = part.get_payload(decode=True)
-                            content = payload.decode('utf-8', errors='ignore') if payload else ""
-                            attachments.append({
-                                "filename": fname,
-                                "content": content,
-                                "format": "csv" if fname.endswith(".csv") else ("pdf" if fname.endswith(".pdf") else "text")
-                            })
+                            if payload:
+                                html_text = payload.decode('utf-8', errors='ignore')
+                                clean_html = re.sub(r'<[^>]+>', ' ', html_text)
+                                body += " ".join(clean_html.split())
+                        # Actual File Attachments
+                        elif filename or "attachment" in disp.lower() or content_type not in ["text/plain", "text/html", "multipart/alternative", "multipart/mixed", "multipart/related"]:
+                            fname = filename or f"attachment_{len(attachments)+1}.bin"
+                            payload = part.get_payload(decode=True)
+                            if payload:
+                                import base64
+                                is_text = fname.lower().endswith(('.csv', '.txt', '.json', '.xml', '.log'))
+                                is_pdf = fname.lower().endswith('.pdf')
+                                is_excel = fname.lower().endswith(('.xlsx', '.xls'))
+                                
+                                text_content = ""
+                                if is_text:
+                                    text_content = payload.decode('utf-8', errors='ignore')
+                                elif is_pdf:
+                                    try:
+                                        import pypdf
+                                        import io
+                                        reader = pypdf.PdfReader(io.BytesIO(payload))
+                                        text_content = "\n".join([page.extract_text() or "" for page in reader.pages])
+                                    except Exception:
+                                        text_content = f"[PDF Document: {fname}]"
+                                elif is_excel:
+                                    text_content = f"[Excel Spreadsheet: {fname}]"
+                                else:
+                                    text_content = f"[Attached Evidence File: {fname}]"
+
+                                attachments.append({
+                                    "filename": fname,
+                                    "content": text_content,
+                                    "content_base64": base64.b64encode(payload).decode('utf-8'),
+                                    "format": "csv" if is_text and fname.endswith(".csv") else ("pdf" if is_pdf else "binary"),
+                                    "size_bytes": len(payload)
+                                })
                 else:
                     payload = msg.get_payload(decode=True)
                     body = payload.decode('utf-8', errors='ignore') if payload else ""

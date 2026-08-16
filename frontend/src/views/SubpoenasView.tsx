@@ -20,7 +20,12 @@ import {
   ListChecks,
   AlertCircle,
   Settings,
-  X
+  X,
+  Download,
+  FileSpreadsheet,
+  FileText,
+  ExternalLink,
+  Paperclip
 } from 'lucide-react';
 import api from '../services/api';
 import PDFPreviewModal from '../components/common/PDFPreviewModal';
@@ -620,6 +625,56 @@ export default function SubpoenasView() {
     }
   };
 
+  const handleDownloadAttachment = (att: any) => {
+    if (att.storage_url) {
+      window.open(att.storage_url, '_blank');
+      return;
+    }
+    if (att.content_base64) {
+      try {
+        const isPdf = att.filename?.toLowerCase().endsWith('.pdf');
+        const isCsv = att.filename?.toLowerCase().endsWith('.csv');
+        const isJson = att.filename?.toLowerCase().endsWith('.json');
+        const isXlsx = att.filename?.toLowerCase().endsWith('.xlsx') || att.filename?.toLowerCase().endsWith('.xls');
+        const mime = isPdf ? 'application/pdf' : isCsv ? 'text/csv' : isJson ? 'application/json' : isXlsx ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' : 'application/octet-stream';
+        
+        const byteCharacters = atob(att.content_base64);
+        const byteNumbers = new Array(byteCharacters.length);
+        for (let i = 0; i < byteCharacters.length; i++) {
+          byteNumbers[i] = byteCharacters.charCodeAt(i);
+        }
+        const byteArray = new Uint8Array(byteNumbers);
+        const blob = new Blob([byteArray], { type: mime });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = att.filename || `evidence_${selectedReply?.case_number || 'reply'}.bin`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        return;
+      } catch (b64Err) {
+        console.warn('Base64 decode error, falling back to text payload:', b64Err);
+      }
+    }
+    if (att.content) {
+      const isCsv = att.filename?.toLowerCase().endsWith('.csv');
+      const isJson = att.filename?.toLowerCase().endsWith('.json');
+      const isPdf = att.filename?.toLowerCase().endsWith('.pdf');
+      const mime = isCsv ? 'text/csv' : isJson ? 'application/json' : isPdf ? 'application/pdf' : 'text/plain;charset=utf-8';
+      const blob = new Blob([att.content], { type: mime });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = att.filename || `evidence_${selectedReply?.case_number || 'reply'}.txt`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+  };
+
   const handleCheckInbox = async () => {
     const creds = getSmtpCredsPayload();
     const res = await checkInboxForReplies(activeCaseRef, creds);
@@ -1205,6 +1260,13 @@ export default function SubpoenasView() {
 
                       <div className="text-xs font-semibold text-slate-900 dark:text-slate-200 line-clamp-1">{item.subject}</div>
 
+                      {item.attachments && item.attachments.length > 0 && (
+                        <div className="mt-1 flex items-center gap-1 text-[10px] text-indigo-600 dark:text-indigo-400 font-bold">
+                          <Paperclip className="h-3 w-3 shrink-0" />
+                          <span className="truncate">{item.attachments.length} Attachment(s): {item.attachments.map((a: any) => a.filename).join(', ')}</span>
+                        </div>
+                      )}
+
                       <div className="flex items-center justify-between text-[10px] font-mono text-slate-600 dark:text-slate-400 mt-1.5 pt-1 border-t border-slate-200 dark:border-white/5">
                         <span className="text-slate-800 dark:text-slate-300 font-bold truncate max-w-[170px]">{item.sender_email}</span>
                         {item.classification && (
@@ -1281,6 +1343,52 @@ export default function SubpoenasView() {
                       {selectedReply.body || selectedReply.body_text || `Dear Officer,\n\nPlease find attached the requested ledger records for case ${activeCaseRef}.\n\nRegards,\nNodal Officer`}
                     </div>
                   </div>
+
+                  {/* Attached Evidence & Documents with Download & Direct Module 5 Analysis */}
+                  {selectedReply.attachments && selectedReply.attachments.length > 0 && (
+                    <div className="rounded-lg border border-indigo-200 dark:border-indigo-500/20 bg-indigo-50/50 dark:bg-indigo-950/20 p-3 space-y-2">
+                      <div className="flex items-center justify-between text-xs border-b border-indigo-200 dark:border-indigo-500/20 pb-1 font-bold text-indigo-900 dark:text-indigo-200">
+                        <span className="flex items-center gap-1.5">
+                          <FileSpreadsheet className="h-3.5 w-3.5 text-indigo-600 dark:text-indigo-400" />
+                          Attached Evidence & Documents ({selectedReply.attachments.length})
+                        </span>
+                        <span className="text-[10px] text-slate-500 font-normal">Available for direct download & forensic audit</span>
+                      </div>
+                      <div className="space-y-1.5">
+                        {selectedReply.attachments.map((att: any, attIdx: number) => (
+                          <div key={attIdx} className="flex items-center justify-between p-2 rounded-lg bg-white dark:bg-[#0d1322] border border-indigo-100 dark:border-white/5 text-xs">
+                            <div className="flex items-center gap-2 min-w-0 pr-2">
+                              <FileText className="h-4 w-4 text-indigo-600 dark:text-indigo-400 shrink-0" />
+                              <div className="min-w-0">
+                                <p className="font-bold text-slate-900 dark:text-slate-100 truncate text-[11px]">{att.filename || `Attachment_${attIdx + 1}`}</p>
+                                {att.sha256 && (
+                                  <p className="text-[9px] text-slate-500 font-mono">SHA-256: {att.sha256.slice(0, 16)}...</p>
+                                )}
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-1.5 shrink-0">
+                              <button
+                                onClick={() => handleDownloadAttachment(att)}
+                                className="px-2.5 py-1 rounded bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-[10px] flex items-center gap-1 shadow-sm transition-colors cursor-pointer"
+                                title="Download attachment file to your computer"
+                              >
+                                <Download className="h-3 w-3" />
+                                <span>Download</span>
+                              </button>
+                              <button
+                                onClick={() => navigate('/analytics')}
+                                className="px-2 py-1 rounded border border-indigo-300 dark:border-indigo-500/30 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 font-bold text-[10px] flex items-center gap-1 transition-colors cursor-pointer"
+                                title="Open in Module 5 Forensic Response Analytics"
+                              >
+                                <ExternalLink className="h-3 w-3" />
+                                <span>Analyze in M5</span>
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
 
                   {/* Received & Missing Data Breakdown */}
                   <div className="grid grid-cols-2 gap-2 text-xs">
